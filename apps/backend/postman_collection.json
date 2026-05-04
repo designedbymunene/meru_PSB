@@ -1,0 +1,888 @@
+{
+	"info": {
+		"_postman_id": "8a3b2c1d-e4f5-4a6b-8c9d-0e1f2a3b4c5d",
+		"name": "Meru Recruitment Portal API",
+		"description": "# Meru County Recruitment Portal API\n\nThis collection contains all the API endpoints for the Meru County Recruitment Portal. \n\n## Base URL\n- **API Base URL**: `https://api.merucountypublicserviceboard.or.ke/api`\n- **Domain URL**: `https://api.merucountypublicserviceboard.or.ke` (for health checks)\n\n## Authentication\nMost endpoints require a Bearer Token. To authenticate:\n1. Use the **Login** request in the **Authentication** folder.\n2. The `accessToken` and `refreshToken` will be automatically saved to collection variables.\n3. Subsequent requests will use the `{{accessToken}}` variable in their Authorization header.\n\n## Roles\n- **Applicant**: Standard user role for job seekers.\n- **Admin**: Staff role for managing vacancies, departments, and reviewing applications.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "System",
+			"description": "System health and status endpoints.",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"description": "Check if the API is running and get its current status.",
+						"url": {
+							"raw": "{{domainUrl}}/health",
+							"host": [
+								"{{domainUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "API Root",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"description": "Root endpoint providing basic API information.",
+						"url": {
+							"raw": "{{domainUrl}}/",
+							"host": [
+								"{{domainUrl}}"
+							],
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Authentication",
+			"description": "User registration, login, token refresh, and password management.",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"jdoe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"P@ssword123\",\n  \"fullName\": \"John Doe\",\n  \"role\": \"applicant\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Register a new user account. Role defaults to 'applicant' if not specified.",
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success && response.data) {",
+									"    if (response.data.accessToken) {",
+									"        pm.collectionVariables.set(\"accessToken\", response.data.accessToken);",
+									"    }",
+									"    if (response.data.refreshToken) {",
+									"        pm.collectionVariables.set(\"refreshToken\", response.data.refreshToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"P@ssword123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Authenticate a user and receive access and refresh tokens.",
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success && response.data && response.data.accessToken) {",
+									"    pm.collectionVariables.set(\"accessToken\", response.data.accessToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Obtain a new access token using a valid refresh token.",
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"newPassword\": \"NewSecureP@ss123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Reset a user's password.",
+						"url": {
+							"raw": "{{baseUrl}}/auth/reset-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"reset-password"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Vacancies",
+			"description": "Endpoints for viewing and managing job vacancies.",
+			"item": [
+				{
+					"name": "List All Vacancies",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"description": "Retrieve a list of all job vacancies. Can be filtered by status, department, and job group.",
+						"url": {
+							"raw": "{{baseUrl}}/vacancies?status=open&departmentId=1&jobGroupId=1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"vacancies"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "open",
+									"description": "Filter by status: 'open' or 'closed'"
+								},
+								{
+									"key": "departmentId",
+									"value": "1",
+									"description": "Filter by department ID"
+								},
+								{
+									"key": "jobGroupId",
+									"value": "1",
+									"description": "Filter by job group ID"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Vacancy Details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"description": "Optional: used to check if user has already applied",
+								"disabled": true
+							}
+						],
+						"description": "Get detailed information about a specific vacancy, including requirements and attached documents.",
+						"url": {
+							"raw": "{{baseUrl}}/vacancies/{{vacancyId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"vacancies",
+								"{{vacancyId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Vacancy (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"advertisementNumber\": \"MERU/PSB/2024/001\",\n  \"title\": \"Principal Information Communication Technology Officer\",\n  \"description\": \"Responsible for managing the ICT department and overseeing infrastructure.\",\n  \"departmentId\": 1,\n  \"jobGroupId\": 1,\n  \"closingDate\": \"2024-12-31\",\n  \"openPositions\": 1,\n  \"jobRequirements\": [\n    \"Bachelor's degree in Computer Science\",\n    \"Minimum 5 years experience\"\n  ],\n  \"jobResponsibilities\": [\n    \"Lead ICT team\",\n    \"Strategic planning\"\n  ],\n  \"status\": \"open\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Admin only: Create a new job vacancy.",
+						"url": {
+							"raw": "{{baseUrl}}/vacancies",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"vacancies"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Vacancy (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"closed\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Admin only: Update an existing vacancy.",
+						"url": {
+							"raw": "{{baseUrl}}/vacancies/{{vacancyId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"vacancies",
+								"{{vacancyId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Vacancy (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"description": "Admin only: Delete a vacancy and its associated documents.",
+						"url": {
+							"raw": "{{baseUrl}}/vacancies/{{vacancyId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"vacancies",
+								"{{vacancyId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Vacancy Document (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"description": "Admin only: Upload a PDF document (e.g., job description) for a vacancy.",
+						"url": {
+							"raw": "{{baseUrl}}/vacancies/{{vacancyId}}/pdf",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"vacancies",
+								"{{vacancyId}}",
+								"pdf"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Vacancy Documents",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"description": "Retrieve all documents associated with a vacancy.",
+						"url": {
+							"raw": "{{baseUrl}}/vacancies/{{vacancyId}}/pdfs",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"vacancies",
+								"{{vacancyId}}",
+								"pdfs"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Applicant Profiles",
+			"description": "Management of applicant personal details, qualifications, and history.",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"description": "Retrieve the current user's profile information.",
+						"url": {
+							"raw": "{{baseUrl}}/applicant-profiles/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"applicant-profiles",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create or Update Profile",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"applicantName\": \"John Doe\",\n  \"idNumber\": \"12345678\",\n  \"gender\": \"Male\",\n  \"birthYear\": 1990,\n  \"ethnicity\": \"Kikuyu\",\n  \"phone\": \"+254700123456\",\n  \"email\": \"john.doe@example.com\",\n  \"homeCounty\": \"Meru\",\n  \"homeSubCounty\": \"Imenti North\",\n  \"ward\": \"Meru Town\",\n  \"impairment\": false,\n  \"publicServiceInfo\": \"No\",\n  \"personalNumber\": \"\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Create a new profile or update existing profile details for the authenticated user.",
+						"url": {
+							"raw": "{{baseUrl}}/applicant-profiles",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"applicant-profiles"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Qualifications",
+					"item": [
+						{
+							"name": "List Qualifications",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/applicant-profiles/{{profileId}}/qualifications",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"applicant-profiles",
+										"{{profileId}}",
+										"qualifications"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add Qualification",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"level\": \"Bachelor's Degree\",\n  \"institution\": \"University of Nairobi\",\n  \"course\": \"Computer Science\",\n  \"grade\": \"First Class Honors\",\n  \"yearStart\": 2015,\n  \"yearEnd\": 2019\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/applicant-profiles/{{profileId}}/qualifications",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"applicant-profiles",
+										"{{profileId}}",
+										"qualifications"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Employment History",
+					"item": [
+						{
+							"name": "List Employment History",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/applicant-profiles/{{profileId}}/employment-history",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"applicant-profiles",
+										"{{profileId}}",
+										"employment-history"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add Employment History",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"organization\": \"Tech Solutions Ltd\",\n  \"jobTitle\": \"Software Engineer\",\n  \"jobGroup\": \"K\",\n  \"startDate\": \"2020-01-01\",\n  \"endDate\": \"2023-12-31\",\n  \"currentlyEmployed\": false\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/applicant-profiles/{{profileId}}/employment-history",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"applicant-profiles",
+										"{{profileId}}",
+										"employment-history"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Applications",
+			"description": "Endpoints for job seekers to apply and for admins to manage applications.",
+			"item": [
+				{
+					"name": "Apply for Job",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "vacancyId",
+									"value": "{{vacancyId}}",
+									"type": "text"
+								}
+							]
+						},
+						"description": "Submit an application for a specific vacancy.",
+						"url": {
+							"raw": "{{baseUrl}}/applications",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"applications"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Applications",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"description": "List all applications submitted by the current user.",
+						"url": {
+							"raw": "{{baseUrl}}/applications/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"applications",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Admin: Dashboard Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"description": "Admin only: Get overview statistics for the application dashboard.",
+						"url": {
+							"raw": "{{baseUrl}}/applications/admin/dashboard",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"applications",
+								"admin",
+								"dashboard"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Admin: Search Applications",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"description": "Admin only: Search and filter through all applications.",
+						"url": {
+							"raw": "{{baseUrl}}/applications/admin/search?status=pending&limit=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"applications",
+								"admin",
+								"search"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "pending"
+								},
+								{
+									"key": "searchTerm",
+									"value": "John",
+									"disabled": true
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Application Status (Admin)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"reviewed\",\n  \"notes\": \"Strong technical background, proceeding to next stage.\"\n}"
+						},
+						"description": "Admin only: Update the status of an application.",
+						"url": {
+							"raw": "{{baseUrl}}/applications/{{applicationId}}/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"applications",
+								"{{applicationId}}",
+								"status"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Lookup Data",
+			"description": "Data lookups for Departments and Job Groups.",
+			"item": [
+				{
+					"name": "List Departments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/departments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"departments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Job Groups",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/job-groups",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"job-groups"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://api.merucountypublicserviceboard.or.ke/api",
+			"type": "string"
+		},
+		{
+			"key": "domainUrl",
+			"value": "https://api.merucountypublicserviceboard.or.ke",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "vacancyId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "profileId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "applicationId",
+			"value": "1",
+			"type": "string"
+		}
+	]
+}

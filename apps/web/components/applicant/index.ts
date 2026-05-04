@@ -1,0 +1,6 @@
+export { QualificationsManager } from './qualifications-manager'
+export { EmploymentHistoryManager } from './employment-history-manager'
+export { ProfessionalDetailsManager } from './professional-details-manager'
+export { ProfessionalMembershipsManager } from './professional-memberships-manager'
+export { TrainingCoursesManager } from './training-courses-manager'
+export { ProfileCompletion } from './profile-completion'

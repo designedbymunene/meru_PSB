@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1766066027708,
+      "tag": "0000_lyrical_winter_soldier",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1766420000000,
+      "tag": "0001_forgot_password_flow",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777606636158,
+      "tag": "0002_zippy_quasar",
+      "breakpoints": true
+    }
+  ]
+}

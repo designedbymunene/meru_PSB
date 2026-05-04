@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Meru County PSB",
+    "slug": "meru-county-psb",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/branding/merucountylogo.png",
+    "scheme": "merucountypsbmobile",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/branding/merucountylogo.png"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/branding/merucountylogo.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.nickm101.merucountypsb"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/branding/merucountylogo.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#208AEF",
+          "android": {
+            "image": "./assets/branding/merucountylogo.png",
+            "imageWidth": 76
+          }
+        }
+      ],
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
