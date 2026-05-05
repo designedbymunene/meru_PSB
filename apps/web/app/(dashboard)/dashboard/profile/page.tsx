@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, User, MapPin, Phone } from 'lucide-react'
+import { Loader2, User } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,7 +35,7 @@ import {
     useWards, 
     useEthnicities 
 } from '@/hooks/use-reference-data'
-import { QualificationsManager, EmploymentHistoryManager, ProfessionalDetailsManager, ProfessionalMembershipsManager, TrainingCoursesManager, ProfileCompletion } from '@/components/applicant'
+import { QualificationsManager, EmploymentHistoryManager, ProfessionalDetailsManager, ProfessionalMembershipsManager, TrainingCoursesManager, ProfileCompletion, RefereesManager } from '@/components/applicant'
 
 export default function ProfilePage() {
     const { data: profileResponse, isLoading } = useMyProfile()
@@ -52,12 +52,12 @@ export default function ProfilePage() {
     const form = useForm({
         resolver: zodResolver(createProfileSchema),
         values: profile ? {
-            applicantName: profile.applicantName,
+            fullName: profile.fullName || '',
             idNumber: profile.idNumber,
             gender: profile.gender as 'Male' | 'Female' | 'Other',
-            birthYear: profile.birthYear,
+            dateOfBirth: profile.dateOfBirth || new Date().toISOString().split('T')[0],
             ethnicityId: profile.ethnicityId || undefined,
-            phone: profile.phone,
+            phoneNumber: profile.phoneNumber || '',
             email: profile.email,
             homeCountyId: profile.homeCountyId || undefined,
             homeSubCountyId: profile.homeSubCountyId || undefined,
@@ -67,12 +67,12 @@ export default function ProfilePage() {
             publicServiceInfo: profile.publicServiceInfo || '',
             personalNumber: profile.personalNumber || '',
         } : {
-            applicantName: '',
+            fullName: '',
             idNumber: '',
             gender: 'Male' as const,
-            birthYear: new Date().getFullYear() - 25,
+            dateOfBirth: new Date().toISOString().split('T')[0],
             ethnicityId: undefined,
-            phone: '',
+            phoneNumber: '',
             email: '',
             homeCountyId: undefined,
             homeSubCountyId: undefined,
@@ -84,8 +84,8 @@ export default function ProfilePage() {
         },
     })
 
-    const selectedCountyId = form.watch('homeCountyId')
-    const selectedSubCountyId = form.watch('homeSubCountyId')
+    const selectedCountyId = form.watch('homeCountyId') as number | undefined
+    const selectedSubCountyId = form.watch('homeSubCountyId') as number | undefined
 
     const { data: subCountiesResponse } = useConstituencies(selectedCountyId)
     const subCounties = subCountiesResponse?.data || []
@@ -135,7 +135,7 @@ export default function ProfilePage() {
             </div>
 
             <Tabs defaultValue="personal" className="space-y-6">
-                <TabsList className="grid grid-cols-6 w-full lg:w-auto">
+                <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 w-full lg:w-auto h-auto gap-1">
                     <TabsTrigger value="personal">
                         <User className="h-4 w-4 mr-2" />
                         Personal
@@ -145,6 +145,7 @@ export default function ProfilePage() {
                     <TabsTrigger value="training" disabled={!profile}>Training</TabsTrigger>
                     <TabsTrigger value="memberships" disabled={!profile}>Memberships</TabsTrigger>
                     <TabsTrigger value="employment" disabled={!profile}>Employment</TabsTrigger>
+                    <TabsTrigger value="referees" disabled={!profile}>Referees</TabsTrigger>
                 </TabsList>
 
                 {/* Personal Information Tab */}
@@ -161,7 +162,7 @@ export default function ProfilePage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField
                                             control={form.control}
-                                            name="applicantName"
+                                            name="fullName"
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Full Name *</FormLabel>
@@ -212,16 +213,15 @@ export default function ProfilePage() {
 
                                         <FormField
                                             control={form.control}
-                                            name="birthYear"
+                                            name="dateOfBirth"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Birth Year *</FormLabel>
+                                                    <FormLabel>Date of Birth *</FormLabel>
                                                     <FormControl>
                                                         <Input
-                                                            type="number"
-                                                            placeholder="1995"
+                                                            type="date"
+                                                            placeholder="1995-01-01"
                                                             {...field}
-                                                            onChange={(e) => field.onChange(parseInt(e.target.value))}
                                                         />
                                                     </FormControl>
                                                     <FormMessage />
@@ -245,7 +245,7 @@ export default function ProfilePage() {
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            {ethnicities.map((ethnicity) => (
+                                                            {ethnicities.map((ethnicity: any) => (
                                                                 <SelectItem key={ethnicity.id} value={ethnicity.id.toString()}>
                                                                     {ethnicity.name}
                                                                 </SelectItem>
@@ -259,148 +259,134 @@ export default function ProfilePage() {
                                     </div>
 
                                     {/* Location */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-lg font-medium flex items-center gap-2">
-                                            <MapPin className="h-5 w-5" />
-                                            Location
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <FormField
-                                                control={form.control}
-                                                name="homeCountyId"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Home County</FormLabel>
-                                                        <Select
-                                                            onValueChange={(val) => {
-                                                                field.onChange(parseInt(val))
-                                                                form.setValue('homeSubCountyId', undefined)
-                                                                form.setValue('wardId', undefined)
-                                                            }}
-                                                            value={field.value?.toString()}
-                                                        >
-                                                            <FormControl>
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Select county" />
-                                                                </SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent>
-                                                                {counties.map((county) => (
-                                                                    <SelectItem key={county.id} value={county.id.toString()}>
-                                                                        {county.name}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="homeCountyId"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Home County</FormLabel>
+                                                    <Select
+                                                        onValueChange={(val) => {
+                                                            field.onChange(parseInt(val))
+                                                            form.setValue('homeSubCountyId', undefined)
+                                                            form.setValue('wardId', undefined)
+                                                        }}
+                                                        value={field.value?.toString()}
+                                                    >
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select county" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {counties.map((county: any) => (
+                                                                <SelectItem key={county.id} value={county.id.toString()}>
+                                                                    {county.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                            <FormField
-                                                control={form.control}
-                                                name="homeSubCountyId"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Home Sub-County</FormLabel>
-                                                        <Select
-                                                            onValueChange={(val) => {
-                                                                field.onChange(parseInt(val))
-                                                                form.setValue('wardId', undefined)
-                                                            }}
-                                                            value={field.value?.toString()}
-                                                            disabled={!selectedCountyId}
-                                                        >
-                                                            <FormControl>
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Select sub-county" />
-                                                                </SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent>
-                                                                {subCounties.map((sc) => (
-                                                                    <SelectItem key={sc.id} value={sc.id.toString()}>
-                                                                        {sc.name}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
+                                        <FormField
+                                            control={form.control}
+                                            name="homeSubCountyId"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Home Sub-County</FormLabel>
+                                                    <Select
+                                                        onValueChange={(val) => {
+                                                            field.onChange(parseInt(val))
+                                                            form.setValue('wardId', undefined)
+                                                        }}
+                                                        value={field.value?.toString()}
+                                                        disabled={!selectedCountyId}
+                                                    >
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select sub-county" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {subCounties.map((sc: any) => (
+                                                                <SelectItem key={sc.id} value={sc.id.toString()}>
+                                                                    {sc.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                            <FormField
-                                                control={form.control}
-                                                name="wardId"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Ward</FormLabel>
-                                                        <Select
-                                                            onValueChange={(val) => field.onChange(parseInt(val))}
-                                                            value={field.value?.toString()}
-                                                            disabled={!selectedSubCountyId}
-                                                        >
-                                                            <FormControl>
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Select ward" />
-                                                                </SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent>
-                                                                {wards.map((ward) => (
-                                                                    <SelectItem key={ward.id} value={ward.id.toString()}>
-                                                                        {ward.name}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="wardId"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Ward</FormLabel>
+                                                    <Select
+                                                        onValueChange={(val) => field.onChange(parseInt(val))}
+                                                        value={field.value?.toString()}
+                                                        disabled={!selectedSubCountyId}
+                                                    >
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select ward" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {wards.map((ward: any) => (
+                                                                <SelectItem key={ward.id} value={ward.id.toString()}>
+                                                                    {ward.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
 
                                     {/* Contact */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-lg font-medium flex items-center gap-2">
-                                            <Phone className="h-5 w-5" />
-                                            Contact Information
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <FormField
-                                                control={form.control}
-                                                name="phone"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Phone Number *</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="+254712345678" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="phoneNumber"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Phone Number *</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="+254712345678" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                            <FormField
-                                                control={form.control}
-                                                name="email"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Email Address *</FormLabel>
-                                                        <FormControl>
-                                                            <Input type="email" placeholder="john@example.com" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="email"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Email Address *</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="email" placeholder="john@example.com" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
 
                                     {/* Additional Information */}
                                     <div className="space-y-4">
-                                        <h3 className="text-lg font-medium">Additional Information</h3>
-
                                         <FormField
                                             control={form.control}
                                             name="impairment"
@@ -491,27 +477,32 @@ export default function ProfilePage() {
 
                 {/* Qualifications Tab */}
                 <TabsContent value="qualifications">
-                    {profile && <QualificationsManager profileId={profile.id} />}
+                    {profile && <QualificationsManager />}
                 </TabsContent>
 
                 {/* Professional Details Tab */}
                 <TabsContent value="professional">
-                    {profile && <ProfessionalDetailsManager profileId={profile.id} />}
+                    {profile && <ProfessionalDetailsManager />}
                 </TabsContent>
 
                 {/* Training Courses Tab */}
                 <TabsContent value="training">
-                    {profile && <TrainingCoursesManager profileId={profile.id} />}
+                    {profile && <TrainingCoursesManager />}
                 </TabsContent>
 
                 {/* Professional Memberships Tab */}
                 <TabsContent value="memberships">
-                    {profile && <ProfessionalMembershipsManager profileId={profile.id} />}
+                    {profile && <ProfessionalMembershipsManager />}
                 </TabsContent>
 
                 {/* Employment History Tab */}
                 <TabsContent value="employment">
-                    {profile && <EmploymentHistoryManager profileId={profile.id} />}
+                    {profile && <EmploymentHistoryManager />}
+                </TabsContent>
+
+                {/* Referees Tab */}
+                <TabsContent value="referees">
+                    {profile && <RefereesManager />}
                 </TabsContent>
             </Tabs>
         </div>

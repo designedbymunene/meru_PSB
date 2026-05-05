@@ -1,7 +1,7 @@
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { CalendarIcon, EyeIcon } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { UnifiedCard } from '@/components/shared/cards/unified-card'
 import { Button } from '@/components/ui/button'
 import { ApplicationStatusBadge } from './application-status-badge'
 import type { ApplicationWithRelations } from '@/types'
@@ -11,31 +11,36 @@ interface ApplicationCardProps {
 }
 
 export function ApplicationCard({ application }: ApplicationCardProps) {
-    return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                    {application.vacancy.title}
-                </CardTitle>
-                <ApplicationStatusBadge status={application.status} />
-            </CardHeader>
-            <CardContent>
-                <div className="flex justify-between items-end mt-2">
-                    <div className="text-xs text-muted-foreground">
-                        <div className="flex items-center mt-1">
-                            <CalendarIcon className="mr-1 h-3 w-3" />
-                            Applied: {format(new Date(application.appliedAt), 'MMM dd, yyyy')}
-                        </div>
+    const router = useRouter()
 
-                    </div>
-                    <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/dashboard/applications/${application.id}`}>
-                            <EyeIcon className="mr-2 h-3 w-3" />
-                            View
-                        </Link>
-                    </Button>
+    if (!application.vacancy) {
+        return null
+    }
+
+    return (
+        <UnifiedCard
+            title={application.vacancy.title}
+            subtitle={(application.vacancy as any)?.department?.name}
+            badge={<ApplicationStatusBadge status={application.status} />}
+            metadata={
+                <div className="flex items-center gap-2 text-sm">
+                    <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
+                    <span>Applied: {format(new Date(application.appliedAt), 'MMM dd, yyyy')}</span>
                 </div>
-            </CardContent>
-        </Card>
+            }
+            actions={
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-lg hover:bg-primary/10"
+                    onClick={() => router.push(`/dashboard/applications/${application.id}`)}
+                    title="View Application"
+                >
+                    <EyeIcon className="h-3.5 w-3.5 text-primary" />
+                </Button>
+            }
+            variant="hover-actions"
+            onClick={() => router.push(`/dashboard/applications/${application.id}`)}
+        />
     )
 }

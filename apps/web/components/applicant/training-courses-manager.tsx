@@ -37,27 +37,24 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createTrainingCourseSchema } from '@meru/shared'
 import {
-    useTrainingCourses,
-    useAddTrainingCourse,
-    useUpdateTrainingCourse,
-    useDeleteTrainingCourse,
+    useMyTrainingCourses,
+    useAddMyTrainingCourse,
+    useUpdateMyTrainingCourse,
+    useDeleteMyTrainingCourse,
 } from '@/hooks/use-applicant-profile'
 import type { TrainingCourse } from '@/types'
 
-interface TrainingCoursesManagerProps {
-    profileId: number
-}
-
-export function TrainingCoursesManager({ profileId }: TrainingCoursesManagerProps) {
-    const { data: response, isLoading } = useTrainingCourses(profileId)
-    const courses = response?.data || []
+export function TrainingCoursesManager() {
+    const { data: response, isLoading } = useMyTrainingCourses()
+    const trainingCourses = response?.data || []
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editing, setEditing] = useState<TrainingCourse | null>(null)
     const [deletingId, setDeletingId] = useState<number | null>(null)
 
-    const addMutation = useAddTrainingCourse(profileId)
-    const updateMutation = useUpdateTrainingCourse(profileId)
-    const deleteMutation = useDeleteTrainingCourse(profileId)
+    const addMutation = useAddMyTrainingCourse()
+    const updateMutation = useUpdateMyTrainingCourse()
+    const deleteMutation = useDeleteMyTrainingCourse()
+
 
     const form = useForm({
         resolver: zodResolver(createTrainingCourseSchema),
@@ -240,7 +237,7 @@ export function TrainingCoursesManager({ profileId }: TrainingCoursesManagerProp
                     <div className="flex justify-center py-8">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                ) : courses.length === 0 ? (
+                ) : trainingCourses.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                         <GraduationCap className="h-12 w-12 mx-auto mb-4 opacity-50" />
                         <p>No training courses added yet.</p>
@@ -258,7 +255,7 @@ export function TrainingCoursesManager({ profileId }: TrainingCoursesManagerProp
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {courses.map((course) => (
+                            {trainingCourses.map((course: any) => (
                                 <TableRow key={course.id}>
                                     <TableCell>
                                         <div>

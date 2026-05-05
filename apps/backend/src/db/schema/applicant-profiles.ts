@@ -14,12 +14,12 @@ export const applicantProfiles = pgTable('applicant_profiles', {
 
     // Core applicant info
 
-    applicantName: text('applicant_name').notNull(),
-    idNumber: varchar('id_number', { length: 50 }).notNull().unique(), // Free text validation
-    gender: varchar('gender', { length: 20 }), // Male, Female, Other
-    birthYear: integer('birth_year'),
+    fullName: text('full_name').notNull(),
+    idNumber: varchar('id_number', { length: 50 }).notNull().unique(),
+    gender: varchar('gender', { length: 20 }),
+    dateOfBirth: varchar('date_of_birth', { length: 10 }), // YYYY-MM-DD
     ethnicityId: integer('ethnicity_id').references(() => ethnicities.id),
-    phone: varchar('phone', { length: 20 }).notNull(), // Free text - supports international
+    phoneNumber: varchar('phone_number', { length: 20 }).notNull(),
     email: varchar('email', { length: 320 }).notNull(),
 
     // Location data

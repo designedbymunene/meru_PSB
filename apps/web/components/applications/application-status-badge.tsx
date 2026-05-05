@@ -1,10 +1,9 @@
 import { Badge } from '@/components/ui/badge'
 import { APPLICATION_STATUS_COLORS } from '@/lib/constants'
-import { ApplicationStatus } from '@/types'
 import { cn } from '@/lib/utils'
 
 interface ApplicationStatusBadgeProps {
-    status: ApplicationStatus
+    status: 'pending' | 'reviewed' | 'accepted' | 'rejected'
     className?: string
 }
 

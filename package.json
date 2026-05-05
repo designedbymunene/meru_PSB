@@ -2,7 +2,7 @@
   "name": "meru-psb-monorepo",
   "private": true,
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
+    "dev": "NODE_ENV=development pnpm -r --parallel dev",
     "dev:mobile": "pnpm --filter @meru/mobile start --clear",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",

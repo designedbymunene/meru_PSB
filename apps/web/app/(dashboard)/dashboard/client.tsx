@@ -38,7 +38,13 @@ export function DashboardContent() {
                 </div>
             </div>
 
-            <ApplicationList filters={vacancyId !== 'all' ? { vacancyId: parseInt(vacancyId) } : undefined} />
+            <ApplicationList filters={vacancyId !== 'all' ? { 
+                vacancyId: String(parseInt(vacancyId)),
+                sortBy: 'appliedAt' as const,
+                order: 'desc' as const,
+                limit: '50',
+                offset: '0'
+            } : undefined} />
 
             {showProfileModal && <ProfileCompletionModal open={true} />}
         </>

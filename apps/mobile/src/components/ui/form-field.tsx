@@ -6,7 +6,7 @@ interface FormFieldProps extends TextInputProps {
     label: string;
     error?: string;
     icon?: LucideIcon;
-    nextFieldRef?: React.RefObject<TextInput>;
+    nextFieldRef?: React.RefObject<TextInput | null>;
 }
 
 export const FormField = forwardRef<TextInput, FormFieldProps>(
@@ -17,17 +17,22 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(
                     {label}
                 </Text>
                 <View 
-                    className={`flex-row items-center h-14 rounded-2xl border bg-slate-50 dark:bg-gray-900 px-4 ${
+                    className={`flex-row ${props.multiline ? 'items-start min-h-[112px]' : 'items-center h-14'} rounded-2xl border bg-slate-50 dark:bg-gray-900 px-4 ${
                         error 
                             ? 'border-red-500' 
                             : 'border-slate-200 dark:border-gray-800 focus:border-[#004aad] dark:focus:border-blue-500'
                     }`}
                 >
-                    {Icon && <Icon size={20} color={error ? '#ef4444' : '#64748b'} />}
+                    {Icon && (
+                        <View className={props.multiline ? 'mt-4' : ''}>
+                            <Icon size={20} color={error ? '#ef4444' : '#64748b'} />
+                        </View>
+                    )}
                     <TextInput
                         ref={ref}
-                        className={`flex-1 h-full text-slate-900 dark:text-white text-base ${Icon ? 'px-3' : 'px-1'}`}
+                        className={`flex-1 ${props.multiline ? 'py-3' : 'h-full'} text-slate-900 dark:text-white text-base ${Icon ? 'px-3' : 'px-1'}`}
                         placeholderTextColor="#94a3b8"
+                        textAlignVertical={props.multiline ? 'top' : 'center'}
                         returnKeyType={nextFieldRef ? 'next' : props.returnKeyType || 'done'}
                         onSubmitEditing={(e) => {
                             if (nextFieldRef?.current) {

@@ -12,6 +12,7 @@ export * from './professional-details'
 export * from './training-courses'
 export * from './professional-memberships'
 export * from './employment-history'
+export * from './referees'
 export * from './locations'
 export * from './reference-data'
 
@@ -29,6 +30,7 @@ import { professionalDetails } from './professional-details'
 import { trainingCourses } from './training-courses'
 import { professionalMemberships } from './professional-memberships'
 import { employmentHistory } from './employment-history'
+import { referees } from './referees'
 import { counties, constituencies, wards } from './locations'
 import {
     ethnicities,
@@ -54,7 +56,8 @@ import {
     employmentHistoryRelations,
     professionalDetailsRelations,
     trainingCoursesRelations,
-    professionalMembershipsRelations
+    professionalMembershipsRelations,
+    refereesRelations
 } from './relations'
 
 // Export schema object with relations for query API
@@ -73,6 +76,7 @@ export const schema = {
     trainingCourses,
     professionalMemberships,
     employmentHistory,
+    referees,
     counties,
     constituencies,
     wards,
@@ -95,5 +99,6 @@ export const schema = {
     employmentHistoryRelations,
     professionalDetailsRelations,
     trainingCoursesRelations,
-    professionalMembershipsRelations
+    professionalMembershipsRelations,
+    refereesRelations
 }

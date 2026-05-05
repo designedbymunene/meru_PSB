@@ -36,27 +36,23 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createProfessionalDetailSchema } from '@meru/shared'
 import {
-    useProfessionalDetails,
-    useAddProfessionalDetail,
-    useUpdateProfessionalDetail,
-    useDeleteProfessionalDetail,
+    useMyProfessionalDetails,
+    useAddMyProfessionalDetail,
+    useUpdateMyProfessionalDetail,
+    useDeleteMyProfessionalDetail,
 } from '@/hooks/use-applicant-profile'
 import type { ProfessionalDetail } from '@/types'
 
-interface ProfessionalDetailsManagerProps {
-    profileId: number
-}
-
-export function ProfessionalDetailsManager({ profileId }: ProfessionalDetailsManagerProps) {
-    const { data: response, isLoading } = useProfessionalDetails(profileId)
+export function ProfessionalDetailsManager() {
+    const { data: response, isLoading } = useMyProfessionalDetails()
     const details = response?.data || []
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editing, setEditing] = useState<ProfessionalDetail | null>(null)
     const [deletingId, setDeletingId] = useState<number | null>(null)
 
-    const addMutation = useAddProfessionalDetail(profileId)
-    const updateMutation = useUpdateProfessionalDetail(profileId)
-    const deleteMutation = useDeleteProfessionalDetail(profileId)
+    const addMutation = useAddMyProfessionalDetail()
+    const updateMutation = useUpdateMyProfessionalDetail()
+    const deleteMutation = useDeleteMyProfessionalDetail()
 
     const form = useForm({
         resolver: zodResolver(createProfessionalDetailSchema),

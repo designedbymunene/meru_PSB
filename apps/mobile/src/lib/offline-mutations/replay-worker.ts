@@ -20,31 +20,28 @@ let lastKnownOnlineState = true;
 function invalidateAffectedQueries(path: string) {
   const invalidations: string[][] = [];
 
-  if (path === "/applicant-profiles") {
+  if (path === "/applicant-profiles" || path === "/applicant-profiles/me") {
     invalidations.push(["profile"]);
   }
 
-  if (path.startsWith("/applicant-profiles/qualifications")) {
+  if (path.startsWith("/applicant-profiles/me/qualifications") || path.startsWith("/applicant-profiles/qualifications")) {
     invalidations.push(["qualifications"]);
   }
 
-  if (path.startsWith("/applicant-profiles/memberships")) {
+  if (path.startsWith("/applicant-profiles/me/professional-memberships") || path.startsWith("/applicant-profiles/memberships")) {
     invalidations.push(["memberships"]);
   }
 
-  if (path.startsWith("/applicant-profiles/professional-details")) {
+  if (path.startsWith("/applicant-profiles/me/professional-details") || path.startsWith("/applicant-profiles/professional-details")) {
     invalidations.push(["professional-details"]);
   }
 
-  if (path.startsWith("/applicant-profiles/employment-history")) {
+  if (path.startsWith("/applicant-profiles/me/employment-history") || path.startsWith("/applicant-profiles/employment-history") || path.startsWith("/applicant-profiles/employment")) {
     invalidations.push(["employment-history"]);
-  }
-
-  if (path.startsWith("/applicant-profiles/employment")) {
     invalidations.push(["employment"]);
   }
 
-  if (path.startsWith("/applicant-profiles/training-courses")) {
+  if (path.startsWith("/applicant-profiles/me/training-courses") || path.startsWith("/applicant-profiles/training-courses")) {
     invalidations.push(["training-courses"]);
   }
 

@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import { apiClient, getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
-import { Calendar, Info, ChevronRight, FileText } from 'lucide-react-native';
+import { Calendar, Info, ChevronRight, FileText, Building2 } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { ApplicationsListLoadingState } from '@/components/ui/loading-skeletons';
 
@@ -34,10 +34,10 @@ export default function ApplicationsScreen() {
 
     const getStatusStyles = (status: string) => {
         switch (status.toLowerCase()) {
-            case 'pending': return 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border-yellow-100 dark:border-yellow-900/30';
+            case 'pending': return 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/30';
             case 'reviewed': return 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30';
-            case 'accepted': return 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/30';
-            case 'rejected': return 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30';
+            case 'accepted': return 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/30';
+            case 'rejected': return 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/30';
             default: return 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-100 dark:border-gray-700';
         }
     };
@@ -72,26 +72,50 @@ export default function ApplicationsScreen() {
                     <TouchableOpacity 
                         onPress={() => router.push(`/applications/${item.id}`)}
                         activeOpacity={0.7}
-                        className="bg-white dark:bg-gray-900 p-4 rounded-2xl mb-4 shadow-sm border border-gray-100 dark:border-gray-800"
+                        className="bg-white dark:bg-gray-900 p-5 rounded-[32px] mb-4 border border-gray-100 dark:border-gray-800 shadow-sm"
                     >
-                        <View className="flex-row justify-between items-start mb-3">
-                            <View className="flex-1">
-                                <Text className="text-lg font-bold text-gray-900 dark:text-white">{item.vacancy?.title}</Text>
-                                <Text className="text-gray-500 dark:text-gray-400 text-sm mt-1">Ref: {item.vacancy?.refNumber || 'N/A'}</Text>
+                        <View className="flex-row justify-between items-start">
+                            <View className="flex-1 mr-4">
+                                <View className="flex-row items-center mb-1.5">
+                                    <View className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-500 mr-2" />
+                                    <Text className="text-gray-400 dark:text-gray-600 text-[10px] font-black uppercase tracking-[1.5px]">
+                                        REF: {item.vacancy?.advertisementNumber || 'N/A'}
+                                    </Text>
+                                </View>
+                                
+                                <Text className="text-xl font-bold text-gray-900 dark:text-white leading-tight mb-2">
+                                    {item.vacancy?.title}
+                                </Text>
+                                
+                                <View className="flex-row items-center">
+                                    <View className="w-6 h-6 rounded-lg bg-gray-50 dark:bg-gray-800 items-center justify-center mr-2">
+                                        <Building2 size={12} color={isDarkMode ? '#94a3b8' : '#64748b'} />
+                                    </View>
+                                    <Text className="text-gray-500 dark:text-gray-400 text-xs font-medium" numberOfLines={1}>
+                                        {item.vacancy?.department?.name || 'Public Service Board'}
+                                    </Text>
+                                </View>
                             </View>
-                            <View className={`px-3 py-1 rounded-full border ${getStatusStyles(item.status)}`}>
-                                <Text className={`text-[10px] font-black uppercase tracking-wider ${getStatusStyles(item.status).split(' ').find(c => c.startsWith('text-'))}`}>
+
+                            <View className={`px-3 py-1.5 rounded-2xl border ${getStatusStyles(item.status)}`}>
+                                <Text className={`text-[10px] font-black uppercase tracking-widest ${getStatusStyles(item.status).split(' ').find(c => c.startsWith('text-'))}`}>
                                     {item.status}
                                 </Text>
                             </View>
                         </View>
 
-                        <View className="flex-row justify-between items-center pt-3 border-t border-gray-50 dark:border-gray-800">
-                            <View className="flex-row items-center">
-                                <Calendar size={14} color="#64748b" />
-                                <Text className="text-gray-500 dark:text-gray-400 text-xs ml-1">Applied on: {new Date(item.createdAt).toLocaleDateString()}</Text>
+                        <View className="mt-5 pt-4 border-t border-gray-50 dark:border-gray-800 flex-row justify-between items-center">
+                            <View className="flex-row items-center bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-full">
+                                <Calendar size={12} color="#64748b" />
+                                <Text className="text-gray-500 dark:text-gray-400 text-[10px] font-bold ml-1.5 uppercase">
+                                    {new Date(item.appliedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </Text>
                             </View>
-                            <ChevronRight size={16} color="#94a3b8" />
+                            
+                            <View className="flex-row items-center">
+                                <Text className="text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase mr-1">Details</Text>
+                                <ChevronRight size={14} color={isDarkMode ? '#60a5fa' : '#004aad'} />
+                            </View>
                         </View>
                     </TouchableOpacity>
                 )}

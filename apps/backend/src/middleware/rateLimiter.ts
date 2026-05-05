@@ -1,7 +1,14 @@
 import { rateLimiter } from 'hono-rate-limiter'
 import { TooManyRequestsError } from '../utils/errors'
 
-export const authRateLimiter = rateLimiter({
+const isProduction = process.env.NODE_ENV === 'production'
+
+// No-op middleware for development - bypasses rate limiting
+const noOpMiddleware = async (c: any, next: any) => {
+    await next()
+}
+
+const authLimiter = rateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
     limit: 10, // Limit each IP to 10 requests per windowMs
     standardHeaders: 'draft-7', // Use standard RateLimit headers
@@ -16,7 +23,7 @@ export const authRateLimiter = rateLimiter({
     }
 })
 
-export const publicRateLimiter = rateLimiter({
+const publicLimiter = rateLimiter({
     windowMs: 1 * 60 * 1000, // 1 minute
     limit: 60, // 60 requests per minute
     standardHeaders: 'draft-7',
@@ -26,3 +33,6 @@ export const publicRateLimiter = rateLimiter({
         throw new TooManyRequestsError('Too many requests, please try again later')
     }
 })
+
+export const authRateLimiter = isProduction ? authLimiter : noOpMiddleware
+export const publicRateLimiter = isProduction ? publicLimiter : noOpMiddleware

@@ -1,20 +1,28 @@
 import { z } from 'zod'
 
+/**
+ * Helper to handle optional/nullable foreign key IDs.
+ * Converts 0, "0", empty strings, and null to null.
+ * This prevents foreign key violations in the database when "None" or "Select..." is chosen in the UI.
+ */
+const coerceNullableId = z.preprocess(
+    (val) => (val === '' || val === 0 || val === '0' || val === null) ? null : val,
+    z.coerce.number().nullable().optional()
+)
+
 // Applicant Profile Schema
 export const applicantProfileSchema = z.object({
 
-    applicantName: z.string().min(2, 'Name must be at least 2 characters').max(200),
+    fullName: z.string().min(2, 'Name must be at least 2 characters').max(200),
     idNumber: z.string().min(1, 'ID number is required'), // Free text - no strict format
     gender: z.enum(['Male', 'Female', 'Other'], { required_error: 'Gender is required' }),
-    birthYear: z.number()
-        .min(1940, 'Birth year cannot be before 1940')
-        .max(new Date().getFullYear() - 18, 'Must be at least 18 years old'),
-    ethnicityId: z.coerce.number().optional(),
-    phone: z.string().min(1, 'Phone number is required'), // Free text - supports international
+    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format'),
+    ethnicityId: coerceNullableId,
+    phoneNumber: z.string().min(1, 'Phone number is required'), // Free text - supports international
     email: z.string().email('Invalid email address'),
-    homeCountyId: z.coerce.number().optional(),
-    homeSubCountyId: z.coerce.number().optional(),
-    wardId: z.coerce.number().optional(),
+    homeCountyId: coerceNullableId,
+    homeSubCountyId: coerceNullableId,
+    wardId: coerceNullableId,
     impairment: z.boolean().default(false),
     impairmentDetails: z.string().optional(),
     publicServiceInfo: z.string().optional(),
@@ -25,14 +33,12 @@ export const updateApplicantProfileSchema = applicantProfileSchema.partial()
 
 // Qualification Schema
 export const qualificationSchema = z.object({
-    level: z.enum(['DOCTORATE', 'MASTERS', 'BACHELORS', 'DIPLOMA', 'CERTIFICATE', 'KCSE', 'KCPE', 'OTHER'], {
-        required_error: 'Qualification level is required'
-    }),
+    level: z.string().min(1, 'Qualification level is required'),
     course: z.string().min(2, 'Course name must be at least 2 characters'),
-    courseId: z.coerce.number().optional(),
+    courseId: coerceNullableId,
     grade: z.string().optional(),
     institution: z.string().min(1, 'Institution is required'),
-    institutionId: z.coerce.number().optional(),
+    institutionId: coerceNullableId,
     yearStart: z.number()
         .min(1950, 'Year must be after 1950')
         .max(new Date().getFullYear())
@@ -41,9 +47,11 @@ export const qualificationSchema = z.object({
         .min(1950, 'Year must be after 1950')
         .max(new Date().getFullYear() + 10) // Allow future end dates for ongoing studies
         .optional()
+        .nullable(),
+    stillStudying: z.boolean().optional().default(false)
 }).refine(
     (data) => {
-        if (data.yearStart && data.yearEnd) {
+        if (data.yearStart && data.yearEnd && !data.stillStudying) {
             return data.yearEnd >= data.yearStart
         }
         return true
@@ -56,12 +64,12 @@ export const qualificationSchema = z.object({
 
 // Update schema - defined separately to avoid .partial() on refined schema
 export const updateQualificationSchema = z.object({
-    level: z.enum(['DOCTORATE', 'MASTERS', 'BACHELORS', 'DIPLOMA', 'CERTIFICATE', 'KCSE', 'KCPE', 'OTHER']).optional(),
+    level: z.string().min(1, 'Qualification level is required').optional(),
     course: z.string().min(2, 'Course name must be at least 2 characters').optional(),
-    courseId: z.coerce.number().optional(),
+    courseId: coerceNullableId,
     grade: z.string().optional(),
     institution: z.string().min(1, 'Institution is required').optional(),
-    institutionId: z.coerce.number().optional(),
+    institutionId: coerceNullableId,
     yearStart: z.number()
         .min(1950, 'Year must be after 1950')
         .max(new Date().getFullYear())
@@ -70,9 +78,11 @@ export const updateQualificationSchema = z.object({
         .min(1950, 'Year must be after 1950')
         .max(new Date().getFullYear() + 10)
         .optional()
+        .nullable(),
+    stillStudying: z.boolean().optional()
 }).refine(
     (data) => {
-        if (data.yearStart && data.yearEnd) {
+        if (data.yearStart && data.yearEnd && !data.stillStudying) {
             return data.yearEnd >= data.yearStart
         }
         return true
@@ -86,7 +96,7 @@ export const updateQualificationSchema = z.object({
 // Professional Detail Schema
 export const professionalDetailSchema = z.object({
     registrationBody: z.string().min(2, 'Registration body is required'),
-    registrationBodyId: z.coerce.number().optional(),
+    registrationBodyId: coerceNullableId,
     registrationNumber: z.string().min(1, 'Registration number is required'),
     expiryDate: z.string().optional() // ISO date string
 })
@@ -96,11 +106,11 @@ export const updateProfessionalDetailSchema = professionalDetailSchema.partial()
 // Training Course Schema
 export const trainingCourseSchema = z.object({
     courseName: z.string().min(2, 'Course name is required'),
-    courseId: z.coerce.number().optional(),
+    courseId: coerceNullableId,
     description: z.string().optional(),
     grade: z.string().optional(),
     institution: z.string().optional(),
-    institutionId: z.coerce.number().optional(),
+    institutionId: coerceNullableId,
     year: z.number()
         .min(1950, 'Year must be after 1950')
         .max(new Date().getFullYear())
@@ -113,7 +123,7 @@ export const updateTrainingCourseSchema = trainingCourseSchema.partial()
 // Professional Membership Schema
 export const professionalMembershipSchema = z.object({
     membershipBody: z.string().min(2, 'Membership body is required'),
-    membershipBodyId: z.coerce.number().optional(),
+    membershipBodyId: coerceNullableId,
     membershipType: z.string().min(1, 'Membership type is required'),
     registrationNumber: z.string().optional(),
     expiryDate: z.string().optional() // ISO date string
@@ -131,11 +141,11 @@ export const employmentHistorySchema = z.object({
         z.undefined()
     ]).optional().transform(e => e === '' ? null : e),
     jobTitle: z.string().min(2, 'Job title is required'),
-    jobTitleId: z.coerce.number().optional(),
+    jobTitleId: coerceNullableId,
     jobGroup: z.string().optional(),
-    jobGroupId: z.coerce.number().optional(),
+    jobGroupId: coerceNullableId,
     organization: z.string().min(2, 'Organization is required'),
-    organizationId: z.coerce.number().optional(),
+    organizationId: coerceNullableId,
     responsibilities: z.string().optional()
 }).refine(
     (data) => {
@@ -160,11 +170,11 @@ export const updateEmploymentHistorySchema = z.object({
         z.undefined()
     ]).optional().transform(e => e === '' ? null : e),
     jobTitle: z.string().min(2, 'Job title is required').optional(),
-    jobTitleId: z.coerce.number().optional(),
+    jobTitleId: coerceNullableId,
     jobGroup: z.string().optional(),
-    jobGroupId: z.coerce.number().optional(),
+    jobGroupId: coerceNullableId,
     organization: z.string().min(2, 'Organization is required').optional(),
-    organizationId: z.coerce.number().optional(),
+    organizationId: coerceNullableId,
     responsibilities: z.string().optional()
 }).refine(
     (data) => {
@@ -179,6 +189,19 @@ export const updateEmploymentHistorySchema = z.object({
     }
 )
 
+// Referee Schema
+export const refereeSchema = z.object({
+    fullName: z.string().min(2, 'Full name is required'),
+    organization: z.string().min(2, 'Organization is required'),
+    designation: z.string().min(2, 'Designation is required'),
+    phone: z.string().min(1, 'Phone number is required'),
+    email: z.string().email('Invalid email address'),
+    address: z.string().optional(),
+    relationship: z.string().optional()
+})
+
+export const updateRefereeSchema = refereeSchema.partial()
+
 export type ApplicantProfileInput = z.infer<typeof applicantProfileSchema>
 export type UpdateApplicantProfileInput = z.infer<typeof updateApplicantProfileSchema>
 export type QualificationInput = z.infer<typeof qualificationSchema>
@@ -191,3 +214,5 @@ export type ProfessionalMembershipInput = z.infer<typeof professionalMembershipS
 export type UpdateProfessionalMembershipInput = z.infer<typeof updateProfessionalMembershipSchema>
 export type EmploymentHistoryInput = z.infer<typeof employmentHistorySchema>
 export type UpdateEmploymentHistoryInput = z.infer<typeof updateEmploymentHistorySchema>
+export type RefereeInput = z.infer<typeof refereeSchema>
+export type UpdateRefereeInput = z.infer<typeof updateRefereeSchema>

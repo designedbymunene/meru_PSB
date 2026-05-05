@@ -7,6 +7,7 @@ import {
     FileText,
     FileUp,
     GraduationCap,
+    MapPin,
     Plus,
     ShieldCheck,
     User,
@@ -31,26 +32,20 @@ export default function DigitalCVScreen() {
     const { data: profile, isLoading } = useQuery({
         queryKey: ['profile-completion'],
         queryFn: async () => {
-            const response = await apiClient.get('/applicant-profiles');
+            const response = await apiClient.get('/applicant-profiles/me');
             return response.data.data;
         },
     });
 
-    const handlePress = (index: number) => {
-        const routes = [
-            '/profile/personal-details',
-            '/profile/qualifications',
-            '/profile/employment-history',
-            '/profile/professional-details',
-            '/profile/qualifications' // Placeholder for referees/declarations
-        ];
-        router.push(routes[index] as any);
+    const handlePress = (path: string) => {
+        router.push(path as any);
     };
 
     const completion = profile?.profileCompletion || {
         overallPercentage: 0,
         sections: {
             personal: 0,
+            location: 0,
             education: 0,
             experience: 0,
             professional: 0,
@@ -60,12 +55,22 @@ export default function DigitalCVScreen() {
 
     const sections = [
         {
-            id: 'bio',
-            title: 'Personal Bio-Data',
-            subtitle: 'ID, Home County, Ethnicity & Gender',
+            id: 'personal',
+            title: 'Personal Information',
+            subtitle: 'Name, ID, Contact & Birth Date',
             icon: <User size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
             completed: (completion.sections?.personal || 0) === 100,
-            percentage: completion.sections?.personal || 0
+            percentage: completion.sections?.personal || 0,
+            path: '/profile/personal-details'
+        },
+        {
+            id: 'location',
+            title: 'Location & Ethnicity',
+            subtitle: 'County, Sub-County & Origin',
+            icon: <MapPin size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
+            completed: (completion.sections?.location || 0) === 100,
+            percentage: completion.sections?.location || 0,
+            path: '/profile/location-details'
         },
         {
             id: 'education',
@@ -73,7 +78,8 @@ export default function DigitalCVScreen() {
             subtitle: 'Tertiary, Secondary & Primary',
             icon: <GraduationCap size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
             completed: (completion.sections?.education || 0) === 100,
-            percentage: completion.sections?.education || 0
+            percentage: completion.sections?.education || 0,
+            path: '/profile/qualifications'
         },
         {
             id: 'experience',
@@ -81,7 +87,8 @@ export default function DigitalCVScreen() {
             subtitle: 'Roles, Companies & Job Groups',
             icon: <Briefcase size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
             completed: (completion.sections?.experience || 0) === 100,
-            percentage: completion.sections?.experience || 0
+            percentage: completion.sections?.experience || 0,
+            path: '/profile/employment-history'
         },
         {
             id: 'professional',
@@ -89,7 +96,8 @@ export default function DigitalCVScreen() {
             subtitle: 'Memberships, Licenses & Certs',
             icon: <Award size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
             completed: (completion.sections?.professional || 0) === 100,
-            percentage: completion.sections?.professional || 0
+            percentage: completion.sections?.professional || 0,
+            path: '/profile/professional-details'
         },
         {
             id: 'referees',
@@ -97,7 +105,8 @@ export default function DigitalCVScreen() {
             subtitle: 'Chapter 6 & Professional Contacts',
             icon: <Users size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
             completed: (completion.sections?.referees || 0) === 100,
-            percentage: completion.sections?.referees || 0
+            percentage: completion.sections?.referees || 0,
+            path: '/profile/memberships' // Placeholder for referees management if no dedicated screen
         }
     ];
 
@@ -154,7 +163,7 @@ export default function DigitalCVScreen() {
                             {sections.map((section, index) => (
                                 <TouchableOpacity
                                     key={section.id}
-                                    onPress={() => handlePress(index)}
+                                    onPress={() => handlePress(section.path)}
                                     className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl shadow-sm flex-row items-center mb-3"
                                 >
                                     <View className="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-xl mr-3">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronLeft, ChevronRight, CheckCircle2, Loader2, Plus, Trash2, Edit2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckCircle2, Loader2, Plus, Trash2, Edit2, User, Building2, Briefcase, Mail, Phone } from 'lucide-react'
 import { z } from 'zod'
 import { toast } from 'sonner'
 
@@ -21,7 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form'
-import { createProfileSchema, createQualificationSchema, createEmploymentHistorySchema } from '@meru/shared'
+import { createProfileSchema, createQualificationSchema, createEmploymentHistorySchema, refereeSchema } from '@meru/shared'
 import { 
     useCounties, 
     useConstituencies, 
@@ -38,11 +38,12 @@ import * as applicantProfileApi from '@/lib/api/applicant-profiles'
 import { handleApiError } from '@/lib/api-error-handler'
 import type { CreateQualificationInput, CreateEmploymentHistoryInput } from '@/types'
 
-const TOTAL_STEPS = 5
+const TOTAL_STEPS = 6
 
 type Step1Data = z.infer<typeof createProfileSchema>
 type QualificationData = z.infer<typeof createQualificationSchema>
 type EmploymentData = z.infer<typeof createEmploymentHistorySchema>
+type RefereeData = z.infer<typeof refereeSchema>
 
 interface MultiStepProfileFormProps {
     onComplete: () => void
@@ -55,23 +56,23 @@ export function MultiStepProfileForm({ onComplete }: MultiStepProfileFormProps) 
     const [profileData, setProfileData] = useState<Partial<Step1Data>>({
         impairment: false,
         gender: 'Male',
-        applicantName: user?.fullName || '',
+        fullName: user?.fullName || '',
         email: user?.email || '',
         homeCountyId: undefined,
         homeSubCountyId: undefined,
         wardId: undefined,
         ethnicityId: undefined,
-    })
+    } as Partial<Step1Data>)
     const [qualifications, setQualifications] = useState<QualificationData[]>([])
     const [employmentHistory, setEmploymentHistory] = useState<EmploymentData[]>([])
+    const [referees, setReferees] = useState<RefereeData[]>([])
 
-    // Update profile data when user context is available
     useEffect(() => {
         if (user) {
             setProfileData(prev => ({
                 ...prev,
-                applicantName: user.fullName || prev.applicantName,
-                email: user.email || prev.email,
+                fullName: user.fullName || (prev as any)?.fullName,
+                email: user.email || (prev as any)?.email,
             }))
         }
     }, [user])
@@ -91,28 +92,28 @@ export function MultiStepProfileForm({ onComplete }: MultiStepProfileFormProps) 
     }
 
     return (
-        <Card className="w-full max-w-7xl mx-auto shadow-lg">
-            <CardHeader className="space-y-4">
+        <Card className="w-full max-w-7xl mx-auto shadow-2xl border-none">
+            <CardHeader className="space-y-6 pb-2">
                 <div className="flex items-center justify-between">
                     <div>
-                        <CardTitle className="text-2xl font-bold text-primary">Complete Your Profile</CardTitle>
-                        <CardDescription>
-                            Please provide your details to finish setting up your account
+                        <CardTitle className="text-3xl font-black text-primary uppercase tracking-tighter italic">Complete Your Profile</CardTitle>
+                        <CardDescription className="text-base">
+                            Provide your professional details to unlock all features
                         </CardDescription>
                     </div>
-                    <div className="text-sm font-medium text-muted-foreground bg-muted px-3 py-1 rounded-full whitespace-nowrap flex-shrink-0">
-                        Step {currentStep} of {TOTAL_STEPS}
+                    <div className="text-xs font-black text-white bg-primary px-4 py-1.5 rounded-full whitespace-nowrap flex-shrink-0 uppercase tracking-widest">
+                        Step {currentStep} / {TOTAL_STEPS}
                     </div>
                 </div>
                 {/* Progress Bar */}
-                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                     <div
-                        className="bg-primary h-2 rounded-full transition-all duration-500 ease-in-out"
+                        className="bg-primary h-full rounded-full transition-all duration-700 ease-in-out shadow-[0_0_10px_rgba(var(--primary),0.5)]"
                         style={{ width: `${(currentStep / TOTAL_STEPS) * 100}%` }}
                     />
                 </div>
             </CardHeader>
-            <CardContent className="p-8">
+            <CardContent className="p-10">
                 {currentStep === 1 && (
                     <Step1PersonalInfo
                         data={profileData}
@@ -155,26 +156,39 @@ export function MultiStepProfileForm({ onComplete }: MultiStepProfileFormProps) 
                 {currentStep === 5 && (
                     <Step5Employment
                         employmentHistory={employmentHistory}
-                        onFinalSubmit={(finalEmployment) => {
-                            setEmploymentHistory(finalEmployment)
+                        onNext={(emp) => {
+                            setEmploymentHistory(emp)
+                            goNext()
+                        }}
+                        onBack={goBack}
+                    />
+                )}
+                {currentStep === 6 && (
+                    <Step6Referees
+                        referees={referees}
+                        onFinalSubmit={(finalReferees) => {
+                            setReferees(finalReferees)
                             const finalSubmit = async () => {
                                 setIsSubmitting(true)
                                 try {
-                                    // Ensure we have name/email from state or fallback to user context
                                     const finalProfileData = {
-                                        ...profileData,
-                                        applicantName: profileData.applicantName || user?.fullName,
-                                        email: profileData.email || user?.email
-                                    }
-                                    const profileResponse = await createProfile.mutateAsync(finalProfileData as Step1Data)
+                                        ...(profileData as any),
+                                        fullName: (profileData as any).fullName || user?.fullName,
+                                        email: (profileData as any).email || user?.email
+                                    } as Step1Data
+                                    const profileResponse = await createProfile.mutateAsync(finalProfileData as any)
                                     const profileId = profileResponse.data.id
 
                                     if (qualifications.length > 0) {
-                                        await Promise.all(qualifications.map(q => applicantProfileApi.addQualification(profileId, q)))
+                                        await Promise.all(qualifications.map((q: any) => applicantProfileApi.addQualification(profileId, q)))
                                     }
 
-                                    if (finalEmployment.length > 0) {
-                                        await Promise.all(finalEmployment.map(e => applicantProfileApi.addEmploymentHistory(profileId, e)))
+                                    if (employmentHistory.length > 0) {
+                                        await Promise.all(employmentHistory.map((e: any) => applicantProfileApi.addEmploymentHistory(profileId, e)))
+                                    }
+
+                                    if (finalReferees.length > 0) {
+                                        await Promise.all(finalReferees.map((r: any) => applicantProfileApi.addReferee(profileId, r)))
                                     }
 
                                     toast.success('Profile setup complete!')
@@ -206,50 +220,51 @@ function Step1PersonalInfo({
     const { data: ethnicitiesResponse } = useEthnicities()
     const ethnicities = ethnicitiesResponse?.data || []
 
+    type FormData = {
+        fullName: string
+        idNumber: string
+        gender: 'Male' | 'Female' | 'Other'
+        dateOfBirth: string
+        ethnicityId?: number | null
+    }
+
     const schema = createProfileSchema.pick({
-        applicantName: true,
+        fullName: true,
         idNumber: true,
         gender: true,
-        birthYear: true,
+        dateOfBirth: true,
         ethnicityId: true,
     })
 
-    const form = useForm<z.infer<typeof schema>>({
-        resolver: zodResolver(schema),
+    const form = useForm<FormData>({
+        resolver: zodResolver(schema) as any,
         defaultValues: {
-            applicantName: data.applicantName || '',
-            idNumber: data.idNumber || '',
-            gender: data.gender || 'Male',
-            birthYear: data.birthYear || new Date().getFullYear() - 25,
-            ethnicityId: data.ethnicityId,
+            fullName: (data as any).fullName || '',
+            idNumber: (data as any).idNumber || '',
+            gender: (data as any).gender as any || 'Male',
+            dateOfBirth: (data as any).dateOfBirth || new Date().toISOString().split('T')[0],
+            ethnicityId: (data as any).ethnicityId,
         },
     })
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onNext)} className="space-y-6">
-                <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">Personal Details</h3>
-                    <CardDescription>Basic information to identify you.</CardDescription>
+                <div className="bg-muted/30 p-6 rounded-2xl border-2 border-dashed mb-8">
+                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-1 block">Full Name</Label>
+                    <p className="text-xl font-bold">{(data as any).fullName || 'Not set'}</p>
+                    <input type="hidden" {...form.register('fullName')} />
                 </div>
 
-                {/* Name displayed as static text to avoid redundancy */}
-                <div className="bg-muted/30 p-4 rounded-lg border mb-6">
-                    <Label className="text-sm text-muted-foreground">Applicant Name</Label>
-                    <p className="text-lg font-medium">{data.applicantName || 'Not set'}</p>
-                    {/* Hidden input to ensure it is submitted if needed */}
-                    <input type="hidden" {...form.register('applicantName')} />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                     <FormField
                         control={form.control}
                         name="idNumber"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>ID Number</FormLabel>
+                                <FormLabel className="font-bold">ID Number</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="12345678" {...field} />
+                                    <Input placeholder="12345678" className="h-12 text-lg" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -261,10 +276,10 @@ function Step1PersonalInfo({
                         name="gender"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Gender</FormLabel>
+                                <FormLabel className="font-bold">Gender</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-12 text-lg">
                                             <SelectValue placeholder="Select gender" />
                                         </SelectTrigger>
                                     </FormControl>
@@ -281,16 +296,16 @@ function Step1PersonalInfo({
 
                     <FormField
                         control={form.control}
-                        name="birthYear"
+                        name="dateOfBirth"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Birth Year</FormLabel>
+                                <FormLabel className="font-bold">Date of Birth</FormLabel>
                                 <FormControl>
                                     <Input
-                                        type="number"
-                                        placeholder="1995"
+                                        type="date"
+                                        placeholder="YYYY-MM-DD"
+                                        className="h-12 text-lg"
                                         {...field}
-                                        onChange={(e) => field.onChange(parseInt(e.target.value))}
                                     />
                                 </FormControl>
                                 <FormMessage />
@@ -303,18 +318,18 @@ function Step1PersonalInfo({
                         name="ethnicityId"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Ethnicity</FormLabel>
+                                <FormLabel className="font-bold">Ethnicity</FormLabel>
                                 <Select
                                     onValueChange={(val) => field.onChange(parseInt(val))}
                                     value={field.value?.toString()}
                                 >
                                     <FormControl>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-12 text-lg">
                                             <SelectValue placeholder="Select ethnicity" />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {ethnicities.map((ethnicity) => (
+                                        {ethnicities.map((ethnicity: any) => (
                                             <SelectItem key={ethnicity.id} value={ethnicity.id.toString()}>
                                                 {ethnicity.name}
                                             </SelectItem>
@@ -327,9 +342,9 @@ function Step1PersonalInfo({
                     />
                 </div>
 
-                <div className="flex justify-end pt-4">
-                    <Button type="submit" size="lg">
-                        Next Step <ChevronRight className="ml-2 h-4 w-4" />
+                <div className="flex justify-end pt-10 border-t">
+                    <Button type="submit" size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
+                        Save & Continue <ChevronRight className="ml-2 h-6 w-6" />
                     </Button>
                 </div>
             </form>
@@ -349,45 +364,46 @@ function Step2LocationInfo({
     const { data: countiesResponse } = useCounties()
     const counties = countiesResponse?.data || []
 
+    type LocationFormData = {
+        homeCountyId?: number | null
+        homeSubCountyId?: number | null
+        wardId?: number | null
+    }
+
     const schema = createProfileSchema.pick({
         homeCountyId: true,
         homeSubCountyId: true,
         wardId: true,
     })
 
-    const form = useForm<z.infer<typeof schema>>({
-        resolver: zodResolver(schema),
+    const form = useForm<LocationFormData>({
+        resolver: zodResolver(schema) as any,
         defaultValues: {
-            homeCountyId: data.homeCountyId,
-            homeSubCountyId: data.homeSubCountyId,
-            wardId: data.wardId,
+            homeCountyId: (data as any).homeCountyId,
+            homeSubCountyId: (data as any).homeSubCountyId,
+            wardId: (data as any).wardId,
         },
     })
 
     const selectedCountyId = form.watch('homeCountyId')
     const selectedSubCountyId = form.watch('homeSubCountyId')
 
-    const { data: subCountiesResponse } = useConstituencies(selectedCountyId)
+    const { data: subCountiesResponse } = useConstituencies(selectedCountyId ?? undefined)
     const subCounties = subCountiesResponse?.data || []
 
-    const { data: wardsResponse } = useWards(selectedSubCountyId)
+    const { data: wardsResponse } = useWards(selectedSubCountyId ?? undefined)
     const wards = wardsResponse?.data || []
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onNext)} className="space-y-6">
-                <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">Location Details</h3>
-                    <CardDescription>Where are you currently located?</CardDescription>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <form onSubmit={form.handleSubmit(onNext)} className="space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
                     <FormField
                         control={form.control}
                         name="homeCountyId"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Home County</FormLabel>
+                                <FormLabel className="font-bold">Home County</FormLabel>
                                 <Select
                                     onValueChange={(val) => {
                                         field.onChange(parseInt(val))
@@ -397,12 +413,12 @@ function Step2LocationInfo({
                                     value={field.value?.toString()}
                                 >
                                     <FormControl>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-12 text-lg">
                                             <SelectValue placeholder="Select county" />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {counties.map((county) => (
+                                        {counties.map((county: any) => (
                                             <SelectItem key={county.id} value={county.id.toString()}>
                                                 {county.name}
                                             </SelectItem>
@@ -419,7 +435,7 @@ function Step2LocationInfo({
                         name="homeSubCountyId"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Home Sub-County</FormLabel>
+                                <FormLabel className="font-bold">Home Sub-County</FormLabel>
                                 <Select
                                     onValueChange={(val) => {
                                         field.onChange(parseInt(val))
@@ -429,12 +445,12 @@ function Step2LocationInfo({
                                     disabled={!selectedCountyId}
                                 >
                                     <FormControl>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-12 text-lg">
                                             <SelectValue placeholder="Select sub-county" />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {subCounties.map((sc) => (
+                                        {subCounties.map((sc: any) => (
                                             <SelectItem key={sc.id} value={sc.id.toString()}>
                                                 {sc.name}
                                             </SelectItem>
@@ -451,19 +467,19 @@ function Step2LocationInfo({
                         name="wardId"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Ward</FormLabel>
+                                <FormLabel className="font-bold">Ward</FormLabel>
                                 <Select
                                     onValueChange={(val) => field.onChange(parseInt(val))}
                                     value={field.value?.toString()}
                                     disabled={!selectedSubCountyId}
                                 >
                                     <FormControl>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-12 text-lg">
                                             <SelectValue placeholder="Select ward" />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {wards.map((ward) => (
+                                        {wards.map((ward: any) => (
                                             <SelectItem key={ward.id} value={ward.id.toString()}>
                                                 {ward.name}
                                             </SelectItem>
@@ -474,15 +490,14 @@ function Step2LocationInfo({
                             </FormItem>
                         )}
                     />
-                    </div>
+                </div>
 
-                    <div className="flex justify-between pt-4">
-
-                    <Button type="button" variant="outline" onClick={onBack} size="lg">
-                        <ChevronLeft className="mr-2 h-4 w-4" /> Back
+                <div className="flex justify-between pt-10 border-t">
+                    <Button type="button" variant="ghost" onClick={onBack} size="lg" className="rounded-full px-8 h-14 font-black uppercase tracking-tighter">
+                        <ChevronLeft className="mr-2 h-6 w-6" /> Previous
                     </Button>
-                    <Button type="submit" size="lg">
-                        Next Step <ChevronRight className="ml-2 h-4 w-4" />
+                    <Button type="submit" size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
+                        Save & Continue <ChevronRight className="ml-2 h-6 w-6" />
                     </Button>
                 </div>
             </form>
@@ -499,8 +514,17 @@ function Step3ContactStatus({
     onNext: (data: Partial<Step1Data>) => void
     onBack: () => void
 }) {
+    type ContactFormData = {
+        phoneNumber?: string
+        email?: string
+        impairment?: boolean
+        impairmentDetails?: string
+        publicServiceInfo?: string
+        personalNumber?: string
+    }
+
     const schema = createProfileSchema.pick({
-        phone: true,
+        phoneNumber: true,
         email: true,
         impairment: true,
         impairmentDetails: true,
@@ -508,15 +532,15 @@ function Step3ContactStatus({
         personalNumber: true,
     })
 
-    const form = useForm<z.infer<typeof schema>>({
-        resolver: zodResolver(schema),
+    const form = useForm<ContactFormData>({
+        resolver: zodResolver(schema) as any,
         defaultValues: {
-            phone: data.phone || '',
-            email: data.email || '',
-            impairment: data.impairment || false,
-            impairmentDetails: data.impairmentDetails || '',
-            publicServiceInfo: data.publicServiceInfo || '',
-            personalNumber: data.personalNumber || '',
+            phoneNumber: (data as any).phoneNumber || '',
+            email: (data as any).email || '',
+            impairment: (data as any).impairment || false,
+            impairmentDetails: (data as any).impairmentDetails || '',
+            publicServiceInfo: (data as any).publicServiceInfo || '',
+            personalNumber: (data as any).personalNumber || '',
         },
     })
 
@@ -524,30 +548,22 @@ function Step3ContactStatus({
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onNext)} className="space-y-6">
-                <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">Contact & Professional Status</h3>
-                    <CardDescription>How we can reach you and your service history.</CardDescription>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Email displayed as static text */}
-                    <div className="space-y-2">
-                        <Label>Email Address</Label>
-                        <div className="flex w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-                            {data.email || 'Not set'}
-                        </div>
+            <form onSubmit={form.handleSubmit(onNext)} className="space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="bg-muted/30 p-6 rounded-2xl border-2 border-dashed">
+                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-1 block">Email Address</Label>
+                        <p className="text-lg font-bold">{(data as any).email || 'Not set'}</p>
                         <input type="hidden" {...form.register('email')} />
                     </div>
 
                     <FormField
                         control={form.control}
-                        name="phone"
+                        name="phoneNumber"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Phone Number</FormLabel>
+                                <FormLabel className="font-bold">Phone Number</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="+254712345678" {...field} />
+                                    <Input placeholder="+254712345678" className="h-12 text-lg" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -555,21 +571,22 @@ function Step3ContactStatus({
                     />
                 </div>
 
-                <div className="space-y-4 pt-2">
+                <div className="space-y-6">
                     <FormField
                         control={form.control}
                         name="impairment"
                         render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-6 bg-muted/30">
+                            <FormItem className="flex flex-row items-center space-x-4 space-y-0 rounded-2xl border-2 p-6 bg-slate-50 dark:bg-slate-900/50">
                                 <FormControl>
                                     <Checkbox
                                         checked={field.value}
                                         onCheckedChange={field.onChange}
+                                        className="h-6 w-6"
                                     />
                                 </FormControl>
                                 <div className="space-y-1 leading-none">
-                                    <FormLabel>I have a disability/impairment</FormLabel>
-                                    <FormDescription>Check this if you require special accommodations</FormDescription>
+                                    <FormLabel className="text-lg font-bold">I have a disability/impairment</FormLabel>
+                                    <FormDescription className="text-sm italic">Require special accommodations?</FormDescription>
                                 </div>
                             </FormItem>
                         )}
@@ -581,9 +598,9 @@ function Step3ContactStatus({
                             name="impairmentDetails"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Impairment Details</FormLabel>
+                                    <FormLabel className="font-bold">Impairment Details</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="Please describe your impairment..." {...field} />
+                                        <Textarea placeholder="Please describe..." className="min-h-[120px] text-lg" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -592,22 +609,20 @@ function Step3ContactStatus({
                     )}
                 </div>
 
-                <div className="space-y-4 pt-2">
+                <div className="grid grid-cols-1 gap-10">
                     <FormField
                         control={form.control}
                         name="publicServiceInfo"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Public Service Information</FormLabel>
+                                <FormLabel className="font-bold">Public Service Information</FormLabel>
                                 <FormControl>
                                     <Textarea
                                         placeholder="Details about current or previous public service employment..."
+                                        className="min-h-[100px] text-lg"
                                         {...field}
                                     />
                                 </FormControl>
-                                <FormDescription>
-                                    If you are or were a public servant, please provide details
-                                </FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -618,9 +633,9 @@ function Step3ContactStatus({
                         name="personalNumber"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Personal Number</FormLabel>
+                                <FormLabel className="font-bold">Personal Number (if applicable)</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Personal/Staff number if applicable" {...field} />
+                                    <Input placeholder="Staff Number" className="h-12 text-lg" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -628,12 +643,12 @@ function Step3ContactStatus({
                     />
                 </div>
 
-                <div className="flex justify-between pt-6">
-                    <Button type="button" variant="outline" onClick={onBack} size="lg">
-                        <ChevronLeft className="mr-2 h-4 w-4" /> Back
+                <div className="flex justify-between pt-10 border-t">
+                    <Button type="button" variant="ghost" onClick={onBack} size="lg" className="rounded-full px-8 h-14 font-black uppercase tracking-tighter">
+                        <ChevronLeft className="mr-2 h-6 w-6" /> Previous
                     </Button>
-                    <Button type="submit" size="lg">
-                        Next Step <ChevronRight className="ml-2 h-4 w-4" />
+                    <Button type="submit" size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
+                        Save & Continue <ChevronRight className="ml-2 h-6 w-6" />
                     </Button>
                 </div>
             </form>
@@ -653,18 +668,15 @@ function Step4Qualifications({
     const [quals, setQuals] = useState<QualificationData[]>(qualifications)
     const [editingIndex, setEditingIndex] = useState<number | null>(null)
 
-    // Reference Queries
     const { data: levelsResponse } = useEducationLevels()
     const levels = levelsResponse?.data || []
-
     const { data: institutionsResponse } = useInstitutions()
     const institutions = institutionsResponse?.data || []
-
     const { data: coursesResponse } = useCourses()
     const courses = coursesResponse?.data || []
 
-    const form = useForm<QualificationData>({
-        resolver: zodResolver(createQualificationSchema),
+    const form = useForm<any>({
+        resolver: zodResolver(createQualificationSchema) as any,
         defaultValues: {
             level: 'BACHELORS',
             course: '',
@@ -678,8 +690,7 @@ function Step4Qualifications({
     })
 
     const selectedLevelCode = form.watch('level')
-    const selectedLevelId = levels.find(l => l.code === selectedLevelCode)?.id
-
+    const selectedLevelId = levels.find((l: any) => l.code === selectedLevelCode)?.id
     const { data: gradesResponse } = useEducationGrades(selectedLevelId)
     const grades = gradesResponse?.data || []
 
@@ -692,10 +703,8 @@ function Step4Qualifications({
             updated[editingIndex] = data
             setQuals(updated)
             setEditingIndex(null)
-            toast.success('Qualification updated')
         } else {
             setQuals([...quals, data])
-            toast.success('Qualification added')
         }
         form.reset({
             level: 'BACHELORS',
@@ -709,318 +718,85 @@ function Step4Qualifications({
         })
     }
 
-    const removeQualification = (index: number) => {
-        setQuals(quals.filter((_, i) => i !== index))
-    }
-
-    const editQualification = (index: number) => {
-        setEditingIndex(index)
-        const q = quals[index]
-        form.reset({
-            ...q,
-            courseId: (q as any).courseId || undefined,
-            institutionId: (q as any).institutionId || undefined,
-        })
-    }
-
     return (
-        <div className="space-y-6">
-            <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Academic Qualifications</h3>
-                <CardDescription>
-                    Add at least one qualification.
-                </CardDescription>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Column: Form */}
-                <Card className={editingIndex !== null ? "border-primary/50 h-fit" : "h-fit"}>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">{editingIndex !== null ? "Edit Qualification" : "New Qualification"}</CardTitle>
+        <div className="space-y-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                <Card className="shadow-none border-none bg-transparent">
+                    <CardHeader className="px-0">
+                        <CardTitle className="text-xl font-bold uppercase tracking-tight">{editingIndex !== null ? "Update Record" : "Add Qualification"}</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="px-0">
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(addQualification)} className="space-y-4">
-                                <div className="grid grid-cols-1 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="level"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Level</FormLabel>
-                                                <Select onValueChange={(val) => {
-                                                    field.onChange(val)
-                                                    form.setValue('grade', '')
-                                                }} value={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select level" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        {levels.map((level) => (
-                                                            <SelectItem key={level.id} value={level.code}>
-                                                                {level.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                        <SelectItem value="OTHER">Other</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <div className="space-y-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="courseId"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Course Name *</FormLabel>
-                                                    <Select
-                                                        onValueChange={(val) => {
-                                                            if (val === 'other') {
-                                                                field.onChange(undefined)
-                                                            } else {
-                                                                const course = courses.find(c => c.id.toString() === val)
-                                                                field.onChange(parseInt(val))
-                                                                form.setValue('course', course?.name || '')
-                                                            }
-                                                        }}
-                                                        value={field.value?.toString() || (form.watch('course') ? 'other' : '')}
-                                                    >
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select course" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {courses.map((course) => (
-                                                                <SelectItem key={course.id} value={course.id.toString()}>
-                                                                    {course.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                            <SelectItem value="other">Other (Type manually)</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        {(!courseId || form.watch('course')) && (
-                                            <FormField
-                                                control={form.control}
-                                                name="course"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormControl>
-                                                            <Input
-                                                                placeholder="Enter course name"
-                                                                {...field}
-                                                                disabled={!!courseId}
-                                                            />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="institutionId"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Institution *</FormLabel>
-                                                    <Select
-                                                        onValueChange={(val) => {
-                                                            if (val === 'other') {
-                                                                field.onChange(undefined)
-                                                            } else {
-                                                                const inst = institutions.find(i => i.id.toString() === val)
-                                                                field.onChange(parseInt(val))
-                                                                form.setValue('institution', inst?.name || '')
-                                                            }
-                                                        }}
-                                                        value={field.value?.toString() || (form.watch('institution') ? 'other' : '')}
-                                                    >
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select institution" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {institutions.map((inst) => (
-                                                                <SelectItem key={inst.id} value={inst.id.toString()}>
-                                                                    {inst.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                            <SelectItem value="other">Other (Type manually)</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        {(!institutionId || form.watch('institution')) && (
-                                            <FormField
-                                                control={form.control}
-                                                name="institution"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormControl>
-                                                            <Input
-                                                                placeholder="Enter institution name"
-                                                                {...field}
-                                                                disabled={!!institutionId}
-                                                            />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="grade"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Grade</FormLabel>
-                                                {grades.length > 0 ? (
-                                                    <Select
-                                                        onValueChange={field.onChange}
-                                                        value={field.value}
-                                                    >
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select grade" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {grades.map((g) => (
-                                                                <SelectItem key={g.id} value={g.grade}>
-                                                                    {g.grade}
-                                                                </SelectItem>
-                                                            ))}
-                                                            <SelectItem value="OTHER">Other</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                ) : (
-                                                    <FormControl>
-                                                        <Input placeholder="e.g. First Class" {...field} />
-                                                    </FormControl>
-                                                )}
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="yearStart"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Start</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="2018"
-                                                        {...field}
-                                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                                                        value={field.value || ''}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="yearEnd"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>End</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="2022"
-                                                        {...field}
-                                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                                                        value={field.value || ''}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
-                                <Button type="submit" variant="secondary" className="w-full mt-2">
-                                    {editingIndex !== null ? (
-                                        <>Update Qualification</>
-                                    ) : (
-                                        <><Plus className="w-4 h-4 mr-2" /> Add Qualification</>
+                            <form onSubmit={form.handleSubmit(addQualification)} className="space-y-6">
+                                <FormField
+                                    control={form.control}
+                                    name="level"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="font-bold">Education Level</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl><SelectTrigger className="h-12 text-lg"><SelectValue /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    {levels.map((l: any) => <SelectItem key={l.id} value={l.code}>{l.name}</SelectItem>)}
+                                                    <SelectItem value="OTHER">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
                                     )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="courseId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="font-bold">Course</FormLabel>
+                                            <Select onValueChange={val => {
+                                                if (val === 'other') { field.onChange(undefined) }
+                                                else { const c = courses.find((x: any) => x.id.toString() === val); field.onChange(parseInt(val)); form.setValue('course', c?.name || '') }
+                                            }} value={field.value?.toString() || (form.watch('course') ? 'other' : '')}>
+                                                <FormControl><SelectTrigger className="h-12 text-lg"><SelectValue placeholder="Select course" /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    {courses.map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
+                                                    <SelectItem value="other">Other (Manual Entry)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )}
+                                />
+                                {(!courseId || form.watch('course')) && (
+                                    <FormField
+                                        control={form.control}
+                                        name="course"
+                                        render={({ field }) => <FormItem><FormControl><Input placeholder="Enter course name" className="h-12 text-lg" {...field} /></FormControl></FormItem>}
+                                    />
+                                )}
+                                <Button type="submit" variant="secondary" className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700">
+                                    {editingIndex !== null ? "Update Record" : "Add to List"}
                                 </Button>
                             </form>
                         </Form>
                     </CardContent>
                 </Card>
 
-                {/* Right Column: List */}
-                <div className="space-y-4">
-                    <Label className="text-base font-semibold">Added Qualifications ({quals.length})</Label>
+                <div className="space-y-6">
+                    <Label className="text-xl font-bold uppercase tracking-tight block border-b-2 pb-2">Record Summary ({quals.length})</Label>
                     {quals.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg text-muted-foreground bg-muted/20">
-                            <p className="text-sm">No qualifications added yet.</p>
+                        <div className="py-20 text-center border-2 border-dashed rounded-3xl bg-slate-50/50">
+                            <p className="text-muted-foreground font-medium italic">No records added yet</p>
                         </div>
                     ) : (
-                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                            {quals.map((qual, index) => (
-                                <div key={index} className="p-4 bg-card border rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-semibold text-primary/90">{qual.level}</p>
-                                            <p className="font-medium">{qual.course}</p>
-                                            <p className="text-sm text-muted-foreground mt-1">{qual.institution}</p>
-                                            <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
-                                                <span>{qual.yearStart} - {qual.yearEnd || 'Present'}</span>
-                                                {qual.grade && (
-                                                    <>
-                                                        <span>•</span>
-                                                        <span>{qual.grade}</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-1">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                                onClick={() => editQualification(index)}
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                onClick={() => removeQualification(index)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
+                        <div className="space-y-3">
+                            {quals.map((q: any, i: number) => (
+                                <div key={i} className="group relative flex items-start justify-between p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-xl hover:border-primary/40 hover:shadow-lg transition-all duration-200 shadow-sm">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-extrabold text-primary uppercase tracking-widest mb-0.5">{q.level}</p>
+                                        <h4 className="font-bold text-base text-slate-900 dark:text-slate-100 mb-1 truncate">{q.course}</h4>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">{q.institution} <span className="text-slate-400 dark:text-slate-500">• {q.yearEnd || 'Present'}</span></p>
+                                        {q.grade && <p className="text-xs text-slate-500 dark:text-slate-500 mt-2 font-medium">Grade: <span className="font-bold text-slate-700 dark:text-slate-300">{q.grade}</span></p>}
+                                    </div>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10" onClick={() => { setEditingIndex(i); form.reset(quals[i]) }}><Edit2 className="h-3.5 w-3.5 text-primary" /></Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => setQuals(quals.filter((_, idx) => idx !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
                                     </div>
                                 </div>
                             ))}
@@ -1029,17 +805,12 @@ function Step4Qualifications({
                 </div>
             </div>
 
-            <div className="flex justify-between pt-6 border-t mt-4">
-                <Button type="button" variant="outline" onClick={onBack} size="lg">
-                    <ChevronLeft className="mr-2 h-4 w-4" /> Back
+            <div className="flex justify-between pt-10 border-t">
+                <Button type="button" variant="ghost" onClick={onBack} size="lg" className="rounded-full px-8 h-14 font-black uppercase tracking-tighter">
+                    <ChevronLeft className="mr-2 h-6 w-6" /> Previous
                 </Button>
-                <Button
-                    type="button"
-                    onClick={() => onNext(quals)}
-                    disabled={quals.length === 0}
-                    size="lg"
-                >
-                    Next Step <ChevronRight className="ml-2 h-4 w-4" />
+                <Button onClick={() => onNext(quals)} disabled={quals.length === 0} size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
+                    Save & Continue <ChevronRight className="ml-2 h-6 w-6" />
                 </Button>
             </div>
         </div>
@@ -1048,223 +819,65 @@ function Step4Qualifications({
 
 function Step5Employment({
     employmentHistory,
-    onFinalSubmit,
+    onNext,
     onBack,
-    isLoading,
 }: {
     employmentHistory: EmploymentData[]
-    onFinalSubmit: (employment: EmploymentData[]) => void
+    onNext: (emp: EmploymentData[]) => void
     onBack: () => void
-    isLoading: boolean
 }) {
-    const [employment, setEmployment] = useState<EmploymentData[]>(employmentHistory)
+    const [history, setHistory] = useState<EmploymentData[]>(employmentHistory)
     const [editingIndex, setEditingIndex] = useState<number | null>(null)
-
-    const form = useForm<EmploymentData>({
-        resolver: zodResolver(createEmploymentHistorySchema),
-        defaultValues: {
-            jobTitle: '',
-            organization: '',
-            startDate: '',
-            endDate: '',
-            jobGroup: '',
-            responsibilities: '',
-        },
+    const form = useForm<any>({
+        resolver: zodResolver(createEmploymentHistorySchema) as any,
+        defaultValues: { jobTitle: '', organization: '', startDate: '', endDate: '', jobGroup: '', responsibilities: '' },
     })
 
-    const addEmployment = (data: EmploymentData) => {
-        if (editingIndex !== null) {
-            const updated = [...employment]
-            updated[editingIndex] = data
-            setEmployment(updated)
-            setEditingIndex(null)
-            toast.success('Employment updated')
-        } else {
-            setEmployment([...employment, data])
-            toast.success('Employment added')
-        }
-        form.reset({
-            jobTitle: '',
-            organization: '',
-            startDate: '',
-            endDate: '',
-            jobGroup: '',
-            responsibilities: '',
-        })
-    }
-
-    const removeEmployment = (index: number) => {
-        setEmployment(employment.filter((_, i) => i !== index))
-    }
-
-    const editEmployment = (index: number) => {
-        setEditingIndex(index)
-        form.reset(employment[index])
+    const addRecord = (data: EmploymentData) => {
+        if (editingIndex !== null) { const u = [...history]; u[editingIndex] = data; setHistory(u); setEditingIndex(null) }
+        else { setHistory([...history, data]) }
+        form.reset({ jobTitle: '', organization: '', startDate: '', endDate: '', jobGroup: '', responsibilities: '' })
     }
 
     return (
-        <div className="space-y-6">
-            <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Employment History</h3>
-                <CardDescription>
-                    Add your previous experience.
-                </CardDescription>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Form */}
-                <Card className={editingIndex !== null ? "border-primary/50 h-fit lg:col-span-2" : "h-fit lg:col-span-2"}>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">{editingIndex !== null ? "Edit Employment" : "New Employment"}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
+        <div className="space-y-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                <Card className="shadow-none border-none bg-transparent">
+                    <CardHeader className="px-0"><CardTitle className="text-xl font-bold uppercase tracking-tight">{editingIndex !== null ? "Update Experience" : "Add Experience"}</CardTitle></CardHeader>
+                    <CardContent className="px-0">
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(addEmployment)} className="space-y-4">
-                                <div className="grid grid-cols-1 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="jobTitle"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Job Title</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="e.g. Software Engineer" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="organization"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Organization</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="e.g. ABC Company" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-
+                            <form onSubmit={form.handleSubmit(addRecord)} className="space-y-6">
+                                <FormField control={form.control} name="jobTitle" render={({ field }) => <FormItem><FormLabel className="font-bold">Job Title</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
+                                <FormField control={form.control} name="organization" render={({ field }) => <FormItem><FormLabel className="font-bold">Organization</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
                                 <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="startDate"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Start Date</FormLabel>
-                                                <FormControl>
-                                                    <Input type="date" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={form.control}
-                                        name="endDate"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>End Date</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="date"
-                                                        {...field}
-                                                        value={field.value || ''}
-                                                    />
-                                                </FormControl>
-                                                <FormDescription className="text-xs">Leave blank if current</FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                    <FormField control={form.control} name="startDate" render={({ field }) => <FormItem><FormLabel className="font-bold">Start Date</FormLabel><FormControl><Input type="date" className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
+                                    <FormField control={form.control} name="endDate" render={({ field }) => <FormItem><FormLabel className="font-bold">End Date</FormLabel><FormControl><Input type="date" className="h-12 text-lg" {...field} value={field.value || ''} /></FormControl></FormItem>} />
                                 </div>
-
-                                <FormField
-                                    control={form.control}
-                                    name="jobGroup"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Job Group (Optional)</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. M5" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="responsibilities"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Responsibilities</FormLabel>
-                                            <FormControl>
-                                                <Textarea placeholder="Describe your key responsibilities..." {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <Button type="submit" variant="secondary" className="w-full mt-2">
-                                    {editingIndex !== null ? 'Update Employment' : (
-                                        <><Plus className="w-4 h-4 mr-2" /> Add Employment</>
-                                    )}
+                                <Button type="submit" variant="secondary" className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700">
+                                    {editingIndex !== null ? "Update Record" : "Add to List"}
                                 </Button>
                             </form>
                         </Form>
                     </CardContent>
                 </Card>
 
-                {/* Right Column: List */}
-                <div className="space-y-4 lg:col-span-1">
-                    <Label className="text-base font-semibold">Experience ({employment.length})</Label>
-                    {employment.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg text-muted-foreground bg-muted/20">
-                            <p className="text-sm">No employment history added.</p>
-                        </div>
+                <div className="space-y-6">
+                    <Label className="text-xl font-bold uppercase tracking-tight block border-b-2 pb-2">Work History ({history.length})</Label>
+                    {history.length === 0 ? (
+                        <div className="py-20 text-center border-2 border-dashed rounded-3xl bg-slate-50/50"><p className="text-muted-foreground font-medium italic">No experience added yet</p></div>
                     ) : (
-                        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                            {employment.map((emp, index) => (
-                                <div key={index} className="p-4 bg-card border rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-semibold text-primary/90">{emp.jobTitle}</p>
-                                            <p className="font-medium text-foreground">{emp.organization}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                {emp.startDate} - {emp.endDate || 'Present'}
-                                            </p>
-                                            {emp.jobGroup && (
-                                                <p className="text-xs text-muted-foreground mt-1">Job Group: {emp.jobGroup}</p>
-                                            )}
-                                        </div>
-                                        <div className="flex gap-1">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                                onClick={() => editEmployment(index)}
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                onClick={() => removeEmployment(index)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
+                        <div className="space-y-3">
+                            {history.map((h: any, i: number) => (
+                                <div key={i} className="group relative flex items-start justify-between p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-xl hover:border-primary/40 hover:shadow-lg transition-all duration-200 shadow-sm">
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{h.jobTitle}</h4>
+                                        <p className="text-xs font-extrabold text-primary uppercase tracking-widest mb-2">{h.organization}</p>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">{h.startDate} <span className="text-slate-400 dark:text-slate-500">—</span> {h.endDate || 'Present'}</p>
+                                        {h.jobGroup && <p className="text-xs text-slate-500 dark:text-slate-500 mt-2 font-medium">Group: <span className="font-bold text-slate-700 dark:text-slate-300">{h.jobGroup}</span></p>}
+                                    </div>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10" onClick={() => { setEditingIndex(i); form.reset(history[i]) }}><Edit2 className="h-3.5 w-3.5 text-primary" /></Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => setHistory(history.filter((_, idx) => idx !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
                                     </div>
                                 </div>
                             ))}
@@ -1273,28 +886,101 @@ function Step5Employment({
                 </div>
             </div>
 
-            <div className="flex justify-between pt-6 border-t mt-4">
-                <Button type="button" variant="outline" onClick={onBack} size="lg" disabled={isLoading}>
-                    <ChevronLeft className="mr-2 h-4 w-4" /> Back
+            <div className="flex justify-between pt-10 border-t">
+                <Button type="button" variant="ghost" onClick={onBack} size="lg" className="rounded-full px-8 h-14 font-black uppercase tracking-tighter">
+                    <ChevronLeft className="mr-2 h-6 w-6" /> Previous
                 </Button>
-                <Button
-                    type="button"
-                    onClick={() => onFinalSubmit(employment)}
-                    disabled={isLoading}
-                    size="lg"
-                    className="min-w-[150px]"
-                >
-                    {isLoading ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving...
-                        </>
+                <Button onClick={() => onNext(history)} size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
+                    Save & Continue <ChevronRight className="ml-2 h-6 w-6" />
+                </Button>
+            </div>
+        </div>
+    )
+}
+
+function Step6Referees({
+    referees,
+    onFinalSubmit,
+    onBack,
+    isLoading,
+}: {
+    referees: RefereeData[]
+    onFinalSubmit: (referees: RefereeData[]) => void
+    onBack: () => void
+    isLoading: boolean
+}) {
+    const [list, setList] = useState<RefereeData[]>(referees)
+    const [editingIndex, setEditingIndex] = useState<number | null>(null)
+    const form = useForm<any>({
+        resolver: zodResolver(refereeSchema) as any,
+        defaultValues: { fullName: '', organization: '', designation: '', phoneNumber: '', email: '', relationship: '' },
+    })
+
+    const addRecord = (data: RefereeData) => {
+        if (editingIndex !== null) { const u = [...list]; u[editingIndex] = data; setList(u); setEditingIndex(null) }
+        else { setList([...list, data]) }
+        form.reset({ fullName: '', organization: '', designation: '', phoneNumber: '', email: '', relationship: '' })
+    }
+
+    return (
+        <div className="space-y-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                <Card className="shadow-none border-none bg-transparent">
+                    <CardHeader className="px-0"><CardTitle className="text-xl font-bold uppercase tracking-tight">{editingIndex !== null ? "Update Referee" : "Add Referee"}</CardTitle></CardHeader>
+                    <CardContent className="px-0">
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(addRecord)} className="space-y-4">
+                                <FormField control={form.control} name="fullName" render={({ field }) => <FormItem><FormLabel className="font-bold">Full Name</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField control={form.control} name="organization" render={({ field }) => <FormItem><FormLabel className="font-bold">Organization</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
+                                    <FormField control={form.control} name="designation" render={({ field }) => <FormItem><FormLabel className="font-bold">Designation</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField control={form.control} name="email" render={({ field }) => <FormItem><FormLabel className="font-bold">Email</FormLabel><FormControl><Input type="email" className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
+                                    <FormField control={form.control} name="phoneNumber" render={({ field }) => <FormItem><FormLabel className="font-bold">Phone</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
+                                </div>
+                                <Button type="submit" variant="secondary" className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700">
+                                    {editingIndex !== null ? "Update Record" : "Add to List"}
+                                </Button>
+                            </form>
+                        </Form>
+                    </CardContent>
+                </Card>
+
+                <div className="space-y-6">
+                    <Label className="text-xl font-bold uppercase tracking-tight block border-b-2 pb-2">Referees ({list.length})</Label>
+                    {list.length === 0 ? (
+                        <div className="py-20 text-center border-2 border-dashed rounded-3xl bg-slate-50/50"><p className="text-muted-foreground font-medium italic">No referees added yet</p></div>
                     ) : (
-                        <>
-                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                            Complete Profile
-                        </>
+                        <div className="space-y-3">
+                            {list.map((r: any, i: number) => (
+                                <div key={i} className="group relative flex items-start justify-between p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-xl hover:border-primary/40 hover:shadow-lg transition-all duration-200 shadow-sm">
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{r.fullName}</h4>
+                                        <p className="text-xs font-extrabold text-primary uppercase tracking-widest mb-2">{r.designation} <span className="text-slate-400 dark:text-slate-600">@</span> {r.organization}</p>
+                                        <div className="flex gap-4 text-sm text-slate-600 dark:text-slate-400 font-medium mt-2">
+                                            <span className="truncate">{r.email}</span>
+                                            <span className="text-slate-400 dark:text-slate-600">•</span>
+                                            <span className="whitespace-nowrap">{r.phone}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10" onClick={() => { setEditingIndex(i); form.reset(list[i]) }}><Edit2 className="h-3.5 w-3.5 text-primary" /></Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => setList(list.filter((_, idx) => idx !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
+                </div>
+            </div>
+
+            <div className="flex justify-between pt-10 border-t">
+                <Button type="button" variant="ghost" onClick={onBack} size="lg" className="rounded-full px-8 h-14 font-black uppercase tracking-tighter" disabled={isLoading}>
+                    <ChevronLeft className="mr-2 h-6 w-6" /> Previous
+                </Button>
+                <Button onClick={() => onFinalSubmit(list)} disabled={isLoading || list.length === 0} size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
+                    {isLoading ? <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Saving...</> : <><CheckCircle2 className="mr-2 h-6 w-6" /> Complete Profile</>}
                 </Button>
             </div>
         </div>

@@ -1,6 +1,7 @@
 import { pgTable, integer, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 import { users } from './users'
 import { vacancies } from './vacancies'
+import { timestamps } from './common'
 
 // Applications table
 export const applications = pgTable('applications', {
@@ -17,7 +18,8 @@ export const applications = pgTable('applications', {
     reviewedBy: integer('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
     rejectionReason: text('rejection_reason'),
     feedbackToApplicant: text('feedback_to_applicant'), // feedback visible to applicant
-    appliedAt: timestamp('applied_at', { withTimezone: true }).defaultNow().notNull()
+    appliedAt: timestamp('applied_at', { withTimezone: true }).defaultNow().notNull(),
+    ...timestamps
 })
 
 // TypeScript types

@@ -1,39 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { 
-    Briefcase, 
-    Calendar, 
-    ChevronLeft, 
-    Clock, 
-    Download, 
-    FileText, 
-    MapPin, 
-    Share2, 
-    Users,
+import {
+    ChevronLeft,
+    Download,
+    FileText,
+    Share2,
     CheckCircle2,
-    DollarSign,
     Info,
-    Award,
     Building2,
-    Clock3,
-    ArrowRight,
-    Scale
+    ArrowRight
 } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import React from 'react';
-import { 
-    ScrollView, 
-    Text, 
-    TouchableOpacity, 
-    View, 
+import {
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
     Share,
-    Alert,
     Dimensions,
     StatusBar
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiClient } from '@/lib/api/client';
-import { Header } from '@/components/ui/header';
 import { VacancyDetailsLoadingState } from '@/components/ui/loading-skeletons';
 
 const { width } = Dimensions.get('window');
@@ -54,10 +43,14 @@ export default function JobDetailsScreen() {
     });
 
     const handleShare = async () => {
+        const webUrl = 'https://recruitment.merupublicserviceboard.or.ke';
+        const shareUrl = `${webUrl}/vacancies/${id}`;
+        
         try {
             await Share.share({
-                message: `Check out this job opening: ${job.title} at Meru County Government. Apply before ${new Date(job.closingDate).toLocaleDateString()}`,
+                message: `Check out this job opening: ${job.title} at Meru County Government. \n\nApply here: ${shareUrl} \n\nApply before ${new Date(job.closingDate).toLocaleDateString()}`,
                 title: job.title,
+                url: shareUrl, 
             });
         } catch (error) {
             console.error(error);
@@ -68,9 +61,9 @@ export default function JobDetailsScreen() {
         const isClosed = status?.toUpperCase() === 'CLOSED';
         const isExpired = new Date(closingDate) < new Date();
 
-        if (isClosed) return { label: 'Closed', color: 'text-red-700 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/40', border: 'border-red-200 dark:border-red-800' };
-        if (isExpired) return { label: 'Expired', color: 'text-amber-700 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-900/40', border: 'border-amber-200 dark:border-amber-800' };
-        return { label: 'Active', color: 'text-white', bg: 'bg-emerald-600 dark:bg-emerald-500', border: 'border-emerald-700 dark:border-emerald-400' };
+        if (isClosed) return { label: 'Closed', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950/20' };
+        if (isExpired) return { label: 'Expired', color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/20' };
+        return { label: 'Active', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/20' };
     };
 
     if (isLoading) {
@@ -85,13 +78,13 @@ export default function JobDetailsScreen() {
                 </View>
                 <Text className="text-gray-900 dark:text-white font-bold text-lg text-center">Failed to load job details</Text>
                 <Text className="text-gray-500 text-sm text-center mt-2 mb-6">
-                    We couldn&apos;t retrieve the information for this vacancy. It may have been removed or you may be offline.
+                    We couldn't retrieve the information for this vacancy.
                 </Text>
                 <TouchableOpacity 
-                    className="bg-[#004aad] px-8 py-3 rounded-2xl"
+                    className="bg-gray-900 dark:bg-white px-8 py-3 rounded-2xl"
                     onPress={() => refetch()}
                 >
-                    <Text className="text-white font-bold">Try Again</Text>
+                    <Text className="text-white dark:text-gray-900 font-bold">Try Again</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -109,169 +102,158 @@ export default function JobDetailsScreen() {
     };
 
     return (
-        <View className="flex-1 bg-gray-50 dark:bg-gray-950">
+        <View className="flex-1 bg-white dark:bg-gray-950">
             <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-            <Header 
-                title="Public Service Vacancy" 
-                rightAction={
-                    <TouchableOpacity onPress={handleShare} className="p-2">
-                        <Share2 size={20} color={isDarkMode ? '#ffffff' : '#0f172a'} />
-                    </TouchableOpacity>
-                }
-            />
+            
+            {/* Minimal Header - Adjusted height */}
+            <View 
+                style={{ paddingTop: insets.top + 8 }}
+                className="bg-white dark:bg-gray-950 px-6 pb-2 flex-row items-center justify-between border-b border-gray-50 dark:border-gray-900"
+            >
+                <TouchableOpacity 
+                    onPress={() => router.back()}
+                    className="w-9 h-9 items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-full"
+                >
+                    <ChevronLeft size={20} color={isDarkMode ? '#ffffff' : '#0f172a'} />
+                </TouchableOpacity>
+                
+                <Text className="text-gray-900 dark:text-white font-bold text-sm">Vacancy Details</Text>
+
+                <TouchableOpacity 
+                    onPress={handleShare}
+                    className="w-9 h-9 items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-full"
+                >
+                    <Share2 size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
+                </TouchableOpacity>
+            </View>
             
             <ScrollView 
                 className="flex-1" 
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 160 }}
+                contentContainerStyle={{ paddingBottom: 120 }}
             >
-                {/* Official Title Card */}
-                <View className="bg-[#004aad] dark:bg-blue-900 px-6 pt-8 pb-12 rounded-b-[40px] shadow-lg">
-                    <View className="flex-row items-center mb-6">
-                        <View className={`px-4 py-1.5 rounded-full ${status.bg} ${status.border} border shadow-sm`}>
-                            <Text className={`text-[11px] font-black uppercase tracking-widest ${status.color}`}>
+                {/* Hero Section */}
+                <View className="p-6">
+                    <View className="flex-row items-center mb-4">
+                        <View className={`px-2.5 py-0.5 rounded-full ${status.bg}`}>
+                            <Text className={`text-[9px] font-black uppercase tracking-widest ${status.color}`}>
                                 {status.label}
                             </Text>
                         </View>
-                        <View className="ml-auto bg-blue-800/40 px-3 py-1.5 rounded-lg border border-blue-400/20">
-                            <Text className="text-blue-100 text-[10px] font-bold uppercase tracking-widest">
-                                REF: {job.advertisementNumber}
-                            </Text>
-                        </View>
+                        <Text className="ml-3 text-gray-400 dark:text-gray-600 text-[10px] font-bold uppercase tracking-widest">
+                            REF: {job.advertisementNumber}
+                        </Text>
                     </View>
 
-                    <Text className="text-3xl font-black text-white leading-[38px] mb-6">
+                    <Text className="text-3xl font-bold text-gray-900 dark:text-white leading-tight">
                         {job.title}
                     </Text>
-
-                    <View className="flex-row items-center">
-                        <View className="bg-white/10 p-3 rounded-2xl mr-4 border border-white/10">
-                            <Building2 size={24} color="#ffffff" />
+                    
+                    <View className="mt-4 flex-row items-center">
+                        <View className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 items-center justify-center mr-3">
+                            <Building2 size={16} color="#004aad" />
                         </View>
-                        <View className="flex-1">
-                            <Text className="text-blue-50 font-bold text-[16px]" numberOfLines={1}>
-                                {job.department?.name}
-                            </Text>
-                            <Text className="text-blue-200/80 text-[11px] font-bold uppercase tracking-[1px] mt-0.5">
-                                Meru County Public Service Board
-                            </Text>
-                        </View>
+                        <Text className="text-gray-600 dark:text-gray-400 font-medium text-sm">
+                            {job.department?.name}
+                        </Text>
                     </View>
                 </View>
 
-                {/* Priority Info Banner - Critical Info Pops Out Here */}
-                <View className="px-4 -mt-8">
-                    <View className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-2 flex-row border border-gray-100 dark:border-gray-800">
-                        <View className="flex-1 bg-amber-50 dark:bg-amber-900/20 p-4 rounded-2xl border border-amber-100 dark:border-amber-900/30 items-center">
-                            <Clock3 size={20} color="#d97706" />
-                            <Text className="text-amber-800 dark:text-amber-400 text-[10px] font-black uppercase mt-1 mb-0.5">Deadline</Text>
-                            <Text className="text-gray-900 dark:text-white font-black text-[14px]">
-                                {new Date(job.closingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                            </Text>
-                        </View>
-                        <View className="w-[2px] bg-gray-50 dark:bg-gray-800 my-4" />
-                        <View className="flex-1 p-4 items-center">
-                            <Users size={20} color="#004aad" />
-                            <Text className="text-gray-400 text-[10px] font-black uppercase mt-1 mb-0.5">Openings</Text>
-                            <Text className="text-gray-900 dark:text-white font-black text-[14px]">{job.openPositions}</Text>
-                        </View>
-                        <View className="w-[2px] bg-gray-50 dark:bg-gray-800 my-4" />
-                        <View className="flex-1 p-4 items-center">
-                            <DollarSign size={20} color="#059669" />
-                            <Text className="text-gray-400 text-[10px] font-black uppercase mt-1 mb-0.5">Scale</Text>
-                            <Text className="text-gray-900 dark:text-white font-black text-[14px]">{job.jobGroup?.name || 'CPSB'}</Text>
-                        </View>
+                {/* Info Bar - Minimal Grid */}
+                <View className="px-6 py-5 border-y border-gray-50 dark:border-gray-900 flex-row justify-between">
+                    <View className="flex-1 items-start">
+                        <Text className="text-gray-400 dark:text-gray-600 text-[10px] font-bold uppercase tracking-widest mb-1">Deadline</Text>
+                        <Text className="text-gray-900 dark:text-white font-bold text-sm">
+                            {new Date(job.closingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </Text>
+                    </View>
+                    <View className="flex-1 items-center border-x border-gray-50 dark:border-gray-900">
+                        <Text className="text-gray-400 dark:text-gray-600 text-[10px] font-bold uppercase tracking-widest mb-1">Openings</Text>
+                        <Text className="text-gray-900 dark:text-white font-bold text-sm">{job.openPositions} Slots</Text>
+                    </View>
+                    <View className="flex-1 items-end">
+                        <Text className="text-gray-400 dark:text-gray-600 text-[10px] font-bold uppercase tracking-widest mb-1">Job Group</Text>
+                        <Text className="text-gray-900 dark:text-white font-bold text-sm">{job.jobGroup?.name || 'N/A'}</Text>
                     </View>
                 </View>
 
-                {/* Main Content Sections */}
-                <View className="px-6 mt-8">
-                    {/* Salary Detail Box */}
+                <View className="p-6">
+                    {/* Salary Info */}
                     {job.jobGroup?.salaryMin && (
-                        <View className="bg-emerald-50 dark:bg-emerald-900/10 p-5 rounded-3xl border border-emerald-100 dark:border-emerald-900/30 flex-row items-center mb-8 shadow-sm">
-                            <View className="bg-emerald-600 p-3 rounded-2xl mr-4">
-                                <Scale size={24} color="#ffffff" />
-                            </View>
-                            <View className="flex-1">
-                                <Text className="text-emerald-800 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider mb-0.5">Monthly Remuneration</Text>
-                                <Text className="text-gray-900 dark:text-white font-black text-[16px]">
-                                    {formatCurrency(job.jobGroup.salaryMin)} - {formatCurrency(job.jobGroup.salaryMax)}
+                        <View className="mb-10 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-3xl">
+                            <Text className="text-gray-400 dark:text-gray-600 text-[10px] font-bold uppercase tracking-widest mb-2">Monthly Remuneration</Text>
+                            <View className="flex-row items-baseline">
+                                <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+                                    {formatCurrency(job.jobGroup.salaryMin)}
+                                </Text>
+                                <Text className="mx-2 text-gray-400">-</Text>
+                                <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+                                    {formatCurrency(job.jobGroup.salaryMax)}
                                 </Text>
                             </View>
                         </View>
                     )}
 
-                    {/* Description Card */}
-                    <View className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 mb-8 shadow-sm">
-                        <View className="flex-row items-center mb-5">
-                            <View className="w-1.5 h-6 bg-blue-600 rounded-full mr-3" />
-                            <Text className="text-xl font-black text-gray-900 dark:text-white">Job Summary</Text>
-                        </View>
-                        <Text className="text-gray-600 dark:text-gray-400 leading-7 text-[15px]">
+                    {/* Job Summary */}
+                    <View className="mb-10">
+                        <Text className="text-lg font-bold text-gray-900 dark:text-white mb-3">Job Summary</Text>
+                        <Text className="text-gray-600 dark:text-gray-400 leading-7 text-[16px]">
                             {job.description}
                         </Text>
                     </View>
 
-                    {/* Requirements Card - High Visibility */}
+                    {/* Qualifications */}
                     {job.jobRequirements && job.jobRequirements.length > 0 && (
-                        <View className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 mb-8 shadow-sm">
-                            <View className="flex-row items-center mb-5">
-                                <View className="w-1.5 h-6 bg-emerald-600 rounded-full mr-3" />
-                                <Text className="text-xl font-black text-gray-900 dark:text-white">Qualifications</Text>
-                            </View>
-                            <View className="space-y-4">
+                        <View className="mb-10">
+                            <Text className="text-lg font-bold text-gray-900 dark:text-white mb-4">Requirements</Text>
+                            <View className="space-y-5">
                                 {job.jobRequirements.map((req, index) => (
-                                    <View key={index} className="flex-row items-start bg-gray-50/80 dark:bg-gray-800/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
-                                        <View className="bg-emerald-100 dark:bg-emerald-900/30 p-1.5 rounded-lg mr-3 mt-0.5">
-                                            <CheckCircle2 size={14} color="#059669" />
-                                        </View>
-                                        <Text className="flex-1 text-gray-700 dark:text-gray-300 leading-6 text-[14px] font-bold">{req}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </View>
-                    )}
-
-                    {/* Responsibilities Card */}
-                    {job.jobResponsibilities && job.jobResponsibilities.length > 0 && (
-                        <View className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 mb-8 shadow-sm">
-                            <View className="flex-row items-center mb-5">
-                                <View className="w-1.5 h-6 bg-amber-600 rounded-full mr-3" />
-                                <Text className="text-xl font-black text-gray-900 dark:text-white">Key Duties</Text>
-                            </View>
-                            <View className="space-y-4">
-                                {job.jobResponsibilities.map((resp, index) => (
                                     <View key={index} className="flex-row items-start">
-                                        <Text className="text-blue-600 dark:text-blue-400 font-black mr-3 mt-0.5">0{index + 1}.</Text>
-                                        <Text className="flex-1 text-gray-600 dark:text-gray-400 leading-6 text-[14px]">{resp}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </View>
-                    )}
-
-                    {/* Documents Section */}
-                    {job.documents && job.documents.length > 0 && (
-                        <View className="mb-12">
-                            <Text className="text-lg font-black text-gray-900 dark:text-white mb-4 px-2">Official Documents</Text>
-                            {job.documents.map((doc) => (
-                                <TouchableOpacity 
-                                    key={doc.id}
-                                    className="flex-row items-center p-5 bg-white dark:bg-gray-900 rounded-[24px] border border-gray-100 dark:border-gray-800 mb-3 shadow-sm"
-                                    activeOpacity={0.7}
-                                >
-                                    <View className="bg-red-50 dark:bg-red-900/20 p-3 rounded-xl mr-4">
-                                        <FileText size={24} color="#ef4444" />
-                                    </View>
-                                    <View className="flex-1">
-                                        <Text className="text-gray-900 dark:text-white font-black text-sm" numberOfLines={1}>{doc.originalName}</Text>
-                                        <Text className="text-gray-400 dark:text-gray-500 text-[10px] uppercase font-black mt-1">
-                                            Official PDF • {(doc.fileSize / 1024).toFixed(1)} KB
+                                        <View className="mt-2 w-1.5 h-1.5 rounded-full bg-blue-600 mr-4" />
+                                        <Text className="flex-1 text-gray-600 dark:text-gray-400 leading-7 text-[16px]">
+                                            {req}
                                         </Text>
                                     </View>
-                                    <View className="bg-blue-50 dark:bg-blue-900/30 p-2.5 rounded-xl">
-                                        <Download size={20} color="#004aad" />
+                                ))}
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Key Duties */}
+                    {job.jobResponsibilities && job.jobResponsibilities.length > 0 && (
+                        <View className="mb-10">
+                            <Text className="text-lg font-bold text-gray-900 dark:text-white mb-4">Responsibilities</Text>
+                            <View className="space-y-5">
+                                {job.jobResponsibilities.map((resp, index) => (
+                                    <View key={index} className="flex-row items-start">
+                                        <Text className="w-8 text-blue-600 dark:text-blue-500 font-bold text-[16px]">{(index + 1).toString().padStart(2, '0')}</Text>
+                                        <Text className="flex-1 text-gray-600 dark:text-gray-400 leading-7 text-[16px]">
+                                            {resp}
+                                        </Text>
                                     </View>
+                                ))}
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Official Documents */}
+                    {job.documents && job.documents.length > 0 && (
+                        <View className="mb-6">
+                            <Text className="text-lg font-bold text-gray-900 dark:text-white mb-4">Attachments</Text>
+                            {job.documents.map((doc) => (
+                                <TouchableOpacity
+                                    key={doc.id}
+                                    className="flex-row items-center p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl mb-3"
+                                    activeOpacity={0.7}
+                                >
+                                    <FileText size={20} color={isDarkMode ? '#94a3b8' : '#64748b'} />
+                                    <View className="flex-1 ml-4">
+                                        <Text className="text-gray-900 dark:text-white font-bold text-xs" numberOfLines={1}>{doc.originalName}</Text>
+                                        <Text className="text-gray-400 dark:text-gray-600 text-[10px] mt-0.5">
+                                            PDF • {(doc.fileSize / 1024).toFixed(1)} KB
+                                        </Text>
+                                    </View>
+                                    <Download size={18} color="#004aad" />
                                 </TouchableOpacity>
                             ))}
                         </View>
@@ -279,41 +261,27 @@ export default function JobDetailsScreen() {
                 </View>
             </ScrollView>
 
-            {/* High-Impact Bottom Action Area */}
-            <View 
-                className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-gray-800 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] px-6"
-                style={{ paddingBottom: Math.max(insets.bottom, 24), paddingTop: 20 }}
+            {/* Premium Sticky Bottom Bar */}
+            <View
+                className="absolute bottom-0 left-0 right-0 bg-white/80 dark:bg-gray-950/80 px-6 py-6 border-t border-gray-50 dark:border-gray-900"
+                style={{ paddingBottom: Math.max(insets.bottom, 24) }}
             >
-                <View className="flex-row items-center justify-between mb-4">
-                    <View>
-                        <Text className="text-gray-400 text-[10px] font-black uppercase">Closing Date</Text>
-                        <Text className="text-gray-900 dark:text-white font-black text-[15px]">
-                            {new Date(job.closingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
-                        </Text>
-                    </View>
-                    {!isExpired && !job.hasApplied && (
-                        <View className="bg-amber-100 px-3 py-1 rounded-full">
-                            <Text className="text-amber-700 text-[9px] font-black uppercase">Limited Spots</Text>
-                        </View>
-                    )}
-                </View>
-
                 {job.hasApplied ? (
-                    <View className="bg-emerald-600 flex-row items-center justify-center h-[64px] rounded-2xl shadow-lg shadow-emerald-500/20">
-                        <CheckCircle2 size={24} color="#ffffff" />
-                        <Text className="text-white font-black ml-3 uppercase tracking-widest text-sm">Application Received</Text>
+                    <View className="h-14 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl flex-row items-center justify-center border border-emerald-100 dark:border-emerald-900/50">
+                        <CheckCircle2 size={20} color="#10b981" />
+                        <Text className="text-emerald-700 dark:text-emerald-500 font-bold ml-2">Application Submitted</Text>
                     </View>
                 ) : (
-                    <TouchableOpacity 
-                        className={`h-[64px] rounded-2xl items-center justify-center flex-row shadow-2xl ${isExpired ? 'bg-gray-200 dark:bg-gray-800' : 'bg-[#004aad] shadow-blue-500/40'}`}
+                    <TouchableOpacity
+                        className={`h-14 rounded-2xl items-center justify-center flex-row ${isExpired ? 'bg-gray-100 dark:bg-gray-900' : 'bg-gray-900 dark:bg-white'}`}
                         disabled={isExpired}
                         onPress={() => router.push(`/apply/${job.id}`)}
-                        activeOpacity={0.8}
+                        activeOpacity={0.9}
                     >
-                        <Text className="text-white font-black uppercase tracking-[3px] text-[15px]">
-                            {isExpired ? 'CLOSED' : 'APPLY NOW'}
+                        <Text className={`font-bold tracking-widest text-sm ${isExpired ? 'text-gray-400' : 'text-white dark:text-gray-900'}`}>
+                            {isExpired ? 'CLOSED' : 'APPLY FOR THIS ROLE'}
                         </Text>
-                        {!isExpired && <ArrowRight size={20} color="#ffffff" className="ml-3" />}
+                        {!isExpired && <ArrowRight size={18} color={isDarkMode ? '#0f172a' : '#ffffff'} className="ml-2" />}
                     </TouchableOpacity>
                 )}
             </View>

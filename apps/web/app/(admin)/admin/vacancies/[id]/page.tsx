@@ -96,7 +96,7 @@ export default function VacancyDetailPage({ params }: { params: Promise<{ id: st
                             <Separator />
                             <div>
                                 <h4 className="font-semibold text-sm">Job Group</h4>
-                                <p className="text-sm">{vacancy.jobGroup.name}</p>
+                                <p className="text-sm">{vacancy.jobGroup?.name || 'N/A'}</p>
                             </div>
                             <Separator />
                             <div>

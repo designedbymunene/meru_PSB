@@ -11,7 +11,7 @@ export default async function VacanciesPage(props: { searchParams: SearchParams 
     const filters = {
         search: (searchParams.search as string) || undefined,
         status: (searchParams.status as 'open' | 'closed') || 'open',
-        departmentId: searchParams.departmentId ? Number(searchParams.departmentId) : undefined,
+        departmentId: searchParams.departmentId ? String(searchParams.departmentId) : undefined,
     }
 
     return (

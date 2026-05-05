@@ -9,16 +9,21 @@ import {
     Info,
     Lock,
     LogOut,
+    MapPin,
     Moon,
     Sun,
-    UserCircle
+    UserCircle,
+    Sparkles,
+    CheckCircle2
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { useColorScheme } from 'nativewind';
-import { Alert, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, Switch, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ProfileHeader, SectionCard } from '@/components/account';
+import { ProfileHeader, SectionCard, CompletionProgress } from '@/components/account';
 import { useAuth } from '@/context/auth-context';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api/client';
 
 export default function ProfileScreen() {
     const { user, logout } = useAuth();
@@ -26,6 +31,14 @@ export default function ProfileScreen() {
     const { colorScheme, setColorScheme } = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
     const insets = useSafeAreaInsets();
+
+    const { data: profile, isLoading } = useQuery({
+        queryKey: ['profile'],
+        queryFn: async () => {
+            const response = await apiClient.get('/applicant-profiles/me');
+            return response.data.data;
+        },
+    });
 
     const handleLogout = () => {
         Alert.alert(
@@ -38,7 +51,7 @@ export default function ProfileScreen() {
         );
     };
 
-    const SectionButton = ({ icon: Icon, title, subtitle, onPress, color = "#64748b", rightElement }: any) => (
+    const SectionButton = ({ icon: Icon, title, subtitle, onPress, color = "#64748b", rightElement, isComplete }: any) => (
         <TouchableOpacity
             className="flex-row items-center py-2.5 active:opacity-70"
             onPress={onPress}
@@ -46,17 +59,24 @@ export default function ProfileScreen() {
         >
             <View
                 className="w-9 h-9 rounded-lg justify-center items-center mr-3.5"
-                style={{ backgroundColor: `${color}10` }}
+                style={{ backgroundColor: isComplete ? '#10b98110' : `${color}10` }}
             >
-                <Icon size={18} color={color} />
+                <Icon size={18} color={isComplete ? '#10b981' : color} />
             </View>
             <View className="flex-1">
                 <Text className="text-gray-900 dark:text-white font-bold text-sm">{title}</Text>
                 {subtitle && <Text className="text-gray-400 dark:text-gray-500 text-[10px] mt-0.5 font-bold uppercase tracking-tight">{subtitle}</Text>}
             </View>
-            {rightElement ? rightElement : <ChevronRight size={16} color="#cbd5e1" />}
+            {isComplete ? (
+                <CheckCircle2 size={16} color="#10b981" />
+            ) : (
+                rightElement ? rightElement : <ChevronRight size={16} color="#cbd5e1" />
+            )}
         </TouchableOpacity>
     );
+
+    const completion = profile?.profileCompletion?.overallPercentage || 0;
+    const sections = profile?.profileCompletion?.sections || {};
 
     return (
         <View className="flex-1 bg-white dark:bg-gray-950">
@@ -83,7 +103,12 @@ export default function ProfileScreen() {
                         />
                     </View>
 
-                    <View className="px-5 pt-8">
+                    <View className="px-5 pt-6">
+                        {/* Completion Summary */}
+                        <View className="mb-8">
+                            <CompletionProgress percentage={completion} label="Overall Completion" />
+                        </View>
+
                         {/* Profile Information Section */}
                         <View className="mb-4">
                             <SectionCard
@@ -95,25 +120,36 @@ export default function ProfileScreen() {
                                         icon={UserCircle}
                                         title="Personal Info"
                                         subtitle="Bio-data & Contacts"
-                                        onPress={() => router.push('/profile/personal-details')}
+                                        onPress={() => router.push('/profile/wizard?step=personal')}
+                                        isComplete={sections.personal === 100}
+                                    />
+                                    <SectionButton
+                                        icon={MapPin}
+                                        title="Location & Ethnicity"
+                                        subtitle="Origin & Demographic"
+                                        onPress={() => router.push('/profile/wizard?step=location')}
+                                        isComplete={sections.location === 100}
                                     />
                                     <SectionButton
                                         icon={GraduationCap}
                                         title="Education"
                                         subtitle="Academic History"
-                                        onPress={() => router.push('/profile/qualifications')}
+                                        onPress={() => router.push('/profile/wizard?step=academic')}
+                                        isComplete={(profile?.qualifications?.length || 0) > 0}
                                     />
                                     <SectionButton
                                         icon={Briefcase}
                                         title="Experience"
                                         subtitle="Work & Roles"
-                                        onPress={() => router.push('/profile/employment-history')}
+                                        onPress={() => router.push('/profile/wizard?step=experience')}
+                                        isComplete={(profile?.employmentHistory?.length || 0) > 0}
                                     />
                                     <SectionButton
                                         icon={Award}
                                         title="Skills & Certs"
                                         subtitle="Professional Licensing"
-                                        onPress={() => router.push('/profile/professional-details')}
+                                        onPress={() => router.push('/profile/wizard?step=professional')}
+                                        isComplete={sections.professional === 100}
                                     />
                                 </View>
                             </SectionCard>
@@ -176,3 +212,4 @@ export default function ProfileScreen() {
         </View>
     );
 }
+

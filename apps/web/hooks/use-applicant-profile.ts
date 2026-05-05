@@ -60,6 +60,73 @@ export function useCreateOrUpdateProfile() {
 
 // ===== Qualifications Hooks =====
 
+export function useMyQualifications() {
+    return useQuery({
+        queryKey: ['my-qualifications'],
+        queryFn: () => applicantProfileApi.getMyQualifications(),
+    })
+}
+
+export function useAddMyQualification() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (data: CreateQualificationInput) =>
+            applicantProfileApi.addMyQualification(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['my-qualifications'] })
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MY_PROFILE })
+            toast.success('Qualification added')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to add qualification', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useUpdateMyQualification() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({
+            qualId,
+            data,
+        }: {
+            qualId: number
+            data: Partial<CreateQualificationInput>
+        }) => applicantProfileApi.updateMyQualification(qualId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['my-qualifications'] })
+            toast.success('Qualification updated')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to update qualification', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useDeleteMyQualification() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (qualId: number) =>
+            applicantProfileApi.deleteMyQualification(qualId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['my-qualifications'] })
+            toast.success('Qualification deleted')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to delete qualification', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
 export function useQualifications(profileId: number) {
     return useQuery({
         queryKey: QUERY_KEYS.QUALIFICATIONS(profileId),
@@ -129,6 +196,79 @@ export function useDeleteQualification(profileId: number) {
 }
 
 // ===== Professional Details Hooks =====
+
+export function useMyProfessionalDetails() {
+    return useQuery({
+        queryKey: ['my-professional-details'],
+        queryFn: () => applicantProfileApi.getMyProfessionalDetails(),
+    })
+}
+
+export function useAddMyProfessionalDetail() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (data: CreateProfessionalDetailInput) =>
+            applicantProfileApi.addMyProfessionalDetail(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-professional-details'],
+            })
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MY_PROFILE })
+            toast.success('Professional detail added')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to add professional detail', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useUpdateMyProfessionalDetail() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({
+            detailId,
+            data,
+        }: {
+            detailId: number
+            data: Partial<CreateProfessionalDetailInput>
+        }) => applicantProfileApi.updateMyProfessionalDetail(detailId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-professional-details'],
+            })
+            toast.success('Professional detail updated')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to update professional detail', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useDeleteMyProfessionalDetail() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (detailId: number) =>
+            applicantProfileApi.deleteMyProfessionalDetail(detailId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-professional-details'],
+            })
+            toast.success('Professional detail deleted')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to delete professional detail', {
+                description: error?.message,
+            })
+        },
+    })
+}
 
 export function useProfessionalDetails(profileId: number) {
     return useQuery({
@@ -206,6 +346,79 @@ export function useDeleteProfessionalDetail(profileId: number) {
 
 // ===== Training Courses Hooks =====
 
+export function useMyTrainingCourses() {
+    return useQuery({
+        queryKey: ['my-training-courses'],
+        queryFn: () => applicantProfileApi.getMyTrainingCourses(),
+    })
+}
+
+export function useAddMyTrainingCourse() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (data: CreateTrainingCourseInput) =>
+            applicantProfileApi.addMyTrainingCourse(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-training-courses'],
+            })
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MY_PROFILE })
+            toast.success('Training course added')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to add training course', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useUpdateMyTrainingCourse() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({
+            courseId,
+            data,
+        }: {
+            courseId: number
+            data: Partial<CreateTrainingCourseInput>
+        }) => applicantProfileApi.updateMyTrainingCourse(courseId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-training-courses'],
+            })
+            toast.success('Training course updated')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to update training course', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useDeleteMyTrainingCourse() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (courseId: number) =>
+            applicantProfileApi.deleteMyTrainingCourse(courseId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-training-courses'],
+            })
+            toast.success('Training course deleted')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to delete training course', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
 export function useTrainingCourses(profileId: number) {
     return useQuery({
         queryKey: QUERY_KEYS.TRAINING_COURSES(profileId),
@@ -281,6 +494,80 @@ export function useDeleteTrainingCourse(profileId: number) {
 }
 
 // ===== Professional Memberships Hooks =====
+
+export function useMyProfessionalMemberships() {
+    return useQuery({
+        queryKey: ['my-professional-memberships'],
+        queryFn: () => applicantProfileApi.getMyProfessionalMemberships(),
+    })
+}
+
+export function useAddMyProfessionalMembership() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (data: CreateProfessionalMembershipInput) =>
+            applicantProfileApi.addMyProfessionalMembership(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-professional-memberships'],
+            })
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MY_PROFILE })
+            toast.success('Professional membership added')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to add professional membership', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useUpdateMyProfessionalMembership() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({
+            membershipId,
+            data,
+        }: {
+            membershipId: number
+            data: Partial<CreateProfessionalMembershipInput>
+        }) =>
+            applicantProfileApi.updateMyProfessionalMembership(membershipId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-professional-memberships'],
+            })
+            toast.success('Professional membership updated')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to update professional membership', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useDeleteMyProfessionalMembership() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (membershipId: number) =>
+            applicantProfileApi.deleteMyProfessionalMembership(membershipId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-professional-memberships'],
+            })
+            toast.success('Professional membership deleted')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to delete professional membership', {
+                description: error?.message,
+            })
+        },
+    })
+}
 
 export function useProfessionalMemberships(profileId: number) {
     return useQuery({
@@ -359,6 +646,79 @@ export function useDeleteProfessionalMembership(profileId: number) {
 
 // ===== Employment History Hooks =====
 
+export function useMyEmploymentHistory() {
+    return useQuery({
+        queryKey: ['my-employment-history'],
+        queryFn: () => applicantProfileApi.getMyEmploymentHistory(),
+    })
+}
+
+export function useAddMyEmploymentHistory() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (data: CreateEmploymentHistoryInput) =>
+            applicantProfileApi.addMyEmploymentHistory(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-employment-history'],
+            })
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MY_PROFILE })
+            toast.success('Employment history added')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to add employment history', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useUpdateMyEmploymentHistory() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({
+            employmentId,
+            data,
+        }: {
+            employmentId: number
+            data: Partial<CreateEmploymentHistoryInput>
+        }) => applicantProfileApi.updateMyEmploymentHistory(employmentId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-employment-history'],
+            })
+            toast.success('Employment history updated')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to update employment history', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useDeleteMyEmploymentHistory() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (employmentId: number) =>
+            applicantProfileApi.deleteMyEmploymentHistory(employmentId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-employment-history'],
+            })
+            toast.success('Employment history deleted')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to delete employment history', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
 export function useEmploymentHistory(profileId: number) {
     return useQuery({
         queryKey: QUERY_KEYS.EMPLOYMENT_HISTORY(profileId),
@@ -427,6 +787,155 @@ export function useDeleteEmploymentHistory(profileId: number) {
         },
         onError: (error: any) => {
             toast.error('Failed to delete employment history', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+// ===== Referees Hooks =====
+
+export function useMyReferees() {
+    return useQuery({
+        queryKey: ['my-referees'],
+        queryFn: () => applicantProfileApi.getMyReferees(),
+    })
+}
+
+export function useAddMyReferee() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (data: any) =>
+            applicantProfileApi.addMyReferee(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-referees'],
+            })
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MY_PROFILE })
+            toast.success('Referee added')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to add referee', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useUpdateMyReferee() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({
+            refereeId,
+            data,
+        }: {
+            refereeId: number
+            data: any
+        }) => applicantProfileApi.updateMyReferee(refereeId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-referees'],
+            })
+            toast.success('Referee updated')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to update referee', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useDeleteMyReferee() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (refereeId: number) =>
+            applicantProfileApi.deleteMyReferee(refereeId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['my-referees'],
+            })
+            toast.success('Referee deleted')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to delete referee', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useReferees(profileId: number) {
+    return useQuery({
+        queryKey: ['referees', profileId],
+        queryFn: () => applicantProfileApi.getReferees(profileId),
+        enabled: !!profileId,
+    })
+}
+
+export function useAddReferee(profileId: number) {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (data: any) =>
+            applicantProfileApi.addReferee(profileId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['referees', profileId],
+            })
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MY_PROFILE })
+            toast.success('Referee added')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to add referee', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useUpdateReferee(profileId: number) {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({
+            refereeId,
+            data,
+        }: {
+            refereeId: number
+            data: any
+        }) => applicantProfileApi.updateReferee(profileId, refereeId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['referees', profileId],
+            })
+            toast.success('Referee updated')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to update referee', {
+                description: error?.message,
+            })
+        },
+    })
+}
+
+export function useDeleteReferee(profileId: number) {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (refereeId: number) =>
+            applicantProfileApi.deleteReferee(profileId, refereeId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['referees', profileId],
+            })
+            toast.success('Referee deleted')
+        },
+        onError: (error: any) => {
+            toast.error('Failed to delete referee', {
                 description: error?.message,
             })
         },

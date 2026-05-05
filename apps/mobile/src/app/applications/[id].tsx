@@ -88,11 +88,11 @@ export default function TrackApplicationScreen() {
                         <View className="flex-row justify-between items-center">
                             <View>
                                 <Text className="text-white/50 text-[10px] font-bold uppercase tracking-tighter">Reference No.</Text>
-                                    <Text className="text-white font-bold text-sm mt-1">{displayData.vacancy?.refNumber || 'N/A'}</Text>
+                                    <Text className="text-white font-bold text-sm mt-1">{displayData.vacancy?.advertisementNumber || 'N/A'}</Text>
                                 </View>
                             <View className="items-end">
                                 <Text className="text-white/50 text-[10px] font-bold uppercase tracking-tighter">Applied On</Text>
-                                <Text className="text-white font-bold text-sm mt-1">{new Date(displayData.createdAt).toLocaleDateString()}</Text>
+                                <Text className="text-white font-bold text-sm mt-1">{new Date(displayData.appliedAt).toLocaleDateString()}</Text>
                             </View>
                         </View>
                     </View>

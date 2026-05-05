@@ -25,7 +25,7 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form'
-import { registerSchema } from '@meru/shared'
+import { registerSchema, RegisterInput } from '@meru/shared'
 import { useRegister } from '@/hooks/use-auth'
 import { z } from 'zod'
 import { Logo } from '@/components/shared/logo'
@@ -40,18 +40,19 @@ export function RegisterForm({ onSuccess }: RegisterFormProps = {}) {
     const router = useRouter()
     const isPending = register.isPending
 
-    const form = useForm<z.input<typeof registerSchema>>({
+    const form = useForm({
         resolver: zodResolver(registerSchema),
         defaultValues: {
-            username: '',
-            email: '',
-            password: '',
             fullName: '',
-            role: 'applicant',
+            email: '',
+            phoneNumber: '',
+            nationalId: '',
+            password: '',
+            role: 'applicant' as const,
         },
     })
 
-    function onSubmit(data: z.input<typeof registerSchema>) {
+    function onSubmit(data: any) {
         // Zod will transform the input to output type, making role required
         register.mutate(registerSchema.parse(data), {
             onSuccess: () => {
@@ -105,15 +106,37 @@ export function RegisterForm({ onSuccess }: RegisterFormProps = {}) {
                         />
                         <FormField
                             control={form.control}
-                            name="username"
+                            name="nationalId"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Username</FormLabel>
+                                    <FormLabel>National ID</FormLabel>
                                     <FormControl>
                                         <div className="relative">
                                             <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <Input
-                                                placeholder="johndoe"
+                                                placeholder="12345678"
+                                                className="pl-10"
+                                                disabled={isPending}
+                                                {...field}
+                                            />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="phoneNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Phone Number</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                type="tel"
+                                                placeholder="+254712345678"
                                                 className="pl-10"
                                                 disabled={isPending}
                                                 {...field}

@@ -35,7 +35,7 @@ export default function EmploymentHistoryScreen() {
     const { data: employments, isLoading } = useQuery<EmploymentHistoryItem[]>({
         queryKey: ['employment-history'],
         queryFn: async () => {
-            const response = await apiClient.get('/applicant-profiles/employment-history');
+            const response = await apiClient.get('/applicant-profiles/me/employment-history');
             return response.data.data || [];
         },
     });
@@ -43,9 +43,9 @@ export default function EmploymentHistoryScreen() {
     const createMutation = useMutation({
         mutationFn: async (data: typeof formData) => {
             return runOfflineCapableMutation({
-                request: () => apiClient.post('/applicant-profiles/employment-history', data),
+                request: () => apiClient.post('/applicant-profiles/me/employment-history', data),
                 method: 'post',
-                path: '/applicant-profiles/employment-history',
+                path: '/applicant-profiles/me/employment-history',
                 body: data,
             });
         },
@@ -87,9 +87,9 @@ export default function EmploymentHistoryScreen() {
     const deleteMutation = useMutation({
         mutationFn: async (id: number) => {
             return runOfflineCapableMutation({
-                request: () => apiClient.delete(`/applicant-profiles/employment-history/${id}`),
+                request: () => apiClient.delete(`/applicant-profiles/me/employment-history/${id}`),
                 method: 'delete',
-                path: `/applicant-profiles/employment-history/${id}`,
+                path: `/applicant-profiles/me/employment-history/${id}`,
             });
         },
         onSuccess: (result, id) => {

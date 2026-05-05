@@ -24,14 +24,15 @@ export default function AddProfessionalDetailsScreen() {
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: async (data: ProfessionalDetailsData) => {
+        mutationFn: async (data: any) => {
             return runOfflineCapableMutation({
-                request: () => apiClient.post('/applicant-profiles/professional-details', data),
+                request: () => apiClient.post('/applicant-profiles/me/professional-details', data),
                 method: 'post',
-                path: '/applicant-profiles/professional-details',
-                body: data,
+                path: '/applicant-profiles/me/professional-details',
+                data,
             });
         },
+
         onSuccess: (result) => {
             queryClient.invalidateQueries({ queryKey: ['professional-details'] });
 

@@ -169,23 +169,35 @@ applicationsRouter.get('/:id', authenticate, async (c) => {
 // POST /api/applications - Apply for a vacancy
 applicationsRouter.post('/', authenticate, async (c) => {
     const user = c.get('user')
+    console.log(`[Applications] User ${user.userId} is applying for a vacancy`)
 
     try {
-        // Parse multipart form data
-        const body = await c.req.parseBody()
+        let vacancyId: number | undefined
 
+        // Try to get vacancyId from JSON body first
+        const contentType = c.req.header('Content-Type') || ''
 
-
-
-        // Extract and validate form data
-        const vacancyId = parseInt(body.vacancyId as string)
+        if (contentType.includes('application/json')) {
+            const body = await c.req.json()
+            console.log('[Applications] Received JSON body:', JSON.stringify(body))
+            vacancyId = body.vacancyId ? parseInt(body.vacancyId.toString()) : undefined
+        } else {
+            // Fallback to form data
+            const body = await c.req.parseBody()
+            console.log('[Applications] Received form data:', body)
+            vacancyId = body.vacancyId ? parseInt(body.vacancyId as string) : undefined
+        }
 
         if (!vacancyId) {
+            console.warn('[Applications] Submission failed: Vacancy ID is missing')
             return c.json(
                 { success: false, error: { code: 'INVALID_INPUT', message: 'Vacancy ID is required', details: null } },
                 { status: 400 }
             )
         }
+
+        console.log(`[Applications] Validated Vacancy ID: ${vacancyId}`)
+
 
         // Check if vacancy exists and if deadline has passed
         const vacancy = await db.query.vacancies.findFirst({

@@ -55,6 +55,43 @@ export async function createOrUpdateProfile(
 
 // ===== Qualifications Endpoints =====
 
+export async function getMyQualifications(): Promise<ApiResponse<Qualification[]>> {
+    const { data } = await apiClient.get<ApiResponse<Qualification[]>>(
+        '/applicant-profiles/me/qualifications'
+    )
+    return data
+}
+
+export async function addMyQualification(
+    qualData: CreateQualificationInput
+): Promise<ApiResponse<Qualification>> {
+    const { data } = await apiClient.post<ApiResponse<Qualification>>(
+        '/applicant-profiles/me/qualifications',
+        qualData
+    )
+    return data
+}
+
+export async function updateMyQualification(
+    qualId: number,
+    qualData: Partial<CreateQualificationInput>
+): Promise<ApiResponse<Qualification>> {
+    const { data } = await apiClient.put<ApiResponse<Qualification>>(
+        `/applicant-profiles/me/qualifications/${qualId}`,
+        qualData
+    )
+    return data
+}
+
+export async function deleteMyQualification(
+    qualId: number
+): Promise<ApiResponse<void>> {
+    const { data } = await apiClient.delete<ApiResponse<void>>(
+        `/applicant-profiles/me/qualifications/${qualId}`
+    )
+    return data
+}
+
 export async function getQualifications(
     profileId: number
 ): Promise<ApiResponse<Qualification[]>> {
@@ -98,6 +135,43 @@ export async function deleteQualification(
 }
 
 // ===== Professional Details Endpoints =====
+
+export async function getMyProfessionalDetails(): Promise<ApiResponse<ProfessionalDetail[]>> {
+    const { data } = await apiClient.get<ApiResponse<ProfessionalDetail[]>>(
+        '/applicant-profiles/me/professional-details'
+    )
+    return data
+}
+
+export async function addMyProfessionalDetail(
+    detailData: CreateProfessionalDetailInput
+): Promise<ApiResponse<ProfessionalDetail>> {
+    const { data } = await apiClient.post<ApiResponse<ProfessionalDetail>>(
+        '/applicant-profiles/me/professional-details',
+        detailData
+    )
+    return data
+}
+
+export async function updateMyProfessionalDetail(
+    detailId: number,
+    detailData: Partial<CreateProfessionalDetailInput>
+): Promise<ApiResponse<ProfessionalDetail>> {
+    const { data } = await apiClient.put<ApiResponse<ProfessionalDetail>>(
+        `/applicant-profiles/me/professional-details/${detailId}`,
+        detailData
+    )
+    return data
+}
+
+export async function deleteMyProfessionalDetail(
+    detailId: number
+): Promise<ApiResponse<void>> {
+    const { data } = await apiClient.delete<ApiResponse<void>>(
+        `/applicant-profiles/me/professional-details/${detailId}`
+    )
+    return data
+}
 
 export async function getProfessionalDetails(
     profileId: number
@@ -143,6 +217,43 @@ export async function deleteProfessionalDetail(
 
 // ===== Training Courses Endpoints =====
 
+export async function getMyTrainingCourses(): Promise<ApiResponse<TrainingCourse[]>> {
+    const { data } = await apiClient.get<ApiResponse<TrainingCourse[]>>(
+        '/applicant-profiles/me/training-courses'
+    )
+    return data
+}
+
+export async function addMyTrainingCourse(
+    courseData: CreateTrainingCourseInput
+): Promise<ApiResponse<TrainingCourse>> {
+    const { data } = await apiClient.post<ApiResponse<TrainingCourse>>(
+        '/applicant-profiles/me/training-courses',
+        courseData
+    )
+    return data
+}
+
+export async function updateMyTrainingCourse(
+    courseId: number,
+    courseData: Partial<CreateTrainingCourseInput>
+): Promise<ApiResponse<TrainingCourse>> {
+    const { data } = await apiClient.put<ApiResponse<TrainingCourse>>(
+        `/applicant-profiles/me/training-courses/${courseId}`,
+        courseData
+    )
+    return data
+}
+
+export async function deleteMyTrainingCourse(
+    courseId: number
+): Promise<ApiResponse<void>> {
+    const { data } = await apiClient.delete<ApiResponse<void>>(
+        `/applicant-profiles/me/training-courses/${courseId}`
+    )
+    return data
+}
+
 export async function getTrainingCourses(
     profileId: number
 ): Promise<ApiResponse<TrainingCourse[]>> {
@@ -186,6 +297,43 @@ export async function deleteTrainingCourse(
 }
 
 // ===== Professional Memberships Endpoints =====
+
+export async function getMyProfessionalMemberships(): Promise<ApiResponse<ProfessionalMembership[]>> {
+    const { data } = await apiClient.get<ApiResponse<ProfessionalMembership[]>>(
+        '/applicant-profiles/me/professional-memberships'
+    )
+    return data
+}
+
+export async function addMyProfessionalMembership(
+    membershipData: CreateProfessionalMembershipInput
+): Promise<ApiResponse<ProfessionalMembership>> {
+    const { data } = await apiClient.post<ApiResponse<ProfessionalMembership>>(
+        '/applicant-profiles/me/professional-memberships',
+        membershipData
+    )
+    return data
+}
+
+export async function updateMyProfessionalMembership(
+    membershipId: number,
+    membershipData: Partial<CreateProfessionalMembershipInput>
+): Promise<ApiResponse<ProfessionalMembership>> {
+    const { data } = await apiClient.put<ApiResponse<ProfessionalMembership>>(
+        `/applicant-profiles/me/professional-memberships/${membershipId}`,
+        membershipData
+    )
+    return data
+}
+
+export async function deleteMyProfessionalMembership(
+    membershipId: number
+): Promise<ApiResponse<void>> {
+    const { data } = await apiClient.delete<ApiResponse<void>>(
+        `/applicant-profiles/me/professional-memberships/${membershipId}`
+    )
+    return data
+}
 
 export async function getProfessionalMemberships(
     profileId: number
@@ -231,6 +379,43 @@ export async function deleteProfessionalMembership(
 
 // ===== Employment History Endpoints =====
 
+export async function getMyEmploymentHistory(): Promise<ApiResponse<EmploymentHistory[]>> {
+    const { data } = await apiClient.get<ApiResponse<EmploymentHistory[]>>(
+        '/applicant-profiles/me/employment-history'
+    )
+    return data
+}
+
+export async function addMyEmploymentHistory(
+    employmentData: CreateEmploymentHistoryInput
+): Promise<ApiResponse<EmploymentHistory>> {
+    const { data } = await apiClient.post<ApiResponse<EmploymentHistory>>(
+        '/applicant-profiles/me/employment-history',
+        employmentData
+    )
+    return data
+}
+
+export async function updateMyEmploymentHistory(
+    employmentId: number,
+    employmentData: Partial<CreateEmploymentHistoryInput>
+): Promise<ApiResponse<EmploymentHistory>> {
+    const { data } = await apiClient.put<ApiResponse<EmploymentHistory>>(
+        `/applicant-profiles/me/employment-history/${employmentId}`,
+        employmentData
+    )
+    return data
+}
+
+export async function deleteMyEmploymentHistory(
+    employmentId: number
+): Promise<ApiResponse<void>> {
+    const { data } = await apiClient.delete<ApiResponse<void>>(
+        `/applicant-profiles/me/employment-history/${employmentId}`
+    )
+    return data
+}
+
 export async function getEmploymentHistory(
     profileId: number
 ): Promise<ApiResponse<EmploymentHistory[]>> {
@@ -269,6 +454,87 @@ export async function deleteEmploymentHistory(
 ): Promise<ApiResponse<void>> {
     const { data } = await apiClient.delete<ApiResponse<void>>(
         `/applicant-profiles/${profileId}/employment-history/${employmentId}`
+    )
+    return data
+}
+
+// ===== Referees Endpoints =====
+
+export async function getMyReferees(): Promise<ApiResponse<any[]>> {
+    const { data } = await apiClient.get<ApiResponse<any[]>>(
+        '/applicant-profiles/me/referees'
+    )
+    return data
+}
+
+export async function addMyReferee(
+    refereeData: any
+): Promise<ApiResponse<any>> {
+    const { data } = await apiClient.post<ApiResponse<any>>(
+        '/applicant-profiles/me/referees',
+        refereeData
+    )
+    return data
+}
+
+export async function updateMyReferee(
+    refereeId: number,
+    refereeData: any
+): Promise<ApiResponse<any>> {
+    const { data } = await apiClient.put<ApiResponse<any>>(
+        `/applicant-profiles/me/referees/${refereeId}`,
+        refereeData
+    )
+    return data
+}
+
+export async function deleteMyReferee(
+    refereeId: number
+): Promise<ApiResponse<void>> {
+    const { data } = await apiClient.delete<ApiResponse<void>>(
+        `/applicant-profiles/me/referees/${refereeId}`
+    )
+    return data
+}
+
+export async function getReferees(
+    profileId: number
+): Promise<ApiResponse<any[]>> {
+    const { data } = await apiClient.get<ApiResponse<any[]>>(
+        `/applicant-profiles/${profileId}/referees`
+    )
+    return data
+}
+
+export async function addReferee(
+    profileId: number,
+    refereeData: any
+): Promise<ApiResponse<any>> {
+    const { data } = await apiClient.post<ApiResponse<any>>(
+        `/applicant-profiles/${profileId}/referees`,
+        refereeData
+    )
+    return data
+}
+
+export async function updateReferee(
+    profileId: number,
+    refereeId: number,
+    refereeData: any
+): Promise<ApiResponse<any>> {
+    const { data } = await apiClient.put<ApiResponse<any>>(
+        `/applicant-profiles/${profileId}/referees/${refereeId}`,
+        refereeData
+    )
+    return data
+}
+
+export async function deleteReferee(
+    profileId: number,
+    refereeId: number
+): Promise<ApiResponse<void>> {
+    const { data } = await apiClient.delete<ApiResponse<void>>(
+        `/applicant-profiles/${profileId}/referees/${refereeId}`
     )
     return data
 }

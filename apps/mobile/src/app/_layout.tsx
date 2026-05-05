@@ -54,7 +54,7 @@ export default function RootLayout() {
           <AppQueryProvider>
             <AuthProvider>
               <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-              {/* <Toaster /> */}
+              <Toaster />
               <Stack screenOptions={{ headerShown: false }} />
             </AuthProvider>
           </AppQueryProvider>

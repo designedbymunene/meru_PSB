@@ -1,4 +1,4 @@
-import type { NormalizedApiError } from "@/lib/api/client";
+import type { NormalizedApiError } from "./client-factory";
 
 export const MAX_RETRY_ATTEMPTS = 1;
 

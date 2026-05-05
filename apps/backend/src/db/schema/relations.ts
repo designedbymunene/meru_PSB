@@ -12,6 +12,7 @@ import { professionalDetails } from './professional-details'
 import { trainingCourses } from './training-courses'
 import { professionalMemberships } from './professional-memberships'
 import { employmentHistory } from './employment-history'
+import { referees } from './referees'
 import { counties, constituencies, wards } from './locations'
 import { 
     ethnicities, 
@@ -126,7 +127,8 @@ export const applicantProfilesRelations = relations(applicantProfiles, ({ one, m
     professionalDetails: many(professionalDetails),
     trainingCourses: many(trainingCourses),
     professionalMemberships: many(professionalMemberships),
-    employmentHistory: many(employmentHistory)
+    employmentHistory: many(employmentHistory),
+    referees: many(referees)
 }))
 
 // Relations for qualifications
@@ -190,5 +192,13 @@ export const professionalMembershipsRelations = relations(professionalMembership
     membershipBody: one(professionalBodies, {
         fields: [professionalMemberships.membershipBodyId],
         references: [professionalBodies.id]
+    })
+}))
+
+// Relations for referees
+export const refereesRelations = relations(referees, ({ one }) => ({
+    profile: one(applicantProfiles, {
+        fields: [referees.applicantProfileId],
+        references: [applicantProfiles.id]
     })
 }))

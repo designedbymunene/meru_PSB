@@ -18,7 +18,18 @@ import { useVacancies } from "@/hooks/use-vacancies"
 
 export default function ApplicationsPage() {
     const [vacancyId, setVacancyId] = useState<string>('all')
-    const filters = vacancyId !== 'all' ? { vacancyId: parseInt(vacancyId) } : undefined
+    const filters = vacancyId !== 'all' ? { 
+        vacancyId: vacancyId,
+        sortBy: 'appliedAt' as const,
+        order: 'desc' as const,
+        limit: '50',
+        offset: '0'
+    } : {
+        sortBy: 'appliedAt' as const,
+        order: 'desc' as const,
+        limit: '50',
+        offset: '0'
+    }
 
     const { data, isLoading } = useAllApplications(filters)
     const applications = data?.data || []

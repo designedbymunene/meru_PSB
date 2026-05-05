@@ -25,6 +25,35 @@ const app = new Hono()
 // Global middleware
 app.use('*', logger())
 
+// Debug logger for development
+if (process.env.NODE_ENV !== 'production') {
+  app.use('*', async (c, next) => {
+    const { method, url } = c.req
+    console.log(`\x1b[36m[DEBUG] ${method} ${url}\x1b[0m`)
+    
+    // We only log the body for POST/PUT/PATCH and if it's JSON
+    if (['POST', 'PUT', 'PATCH'].includes(method)) {
+      const contentType = c.req.header('Content-Type') || ''
+      if (contentType.includes('application/json')) {
+        try {
+          // Clone the request to read the body without consuming it
+          const body = await c.req.raw.clone().json()
+          // Sanitize sensitive fields
+          const sensitiveFields = ['password', 'token', 'refreshToken', 'accessToken', 'currentPassword', 'newPassword']
+          const sanitizedBody = { ...body }
+          sensitiveFields.forEach(field => {
+            if (sanitizedBody[field]) sanitizedBody[field] = '********'
+          })
+          console.log(`\x1b[36m[DEBUG] Body: ${JSON.stringify(sanitizedBody, null, 2)}\x1b[0m`)
+        } catch (e) {
+          // Ignore parsing errors
+        }
+      }
+    }
+    await next()
+  })
+}
+
 // Middleware to normalize double slashes in the path
 app.use('*', async (c, next) => {
   const path = c.req.path

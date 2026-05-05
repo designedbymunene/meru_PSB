@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useVacancy, useVacancyPdfs } from '@/hooks/use-vacancies'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -7,14 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
+import { ResponsiveDialog } from '@/components/shared/responsive-dialog/responsive-dialog'
 import { ApplicationForm } from '@/components/applications/application-form'
 import { useAuthContext } from '@/providers'
 import { useMyProfile } from '@/hooks/use-applicant-profile'
@@ -33,6 +27,7 @@ export function VacancyDetail() {
     const router = useRouter()
     const id = Number(params?.id)
     const { user } = useAuthContext()
+    const [applyDialogOpen, setApplyDialogOpen] = useState(false)
 
     const { data: vacancyData, isLoading, error } = useVacancy(id)
     const { data: pdfsData } = useVacancyPdfs(id)
@@ -111,22 +106,20 @@ export function VacancyDetail() {
                                     </p>
                                 </div>
                             ) : isProfileComplete ? (
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button size="lg" disabled={isClosed}>
-                                            {isClosed ? 'Vacancy Closed' : 'Apply Now'}
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                                        <DialogHeader>
-                                            <DialogTitle>Apply for {vacancy.title}</DialogTitle>
-                                            <DialogDescription>
-                                                Please confirm your application.
-                                            </DialogDescription>
-                                        </DialogHeader>
+                                <>
+                                    <Button size="lg" disabled={isClosed} onClick={() => setApplyDialogOpen(true)}>
+                                        {isClosed ? 'Vacancy Closed' : 'Apply Now'}
+                                    </Button>
+                                    <ResponsiveDialog
+                                        open={applyDialogOpen}
+                                        onOpenChange={setApplyDialogOpen}
+                                        title={`Apply for ${vacancy.title}`}
+                                        description="Please confirm your application."
+                                        className="max-w-2xl"
+                                    >
                                         <ApplicationForm vacancyId={vacancy.id} vacancyTitle={vacancy.title} />
-                                    </DialogContent>
-                                </Dialog>
+                                    </ResponsiveDialog>
+                                </>
                             ) : (
                                 <div className="space-y-2">
                                     <Button size="lg" disabled>

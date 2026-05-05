@@ -154,6 +154,16 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
             if (isDebug) {
                 const hasAuth = !!(config.headers.Authorization || (config.headers.get && config.headers.get('Authorization')));
                 console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url} ${hasAuth ? '(Auth)' : '(No Auth)'}`);
+                
+                if (config.data) {
+                    // Sanitize sensitive data before logging
+                    const dataToLog = { ...config.data };
+                    const sensitiveFields = ['password', 'token', 'refreshToken', 'accessToken', 'currentPassword', 'newPassword'];
+                    sensitiveFields.forEach(field => {
+                        if (dataToLog[field]) dataToLog[field] = '********';
+                    });
+                    console.log(`[API Request Data]`, JSON.stringify(dataToLog, null, 2));
+                }
             }
             return config;
         },

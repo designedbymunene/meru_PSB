@@ -36,27 +36,23 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createProfessionalMembershipSchema } from '@meru/shared'
 import {
-    useProfessionalMemberships,
-    useAddProfessionalMembership,
-    useUpdateProfessionalMembership,
-    useDeleteProfessionalMembership,
+    useMyProfessionalMemberships,
+    useAddMyProfessionalMembership,
+    useUpdateMyProfessionalMembership,
+    useDeleteMyProfessionalMembership,
 } from '@/hooks/use-applicant-profile'
 import type { ProfessionalMembership } from '@/types'
 
-interface ProfessionalMembershipsManagerProps {
-    profileId: number
-}
-
-export function ProfessionalMembershipsManager({ profileId }: ProfessionalMembershipsManagerProps) {
-    const { data: response, isLoading } = useProfessionalMemberships(profileId)
+export function ProfessionalMembershipsManager() {
+    const { data: response, isLoading } = useMyProfessionalMemberships()
     const memberships = response?.data || []
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editing, setEditing] = useState<ProfessionalMembership | null>(null)
     const [deletingId, setDeletingId] = useState<number | null>(null)
 
-    const addMutation = useAddProfessionalMembership(profileId)
-    const updateMutation = useUpdateProfessionalMembership(profileId)
-    const deleteMutation = useDeleteProfessionalMembership(profileId)
+    const addMutation = useAddMyProfessionalMembership()
+    const updateMutation = useUpdateMyProfessionalMembership()
+    const deleteMutation = useDeleteMyProfessionalMembership()
 
     const form = useForm({
         resolver: zodResolver(createProfessionalMembershipSchema),
