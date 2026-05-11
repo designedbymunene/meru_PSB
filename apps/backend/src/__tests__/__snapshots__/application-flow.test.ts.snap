@@ -1,0 +1,6 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Job Application Flow Integration Test > Step 7: Export applications to CSV 1`] = `
+"VNo,Vacancy description,Applicant Name,ID-Number,Gender,Birth Year,Ethnicity,Tel. Contact,Email,Home County,Home Sub County,Ward,Impairment,Information on Public Service,Personal/Employment Number.,Qualification,Professional/Technical Details,Relevant Courses and Training Details,Membership,Employment history
+V001,Mock Job,John Doe,12345678,Male,1990,,0712345678,john@example.com,,,,NO,,,Degree :: CS :: N/A :: Uni :: 2010 - 2014,,,,"
+`;

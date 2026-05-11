@@ -9,8 +9,9 @@ declare module 'hono' {
         user: {
             userId: number
             email: string
-            role: string
+            role: 'applicant' | 'admin'
         }
+        validatedData: any
     }
 }
 
@@ -37,7 +38,7 @@ export const authenticate = async (c: Context, next: Next) => {
         c.set('user', {
             userId: decoded.userId,
             email: decoded.email,
-            role: decoded.role
+            role: decoded.role as 'applicant' | 'admin'
         })
 
         await next()
@@ -67,7 +68,7 @@ export const optionalAuthenticate = async (c: Context, next: Next) => {
             c.set('user', {
                 userId: decoded.userId,
                 email: decoded.email,
-                role: decoded.role
+                role: decoded.role as 'applicant' | 'admin'
             })
         }
         await next()

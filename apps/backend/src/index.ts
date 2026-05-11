@@ -122,17 +122,19 @@ app.notFound((c) =>
 // Start server
 const port = parseInt(process.env.PORT || '4000')
 
-serve(
-  {
-    fetch: app.fetch,
-    port
-  },
-  (info) => {
-    console.log('🚀 Meru County Recruitment Portal API')
-    console.log(`📍 Server running on http://localhost:${info.port}`)
-    console.log(`🏥 Health check: http://localhost:${info.port}/health`)
-    console.log(`📚 Environment: ${process.env.NODE_ENV || 'development'}`)
-  }
-)
+if (process.env.NODE_ENV !== 'test') {
+  serve(
+    {
+      fetch: app.fetch,
+      port
+    },
+    (info) => {
+      console.log('🚀 Meru County Recruitment Portal API')
+      console.log(`📍 Server running on http://localhost:${info.port}`)
+      console.log(`🏥 Health check: http://localhost:${info.port}/health`)
+      console.log(`📚 Environment: ${process.env.NODE_ENV || 'development'}`)
+    }
+  )
+}
 
 export default app

@@ -16,6 +16,7 @@
     "db:reset": "tsx src/db/reset.ts",
     "db:cleanup": "tsx src/db/cleanup.ts",
     "test": "tsx --test src/__tests__/**/*.test.ts",
+    "test:vitest": "vitest run src/__tests__/application-flow.test.ts",
     "type-check": "tsc --noEmit"
   },
   "keywords": [
@@ -51,6 +52,7 @@
     "drizzle-kit": "^0.31.8",
     "tsup": "^8.5.1",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^3.1.2"
   }
 }

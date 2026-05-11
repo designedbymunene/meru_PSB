@@ -15,6 +15,7 @@ export * from './employment-history'
 export * from './referees'
 export * from './locations'
 export * from './reference-data'
+export * from './audit-logs'
 
 // Import tables and relations for schema object
 import { users, revokedTokens } from './users'
@@ -40,6 +41,7 @@ import {
     educationLevels,
     educationGrades
 } from './reference-data'
+import { auditLogs } from './audit-logs'
 
 export * from './relations'
 
@@ -86,6 +88,7 @@ export const schema = {
     professionalBodies,
     educationLevels,
     educationGrades,
+    auditLogs,
     // Relations
     usersRelations,
     vacanciesRelations,

@@ -122,26 +122,28 @@ applicantProfilesRouter.put('/me', authenticate, async (c) => {
     try {
         let profile
 
-        if (existingProfile) {
-            // Update existing profile
-            [profile] = await db
-                .update(applicantProfiles)
-                .set({
-                    ...data,
-                    updatedAt: new Date()
-                })
-                .where(eq(applicantProfiles.id, existingProfile.id))
-                .returning()
-        } else {
-            // Create new profile
-            [profile] = await db
-                .insert(applicantProfiles)
-                .values({
-                    userId: user.userId,
-                    ...data
-                } as any)
-                .returning()
-        }
+        await db.transaction(async (tx) => {
+            if (existingProfile) {
+                // Update existing profile
+                [profile] = await tx
+                    .update(applicantProfiles)
+                    .set({
+                        ...data,
+                        updatedAt: new Date()
+                    })
+                    .where(eq(applicantProfiles.id, existingProfile.id))
+                    .returning()
+            } else {
+                // Create new profile
+                [profile] = await tx
+                    .insert(applicantProfiles)
+                    .values({
+                        userId: user.userId,
+                        ...data
+                    } as any)
+                    .returning()
+            }
+        })
 
         return successResponse(c, profile, existingProfile ? 'Profile updated successfully' : 'Profile created successfully')
     } catch (error: any) {

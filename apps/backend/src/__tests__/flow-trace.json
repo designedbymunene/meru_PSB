@@ -1,0 +1,155 @@
+[
+  {
+    "step": "Step 1: Login",
+    "method": "POST",
+    "path": "/api/auth/login",
+    "status": 200,
+    "reqPayload": {
+      "email": "applicant@example.com",
+      "password": "password123"
+    },
+    "resBody": {
+      "success": true,
+      "data": {
+        "user": {
+          "id": 1,
+          "email": "applicant@example.com",
+          "role": "applicant"
+        },
+        "accessToken": "mock-token",
+        "refreshToken": "mock-token"
+      }
+    },
+    "timestamp": "2026-05-11T11:21:48.084Z"
+  },
+  {
+    "step": "Step 2: Partial CV Submission",
+    "method": "POST",
+    "path": "/api/applications",
+    "status": 400,
+    "reqPayload": {
+      "vacancyId": 101
+    },
+    "resBody": {
+      "success": false,
+      "error": {
+        "code": "AppError",
+        "message": "Your Digital CV must be 100% complete to apply. Current: 0%",
+        "details": null
+      }
+    },
+    "timestamp": "2026-05-11T11:21:48.094Z"
+  },
+  {
+    "step": "Step 3: Complete CV",
+    "method": "PUT",
+    "path": "/api/applicant-profiles/me",
+    "status": 200,
+    "reqPayload": {
+      "fullName": "John Doe",
+      "idNumber": "12345678",
+      "gender": "Male",
+      "phoneNumber": "0712345678",
+      "email": "john@example.com",
+      "dateOfBirth": "1990-01-01",
+      "ethnicityId": 1,
+      "homeCountyId": 1,
+      "homeSubCountyId": 1,
+      "wardId": 1
+    },
+    "resBody": {
+      "success": true,
+      "message": "Profile updated successfully",
+      "data": {
+        "fullName": "John Doe",
+        "idNumber": "12345678",
+        "gender": "Male",
+        "phoneNumber": "0712345678",
+        "email": "john@example.com",
+        "dateOfBirth": "1990-01-01",
+        "ethnicityId": 1,
+        "homeCountyId": 1,
+        "homeSubCountyId": 1,
+        "wardId": 1,
+        "id": 1
+      }
+    },
+    "timestamp": "2026-05-11T11:21:48.098Z"
+  },
+  {
+    "step": "Step 4: Re-submit Application",
+    "method": "POST",
+    "path": "/api/applications",
+    "status": 200,
+    "reqPayload": {
+      "vacancyId": 101
+    },
+    "resBody": {
+      "success": true,
+      "message": "Application submitted successfully",
+      "data": {
+        "id": 501,
+        "vacancyId": 101,
+        "applicantId": 1
+      }
+    },
+    "timestamp": "2026-05-11T11:21:48.101Z"
+  },
+  {
+    "step": "Step 5: Admin Login",
+    "method": "POST",
+    "path": "/api/auth/login",
+    "status": 200,
+    "reqPayload": {
+      "email": "admin@example.com",
+      "password": "password123"
+    },
+    "resBody": {
+      "success": true,
+      "data": {
+        "user": {
+          "id": 2,
+          "email": "admin@example.com",
+          "role": "admin"
+        },
+        "accessToken": "admin-token",
+        "refreshToken": "mock-token"
+      }
+    },
+    "timestamp": "2026-05-11T11:21:48.103Z"
+  },
+  {
+    "step": "Step 6: Fetch Application",
+    "method": "GET",
+    "path": "/api/applications/501",
+    "status": 200,
+    "reqPayload": null,
+    "resBody": {
+      "success": true,
+      "data": {
+        "id": 501,
+        "profileSnapshot": {
+          "fullName": "John Doe",
+          "idNumber": "12345678"
+        },
+        "applicant": {
+          "id": 1,
+          "fullName": "John Doe"
+        },
+        "vacancy": {
+          "id": 101,
+          "title": "Mock Job"
+        }
+      }
+    },
+    "timestamp": "2026-05-11T11:21:48.105Z"
+  },
+  {
+    "step": "Step 7: Export CSV",
+    "method": "GET",
+    "path": "/api/applications/admin/export",
+    "status": 200,
+    "resBody": "CSV CONTENT TRUNCATED",
+    "timestamp": "2026-05-11T11:21:48.108Z"
+  }
+]
