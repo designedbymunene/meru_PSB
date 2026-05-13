@@ -4,7 +4,8 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import React, { useRef, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, Text, TextInput, View, TouchableOpacity } from 'react-native';
+import { Text, TextInput, View, TouchableOpacity } from 'react-native';
+import { toast } from 'sonner-native';
 import * as z from 'zod';
 import { FormLayout } from '@/components/ui/form-layout';
 import { FormField } from '@/components/ui/form-field';
@@ -68,16 +69,22 @@ export default function PersonalDetailsScreen() {
                     ...(existingProfile ?? {}),
                     ...submittedData,
                 }));
-                Alert.alert('Queued', 'Profile changes were saved offline and will sync when you are back online.');
+                toast.info('Queued', { 
+                    description: 'Profile changes were saved offline and will sync when you are back online.' 
+                });
                 router.back();
                 return;
             }
 
-            Alert.alert('Success', 'Personal details updated successfully');
+            toast.success('Success', { 
+                description: 'Personal details updated successfully' 
+            });
             router.back();
         },
         onError: (mutationError: unknown) => {
-            Alert.alert('Error', getApiErrorMessage(mutationError, 'Failed to update personal details'));
+            toast.error('Error', { 
+                description: getApiErrorMessage(mutationError, 'Failed to update personal details') 
+            });
         }
     });
 

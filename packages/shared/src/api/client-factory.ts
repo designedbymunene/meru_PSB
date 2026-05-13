@@ -157,12 +157,31 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
                 
                 if (config.data) {
                     // Sanitize sensitive data before logging
-                    const dataToLog = { ...config.data };
-                    const sensitiveFields = ['password', 'token', 'refreshToken', 'accessToken', 'currentPassword', 'newPassword'];
-                    sensitiveFields.forEach(field => {
-                        if (dataToLog[field]) dataToLog[field] = '********';
-                    });
-                    console.log(`[API Request Data]`, JSON.stringify(dataToLog, null, 2));
+                    let dataToLog = config.data;
+                    let isObject = false;
+                    
+                    // If data is a string, try to parse it to sanitize properly
+                    if (typeof dataToLog === 'string') {
+                        try {
+                            dataToLog = JSON.parse(dataToLog);
+                            isObject = typeof dataToLog === 'object' && dataToLog !== null && !Array.isArray(dataToLog);
+                        } catch (e) {
+                            // If not JSON, we'll just log it as a string
+                        }
+                    } else {
+                        isObject = typeof dataToLog === 'object' && dataToLog !== null && !Array.isArray(dataToLog);
+                    }
+
+                    if (isObject) {
+                        const sanitizedData = { ...dataToLog };
+                        const sensitiveFields = ['password', 'token', 'refreshToken', 'accessToken', 'currentPassword', 'newPassword'];
+                        sensitiveFields.forEach(field => {
+                            if (sanitizedData[field]) sanitizedData[field] = '********';
+                        });
+                        console.log(`[API Request Data]`, JSON.stringify(sanitizedData, null, 2));
+                    } else {
+                        console.log(`[API Request Data]`, dataToLog);
+                    }
                 }
             }
             return config;

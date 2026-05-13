@@ -150,12 +150,20 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                             <Card key={detail.id}>
                                 <CardContent className="pt-6 grid grid-cols-2 gap-4">
                                     <InfoItem
-                                        label="Registration Body"
-                                        value={detail.registrationBody}
+                                        label="License Type"
+                                        value={detail.licenseType}
+                                    />
+                                    <InfoItem
+                                        label="Issuing Body"
+                                        value={detail.issuingBody}
                                     />
                                     <InfoItem
                                         label="Registration Number"
                                         value={detail.registrationNumber}
+                                    />
+                                    <InfoItem
+                                        label="Issue Date"
+                                        value={detail.issueDate || 'N/A'}
                                     />
                                     <InfoItem
                                         label="Expiry Date"

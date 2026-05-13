@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert } from 'react-native';
+import { toast } from 'sonner-native';
 import { apiClient, getApiErrorMessage } from '@/lib/api/client';
 import { runOfflineCapableMutation } from '@/lib/offline-mutations/mutation-strategy';
 
@@ -27,13 +27,13 @@ export function useProfessionalDetails() {
             queryClient.invalidateQueries({ queryKey: ['professional-details'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (result.queued) {
-                Alert.alert('Queued', 'Saved offline and will sync later.');
+                toast.info('Queued', { description: 'Saved offline and will sync later.' });
             } else {
-                Alert.alert('Success', 'Professional detail added successfully');
+                toast.success('Success', { description: 'Professional detail added successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to add professional detail'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to add professional detail') });
         }
     });
 
@@ -50,13 +50,13 @@ export function useProfessionalDetails() {
             queryClient.invalidateQueries({ queryKey: ['professional-details'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (result.queued) {
-                Alert.alert('Queued', 'Updates saved offline.');
+                toast.info('Queued', { description: 'Updates saved offline.' });
             } else {
-                Alert.alert('Success', 'Professional detail updated successfully');
+                toast.success('Success', { description: 'Professional detail updated successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to update professional detail'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to update professional detail') });
         }
     });
 
@@ -72,11 +72,11 @@ export function useProfessionalDetails() {
             queryClient.invalidateQueries({ queryKey: ['professional-details'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (!result.queued) {
-                Alert.alert('Success', 'Professional detail deleted successfully');
+                toast.success('Success', { description: 'Professional detail deleted successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to delete professional detail'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to delete professional detail') });
         }
     });
 

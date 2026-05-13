@@ -12,6 +12,7 @@ import { departmentsRouter } from './routes/departments'
 import { jobGroupsRouter } from './routes/job-groups'
 import { applicantProfilesRouter } from './routes/applicant-profiles'
 import { referenceRouter } from './routes/reference'
+import { accountRouter } from './routes/account'
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler'
@@ -37,7 +38,7 @@ if (process.env.NODE_ENV !== 'production') {
       if (contentType.includes('application/json')) {
         try {
           // Clone the request to read the body without consuming it
-          const body = await c.req.raw.clone().json()
+          const body = await c.req.raw.clone().json() as any
           // Sanitize sensitive fields
           const sensitiveFields = ['password', 'token', 'refreshToken', 'accessToken', 'currentPassword', 'newPassword']
           const sanitizedBody = { ...body }
@@ -67,9 +68,14 @@ app.use('*', async (c, next) => {
 app.use(
   '*',
   cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: [
+      'http://localhost:3000', 
+      'http://localhost:3001', 
+      'http://127.0.0.1:3000', 
+      'http://127.0.0.1:3001'
+    ],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     credentials: true,
   })
 )
@@ -94,6 +100,7 @@ app.get('/', (c) =>
 
 // Mount API routes
 app.route('/api/auth', authRouter)
+app.route('/api/account', accountRouter)
 app.route('/api/vacancies', vacanciesRouter)
 app.route('/api/applications', applicationsRouter)
 app.route('/api/dashboard', dashboardRouter)

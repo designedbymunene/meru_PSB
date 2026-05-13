@@ -10,9 +10,11 @@ export const professionalDetails = pgTable('professional_details', {
     }),
     applicantProfileId: integer('applicant_profile_id').notNull(),
 
-    registrationBody: text('registration_body').notNull(), // e.g., "Kenya Medical Practitioners Board"
-    registrationBodyId: integer('registration_body_id').references(() => professionalBodies.id),
+    licenseType: text('license_type').notNull(), // e.g., "Practice Licence"
+    issuingBody: text('issuing_body').notNull(), // e.g., "Kenya Medical Practitioners Board"
+    issuingBodyId: integer('issuing_body_id').references(() => professionalBodies.id),
     registrationNumber: varchar('registration_number', { length: 100 }).notNull(),
+    issueDate: date('issue_date').notNull(),
     expiryDate: date('expiry_date'), // Registration expiry date
 
     ...timestamps

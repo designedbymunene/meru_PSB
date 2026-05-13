@@ -33,17 +33,20 @@ export const ProfessionalDetailCard: React.FC<ProfessionalDetailCardProps> = ({
                 <View className="flex-row items-center">
                     <ShieldCheck size={12} color="#64748b" />
                     <Text className="text-slate-600 dark:text-slate-400 text-sm font-semibold ml-2">
-                        Reg: {detail.registrationNumber}
+                        Reg: {detail.registrationNumber || 'N/A'}
                     </Text>
                 </View>
                 
-                <View className="flex-row items-center mt-2">
-                    <Calendar size={12} color="#94a3b8" />
-                    <Text className="text-slate-500 dark:text-slate-500 text-xs ml-2">
-                        Issued: {new Date(detail.issueDate).toLocaleDateString()}
-                        {detail.expiryDate ? ` • Expires: ${new Date(detail.expiryDate).toLocaleDateString()}` : ''}
-                    </Text>
-                </View>
+                {(detail.issueDate || detail.expiryDate) && (
+                    <View className="flex-row items-center mt-2">
+                        <Calendar size={12} color="#94a3b8" />
+                        <Text className="text-slate-500 dark:text-slate-500 text-xs ml-2">
+                            {detail.issueDate ? `Issued: ${new Date(detail.issueDate).toLocaleDateString()}` : ''}
+                            {detail.issueDate && detail.expiryDate ? ' • ' : ''}
+                            {detail.expiryDate ? `Expires: ${new Date(detail.expiryDate).toLocaleDateString()}` : ''}
+                        </Text>
+                    </View>
+                )}
             </View>
         </SectionCard>
     );

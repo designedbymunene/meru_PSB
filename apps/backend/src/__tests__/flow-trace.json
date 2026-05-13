@@ -20,7 +20,7 @@
         "refreshToken": "mock-token"
       }
     },
-    "timestamp": "2026-05-11T11:21:48.084Z"
+    "timestamp": "2026-05-11T12:37:17.577Z"
   },
   {
     "step": "Step 2: Partial CV Submission",
@@ -38,7 +38,7 @@
         "details": null
       }
     },
-    "timestamp": "2026-05-11T11:21:48.094Z"
+    "timestamp": "2026-05-11T12:37:17.594Z"
   },
   {
     "step": "Step 3: Complete CV",
@@ -74,7 +74,7 @@
         "id": 1
       }
     },
-    "timestamp": "2026-05-11T11:21:48.098Z"
+    "timestamp": "2026-05-11T12:37:17.601Z"
   },
   {
     "step": "Step 4: Re-submit Application",
@@ -93,7 +93,7 @@
         "applicantId": 1
       }
     },
-    "timestamp": "2026-05-11T11:21:48.101Z"
+    "timestamp": "2026-05-11T12:37:17.606Z"
   },
   {
     "step": "Step 5: Admin Login",
@@ -116,7 +116,7 @@
         "refreshToken": "mock-token"
       }
     },
-    "timestamp": "2026-05-11T11:21:48.103Z"
+    "timestamp": "2026-05-11T12:37:17.609Z"
   },
   {
     "step": "Step 6: Fetch Application",
@@ -142,7 +142,7 @@
         }
       }
     },
-    "timestamp": "2026-05-11T11:21:48.105Z"
+    "timestamp": "2026-05-11T12:37:17.612Z"
   },
   {
     "step": "Step 7: Export CSV",
@@ -150,6 +150,6 @@
     "path": "/api/applications/admin/export",
     "status": 200,
     "resBody": "CSV CONTENT TRUNCATED",
-    "timestamp": "2026-05-11T11:21:48.108Z"
+    "timestamp": "2026-05-11T12:37:17.615Z"
   }
 ]

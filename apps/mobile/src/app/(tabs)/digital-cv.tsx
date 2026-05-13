@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import {
     Award,
+    BookOpen,
     Briefcase,
     CheckCircle2,
     ChevronRight,
@@ -56,8 +57,8 @@ export default function DigitalCVScreen() {
     const sections = [
         {
             id: 'personal',
-            title: 'Personal Information',
-            subtitle: 'Name, ID, Contact & Birth Date',
+            title: 'Bio Data & Contact',
+            subtitle: 'Name, ID, Phone & Email',
             icon: <User size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
             completed: (completion.sections?.personal || 0) === 100,
             percentage: completion.sections?.personal || 0,
@@ -65,8 +66,8 @@ export default function DigitalCVScreen() {
         },
         {
             id: 'location',
-            title: 'Location & Ethnicity',
-            subtitle: 'County, Sub-County & Origin',
+            title: 'Residence & Origin',
+            subtitle: 'County, Sub-County & Ward',
             icon: <MapPin size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
             completed: (completion.sections?.location || 0) === 100,
             percentage: completion.sections?.location || 0,
@@ -74,8 +75,8 @@ export default function DigitalCVScreen() {
         },
         {
             id: 'education',
-            title: 'Academic History',
-            subtitle: 'Tertiary, Secondary & Primary',
+            title: 'Education History',
+            subtitle: 'Degrees, Diplomas & Certificates',
             icon: <GraduationCap size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
             completed: (completion.sections?.education || 0) === 100,
             percentage: completion.sections?.education || 0,
@@ -83,8 +84,8 @@ export default function DigitalCVScreen() {
         },
         {
             id: 'experience',
-            title: 'Work Experience',
-            subtitle: 'Roles, Companies & Job Groups',
+            title: 'Employment History',
+            subtitle: 'Past & Present Work Records',
             icon: <Briefcase size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
             completed: (completion.sections?.experience || 0) === 100,
             percentage: completion.sections?.experience || 0,
@@ -92,21 +93,39 @@ export default function DigitalCVScreen() {
         },
         {
             id: 'professional',
-            title: 'Professional Skills',
-            subtitle: 'Memberships, Licenses & Certs',
+            title: 'Professional Certifications',
+            subtitle: 'Licenses & Practice Certificates',
             icon: <Award size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
             completed: (completion.sections?.professional || 0) === 100,
             percentage: completion.sections?.professional || 0,
             path: '/profile/professional-details'
         },
         {
+            id: 'memberships',
+            title: 'Professional Memberships',
+            subtitle: 'Institutional & Body Affiliations',
+            icon: <ShieldCheck size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
+            completed: (completion.sections?.professional || 0) === 100,
+            percentage: completion.sections?.professional || 0,
+            path: '/profile/memberships'
+        },
+        {
+            id: 'training',
+            title: 'Training & Short Courses',
+            subtitle: 'Workshops, Seminars & CPDs',
+            icon: <BookOpen size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
+            completed: (completion.sections?.professional || 0) === 100,
+            percentage: completion.sections?.professional || 0,
+            path: '/profile/training'
+        },
+        {
             id: 'referees',
-            title: 'Referees & Declarations',
-            subtitle: 'Chapter 6 & Professional Contacts',
+            title: 'Referees',
+            subtitle: 'Professional & Academic Contacts',
             icon: <Users size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
             completed: (completion.sections?.referees || 0) === 100,
             percentage: completion.sections?.referees || 0,
-            path: '/profile/memberships' // Placeholder for referees management if no dedicated screen
+            path: '/profile/referees'
         }
     ];
 

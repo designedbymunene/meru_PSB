@@ -29,6 +29,27 @@
       "when": 1777954287373,
       "tag": "0003_rare_blue_shield",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778503568742,
+      "tag": "0004_certain_thunderbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778511999037,
+      "tag": "0005_conscious_susan_delgado",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778525822056,
+      "tag": "0006_hesitant_thing",
+      "breakpoints": true
     }
   ]
 }

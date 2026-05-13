@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert } from 'react-native';
+import { toast } from 'sonner-native';
 import { apiClient, getApiErrorMessage } from '@/lib/api/client';
 import { runOfflineCapableMutation } from '@/lib/offline-mutations/mutation-strategy';
 import { 
@@ -38,13 +38,13 @@ export function useQualifications() {
             queryClient.invalidateQueries({ queryKey: ['qualifications'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (result.queued) {
-                Alert.alert('Queued', 'Saved offline and will sync later.');
+                toast.info('Queued', { description: 'Saved offline and will sync later.' });
             } else {
-                Alert.alert('Success', 'Qualification added successfully');
+                toast.success('Success', { description: 'Qualification added successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to add qualification'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to add qualification') });
         }
     });
 
@@ -65,13 +65,13 @@ export function useQualifications() {
             queryClient.invalidateQueries({ queryKey: ['qualification', variables.id.toString()] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (result.queued) {
-                Alert.alert('Queued', 'Updates saved offline.');
+                toast.info('Queued', { description: 'Updates saved offline.' });
             } else {
-                Alert.alert('Success', 'Qualification updated successfully');
+                toast.success('Success', { description: 'Qualification updated successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to update qualification'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to update qualification') });
         }
     });
 
@@ -87,11 +87,11 @@ export function useQualifications() {
             queryClient.invalidateQueries({ queryKey: ['qualifications'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (!result.queued) {
-                Alert.alert('Success', 'Qualification deleted successfully');
+                toast.success('Success', { description: 'Qualification deleted successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to delete qualification'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to delete qualification') });
         }
     });
 

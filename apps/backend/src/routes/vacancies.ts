@@ -77,7 +77,7 @@ vacanciesRouter.get('/', async (c) => {
 
 // GET /api/vacancies/:id - Get single vacancy (public)
 vacanciesRouter.get('/:id', optionalAuthenticate, async (c) => {
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
 
     const vacancy = await db.query.vacancies.findFirst({
@@ -182,7 +182,7 @@ vacanciesRouter.put(
     requireAdmin,
     validate(updateVacancySchema),
     async (c) => {
-        const id = parseInt(c.req.param('id'))
+        const id = parseInt(c.req.param('id') || '0')
         const data = c.get('validatedData' as never) as Partial<{
             advertisementNumber: string
             title: string
@@ -212,7 +212,7 @@ vacanciesRouter.put(
 
 // DELETE /api/vacancies/:id - Delete vacancy (admin only)
 vacanciesRouter.delete('/:id', authenticate, requireAdmin, async (c) => {
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') || '0')
 
     const [deletedVacancy] = await db
         .delete(vacancies)
@@ -243,7 +243,7 @@ vacanciesRouter.delete('/:id', authenticate, requireAdmin, async (c) => {
 
 // POST /api/vacancies/:id/pdf - Upload PDF for vacancy (admin only)
 vacanciesRouter.post('/:id/pdf', authenticate, requireAdmin, async (c) => {
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
 
     const vacancy = await db.query.vacancies.findFirst({
@@ -297,7 +297,7 @@ vacanciesRouter.post('/:id/pdf', authenticate, requireAdmin, async (c) => {
 
 // GET /api/vacancies/:id/pdfs - Get all PDFs for vacancy
 vacanciesRouter.get('/:id/pdfs', async (c) => {
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') || '0')
 
     const vacancy = await db.query.vacancies.findFirst({
         where: eq(vacancies.id, id)
@@ -317,8 +317,8 @@ vacanciesRouter.get('/:id/pdfs', async (c) => {
 
 // DELETE /api/vacancies/:id/pdf/:pdfId - Delete PDF (admin only)
 vacanciesRouter.delete('/:id/pdf/:pdfId', authenticate, requireAdmin, async (c) => {
-    const id = parseInt(c.req.param('id'))
-    const pdfId = parseInt(c.req.param('pdfId'))
+    const id = parseInt(c.req.param('id') || '0')
+    const pdfId = parseInt(c.req.param('pdfId') || '0')
 
     const doc = await db.query.vacancyDocuments.findFirst({
         where: eq(vacancyDocuments.id, pdfId)

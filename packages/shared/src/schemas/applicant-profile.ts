@@ -26,7 +26,14 @@ export const applicantProfileSchema = z.object({
     impairment: z.boolean().default(false),
     impairmentDetails: z.string().optional(),
     publicServiceInfo: z.string().optional(),
-    personalNumber: z.string().optional()
+    personalNumber: z.string().optional(),
+    
+    // N/A Flags
+    hasNoExperience: z.boolean().default(false),
+    hasNoCertificates: z.boolean().default(false),
+    hasNoMemberships: z.boolean().default(false),
+    hasNoTrainings: z.boolean().default(false),
+    hasNoReferees: z.boolean().default(false)
 })
 
 export const updateApplicantProfileSchema = applicantProfileSchema.partial()
@@ -95,10 +102,17 @@ export const updateQualificationSchema = z.object({
 
 // Professional Detail Schema
 export const professionalDetailSchema = z.object({
-    registrationBody: z.string().min(2, 'Registration body is required'),
-    registrationBodyId: coerceNullableId,
+    licenseType: z.string().min(1, 'License type is required'),
+    issuingBody: z.string().min(1, 'Issuing body is required'),
+    issuingBodyId: coerceNullableId,
     registrationNumber: z.string().min(1, 'Registration number is required'),
-    expiryDate: z.string().optional() // ISO date string
+    issueDate: z.string().min(1, 'Issue date is required'),
+    expiryDate: z.union([
+        z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expiry date must be in YYYY-MM-DD format'),
+        z.literal(''),
+        z.null(),
+        z.undefined()
+    ]).optional().transform(e => e === '' ? null : e)
 })
 
 export const updateProfessionalDetailSchema = professionalDetailSchema.partial()
@@ -126,7 +140,12 @@ export const professionalMembershipSchema = z.object({
     membershipBodyId: coerceNullableId,
     membershipType: z.string().min(1, 'Membership type is required'),
     registrationNumber: z.string().optional(),
-    expiryDate: z.string().optional() // ISO date string
+    expiryDate: z.union([
+        z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expiry date must be in YYYY-MM-DD format'),
+        z.literal(''),
+        z.null(),
+        z.undefined()
+    ]).optional().transform(e => e === '' ? null : e)
 })
 
 export const updateProfessionalMembershipSchema = professionalMembershipSchema.partial()

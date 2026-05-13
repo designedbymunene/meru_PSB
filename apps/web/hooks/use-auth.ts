@@ -89,12 +89,28 @@ export function useRegister() {
     })
 }
 
+export function useRequestPasswordReset() {
+    return useMutation({
+        mutationFn: (email: string) => authApi.requestPasswordReset(email),
+        onSuccess: (response) => {
+            toast.success('Reset code sent', {
+                description: response.message || 'If an account exists, a reset code has been sent',
+            })
+        },
+        onError: (error: unknown) => {
+            toast.error('Failed to request reset', {
+                description: getErrorMessage(error, 'Could not request password reset'),
+            })
+        },
+    })
+}
+
 export function useResetPassword() {
     const router = useRouter()
 
     return useMutation({
-        mutationFn: ({ email, newPassword }: { email: string; newPassword: string }) =>
-            authApi.resetPassword(email, newPassword),
+        mutationFn: ({ email, otp, newPassword }: { email: string; otp: string; newPassword: string }) =>
+            authApi.resetPassword(email, otp, newPassword),
         onSuccess: () => {
             toast.success('Password reset successful', {
                 description: 'You can now login with your new password',

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert } from 'react-native';
+import { toast } from 'sonner-native';
 import { apiClient, getApiErrorMessage } from '@/lib/api/client';
 import { runOfflineCapableMutation } from '@/lib/offline-mutations/mutation-strategy';
 
@@ -27,13 +27,13 @@ export function useTraining() {
             queryClient.invalidateQueries({ queryKey: ['training-courses'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (result.queued) {
-                Alert.alert('Queued', 'Saved offline and will sync later.');
+                toast.info('Queued', { description: 'Saved offline and will sync later.' });
             } else {
-                Alert.alert('Success', 'Training course added successfully');
+                toast.success('Success', { description: 'Training course added successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to add training course'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to add training course') });
         }
     });
 
@@ -50,13 +50,13 @@ export function useTraining() {
             queryClient.invalidateQueries({ queryKey: ['training-courses'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (result.queued) {
-                Alert.alert('Queued', 'Updates saved offline.');
+                toast.info('Queued', { description: 'Updates saved offline.' });
             } else {
-                Alert.alert('Success', 'Training course updated successfully');
+                toast.success('Success', { description: 'Training course updated successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to update training course'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to update training course') });
         }
     });
 
@@ -72,11 +72,11 @@ export function useTraining() {
             queryClient.invalidateQueries({ queryKey: ['training-courses'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (!result.queued) {
-                Alert.alert('Success', 'Training course deleted successfully');
+                toast.success('Success', { description: 'Training course deleted successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to delete training course'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to delete training course') });
         }
     });
 

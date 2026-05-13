@@ -26,7 +26,7 @@ departmentsRouter.get('/', async (c) => {
 
 // GET /api/departments/:id - Get single department
 departmentsRouter.get('/:id', async (c) => {
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') || '0')
 
     const department = await db.query.departments.findFirst({
         where: eq(departments.id, id)
@@ -72,7 +72,7 @@ departmentsRouter.put(
     requireAdmin,
     validate(updateDepartmentSchema),
     async (c) => {
-        const id = parseInt(c.req.param('id'))
+        const id = parseInt(c.req.param('id') || '0')
         const data = c.get('validatedData' as never) as Partial<{
             name: string
             description: string
@@ -95,7 +95,7 @@ departmentsRouter.put(
 
 // DELETE /api/departments/:id - Delete department (admin only)
 departmentsRouter.delete('/:id', authenticate, requireAdmin, async (c) => {
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') || '0')
 
     const [deletedDepartment] = await db
         .delete(departments)

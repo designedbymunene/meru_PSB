@@ -101,7 +101,13 @@ applicantProfilesRouter.get('/me', authenticate, async (c) => {
 // PUT /api/applicant-profiles/me - Update current user's profile
 applicantProfilesRouter.put('/me', authenticate, async (c) => {
     const user = c.get('user')
-    const body = await c.req.json()
+    let body;
+    try {
+        body = await c.req.json()
+    } catch (e) {
+        console.error('[ERROR] Failed to parse JSON body or empty body received', e)
+        throw new ValidationError('Invalid request: Empty or malformed JSON body')
+    }
 
     // Check if profile exists
     const existingProfile = await db.query.applicantProfiles.findFirst({
@@ -202,7 +208,7 @@ applicantProfilesRouter.post('/me/qualifications', authenticate, async (c) => {
 // PUT /api/applicant-profiles/me/qualifications/:qualId
 applicantProfilesRouter.put('/me/qualifications/:qualId', authenticate, async (c) => {
     const user = c.get('user')
-    const qualId = parseInt(c.req.param('qualId'))
+    const qualId = parseInt(c.req.param('qualId') || '0')
     const profileId = await getMyProfileId(user.userId)
     const body = await c.req.json()
     const validationResult = updateQualificationSchema.safeParse(body)
@@ -223,7 +229,7 @@ applicantProfilesRouter.put('/me/qualifications/:qualId', authenticate, async (c
 // DELETE /api/applicant-profiles/me/qualifications/:qualId
 applicantProfilesRouter.delete('/me/qualifications/:qualId', authenticate, async (c) => {
     const user = c.get('user')
-    const qualId = parseInt(c.req.param('qualId'))
+    const qualId = parseInt(c.req.param('qualId') || '0')
     const profileId = await getMyProfileId(user.userId)
     await db.delete(qualifications).where(and(
         eq(qualifications.id, qualId),
@@ -261,7 +267,7 @@ applicantProfilesRouter.post('/me/professional-details', authenticate, async (c)
 // PUT /api/applicant-profiles/me/professional-details/:detailId
 applicantProfilesRouter.put('/me/professional-details/:detailId', authenticate, async (c) => {
     const user = c.get('user')
-    const detailId = parseInt(c.req.param('detailId'))
+    const detailId = parseInt(c.req.param('detailId') || '0')
     const profileId = await getMyProfileId(user.userId)
     const body = await c.req.json()
     const validationResult = updateProfessionalDetailSchema.safeParse(body)
@@ -282,7 +288,7 @@ applicantProfilesRouter.put('/me/professional-details/:detailId', authenticate, 
 // DELETE /api/applicant-profiles/me/professional-details/:detailId
 applicantProfilesRouter.delete('/me/professional-details/:detailId', authenticate, async (c) => {
     const user = c.get('user')
-    const detailId = parseInt(c.req.param('detailId'))
+    const detailId = parseInt(c.req.param('detailId') || '0')
     const profileId = await getMyProfileId(user.userId)
     await db.delete(professionalDetails).where(and(
         eq(professionalDetails.id, detailId),
@@ -320,7 +326,7 @@ applicantProfilesRouter.post('/me/training-courses', authenticate, async (c) => 
 // PUT /api/applicant-profiles/me/training-courses/:courseId
 applicantProfilesRouter.put('/me/training-courses/:courseId', authenticate, async (c) => {
     const user = c.get('user')
-    const courseId = parseInt(c.req.param('courseId'))
+    const courseId = parseInt(c.req.param('courseId') || '0')
     const profileId = await getMyProfileId(user.userId)
     const body = await c.req.json()
     const validationResult = updateTrainingCourseSchema.safeParse(body)
@@ -341,7 +347,7 @@ applicantProfilesRouter.put('/me/training-courses/:courseId', authenticate, asyn
 // DELETE /api/applicant-profiles/me/training-courses/:courseId
 applicantProfilesRouter.delete('/me/training-courses/:courseId', authenticate, async (c) => {
     const user = c.get('user')
-    const courseId = parseInt(c.req.param('courseId'))
+    const courseId = parseInt(c.req.param('courseId') || '0')
     const profileId = await getMyProfileId(user.userId)
     await db.delete(trainingCourses).where(and(
         eq(trainingCourses.id, courseId),
@@ -379,7 +385,7 @@ applicantProfilesRouter.post('/me/professional-memberships', authenticate, async
 // PUT /api/applicant-profiles/me/professional-memberships/:membershipId
 applicantProfilesRouter.put('/me/professional-memberships/:membershipId', authenticate, async (c) => {
     const user = c.get('user')
-    const membershipId = parseInt(c.req.param('membershipId'))
+    const membershipId = parseInt(c.req.param('membershipId') || '0')
     const profileId = await getMyProfileId(user.userId)
     const body = await c.req.json()
     const validationResult = updateProfessionalMembershipSchema.safeParse(body)
@@ -400,7 +406,7 @@ applicantProfilesRouter.put('/me/professional-memberships/:membershipId', authen
 // DELETE /api/applicant-profiles/me/professional-memberships/:membershipId
 applicantProfilesRouter.delete('/me/professional-memberships/:membershipId', authenticate, async (c) => {
     const user = c.get('user')
-    const membershipId = parseInt(c.req.param('membershipId'))
+    const membershipId = parseInt(c.req.param('membershipId') || '0')
     const profileId = await getMyProfileId(user.userId)
     await db.delete(professionalMemberships).where(and(
         eq(professionalMemberships.id, membershipId),
@@ -438,7 +444,7 @@ applicantProfilesRouter.post('/me/employment-history', authenticate, async (c) =
 // PUT /api/applicant-profiles/me/employment-history/:historyId
 applicantProfilesRouter.put('/me/employment-history/:historyId', authenticate, async (c) => {
     const user = c.get('user')
-    const historyId = parseInt(c.req.param('historyId'))
+    const historyId = parseInt(c.req.param('historyId') || '0')
     const profileId = await getMyProfileId(user.userId)
     const body = await c.req.json()
     const validationResult = updateEmploymentHistorySchema.safeParse(body)
@@ -459,7 +465,7 @@ applicantProfilesRouter.put('/me/employment-history/:historyId', authenticate, a
 // DELETE /api/applicant-profiles/me/employment-history/:historyId
 applicantProfilesRouter.delete('/me/employment-history/:historyId', authenticate, async (c) => {
     const user = c.get('user')
-    const historyId = parseInt(c.req.param('historyId'))
+    const historyId = parseInt(c.req.param('historyId') || '0')
     const profileId = await getMyProfileId(user.userId)
     await db.delete(employmentHistory).where(and(
         eq(employmentHistory.id, historyId),
@@ -470,7 +476,7 @@ applicantProfilesRouter.delete('/me/employment-history/:historyId', authenticate
 
 // GET /api/applicant-profiles/:id - Get profile by ID (admin or owner)
 applicantProfilesRouter.get('/:id', authenticate, async (c) => {
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
 
     const profile = await db.query.applicantProfiles.findFirst({
@@ -506,7 +512,7 @@ applicantProfilesRouter.get('/:id', authenticate, async (c) => {
 
 // GET /api/applicant-profiles/user/:userId - Get profile by User ID (admin or owner)
 applicantProfilesRouter.get('/user/:userId', authenticate, async (c) => {
-    const targetUserId = parseInt(c.req.param('userId'))
+    const targetUserId = parseInt(c.req.param('userId') || '0')
     const currentUser = c.get('user')
 
     // Only allow admin or the profile owner to view
@@ -608,7 +614,7 @@ applicantProfilesRouter.post('/', authenticate, async (c) => {
 
 // GET /api/applicant-profiles/:id/qualifications - Get all qualifications
 applicantProfilesRouter.get('/:id/qualifications', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
+    const profileId = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
 
     // Verify profile ownership or admin
@@ -633,7 +639,7 @@ applicantProfilesRouter.get('/:id/qualifications', authenticate, async (c) => {
 
 // POST /api/applicant-profiles/:id/qualifications - Add qualification
 applicantProfilesRouter.post('/:id/qualifications', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
+    const profileId = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
     const body = await c.req.json()
 
@@ -670,8 +676,8 @@ applicantProfilesRouter.post('/:id/qualifications', authenticate, async (c) => {
 
 // PUT /api/applicant-profiles/:id/qualifications/:qualId - Update qualification
 applicantProfilesRouter.put('/:id/qualifications/:qualId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
-    const qualId = parseInt(c.req.param('qualId'))
+    const profileId = parseInt(c.req.param('id') || '0')
+    const qualId = parseInt(c.req.param('qualId') || '0')
     const user = c.get('user')
     const body = await c.req.json()
 
@@ -712,8 +718,8 @@ applicantProfilesRouter.put('/:id/qualifications/:qualId', authenticate, async (
 
 // DELETE /api/applicant-profiles/:id/qualifications/:qualId - Delete qualification
 applicantProfilesRouter.delete('/:id/qualifications/:qualId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
-    const qualId = parseInt(c.req.param('qualId'))
+    const profileId = parseInt(c.req.param('id') || '0')
+    const qualId = parseInt(c.req.param('qualId') || '0')
     const user = c.get('user')
 
     // Verify ownership
@@ -737,7 +743,7 @@ applicantProfilesRouter.delete('/:id/qualifications/:qualId', authenticate, asyn
 
 // GET /api/applicant-profiles/:id/professional-details
 applicantProfilesRouter.get('/:id/professional-details', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
+    const profileId = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
 
     const profile = await db.query.applicantProfiles.findFirst({
@@ -761,7 +767,7 @@ applicantProfilesRouter.get('/:id/professional-details', authenticate, async (c)
 
 // POST /api/applicant-profiles/:id/professional-details
 applicantProfilesRouter.post('/:id/professional-details', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
+    const profileId = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
     const body = await c.req.json()
 
@@ -792,8 +798,8 @@ applicantProfilesRouter.post('/:id/professional-details', authenticate, async (c
 
 // PUT /api/applicant-profiles/:id/professional-details/:detailId
 applicantProfilesRouter.put('/:id/professional-details/:detailId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
-    const detailId = parseInt(c.req.param('detailId'))
+    const profileId = parseInt(c.req.param('id') || '0')
+    const detailId = parseInt(c.req.param('detailId') || '0')
     const user = c.get('user')
     const body = await c.req.json()
 
@@ -832,8 +838,8 @@ applicantProfilesRouter.put('/:id/professional-details/:detailId', authenticate,
 
 // DELETE /api/applicant-profiles/:id/professional-details/:detailId
 applicantProfilesRouter.delete('/:id/professional-details/:detailId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
-    const detailId = parseInt(c.req.param('detailId'))
+    const profileId = parseInt(c.req.param('id') || '0')
+    const detailId = parseInt(c.req.param('detailId') || '0')
     const user = c.get('user')
 
     const profile = await db.query.applicantProfiles.findFirst({
@@ -883,7 +889,7 @@ applicantProfilesRouter.post('/me/referees', authenticate, async (c) => {
 // PUT /api/applicant-profiles/me/referees/:refId
 applicantProfilesRouter.put('/me/referees/:refId', authenticate, async (c) => {
     const user = c.get('user')
-    const refId = parseInt(c.req.param('refId'))
+    const refId = parseInt(c.req.param('refId') || '0')
     const profileId = await getMyProfileId(user.userId)
     const body = await c.req.json()
     const validationResult = updateRefereeSchema.safeParse(body)
@@ -904,7 +910,7 @@ applicantProfilesRouter.put('/me/referees/:refId', authenticate, async (c) => {
 // DELETE /api/applicant-profiles/me/referees/:refId
 applicantProfilesRouter.delete('/me/referees/:refId', authenticate, async (c) => {
     const user = c.get('user')
-    const refId = parseInt(c.req.param('refId'))
+    const refId = parseInt(c.req.param('refId') || '0')
     const profileId = await getMyProfileId(user.userId)
     await db.delete(referees).where(and(
         eq(referees.id, refId),
@@ -917,7 +923,7 @@ applicantProfilesRouter.delete('/me/referees/:refId', authenticate, async (c) =>
 
 // GET /api/applicant-profiles/:id/training-courses
 applicantProfilesRouter.get('/:id/training-courses', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
+    const profileId = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
 
     const profile = await db.query.applicantProfiles.findFirst({
@@ -941,7 +947,7 @@ applicantProfilesRouter.get('/:id/training-courses', authenticate, async (c) => 
 
 // POST /api/applicant-profiles/:id/training-courses
 applicantProfilesRouter.post('/:id/training-courses', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
+    const profileId = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
     const body = await c.req.json()
 
@@ -972,8 +978,8 @@ applicantProfilesRouter.post('/:id/training-courses', authenticate, async (c) =>
 
 // PUT /api/applicant-profiles/:id/training-courses/:courseId
 applicantProfilesRouter.put('/:id/training-courses/:courseId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
-    const courseId = parseInt(c.req.param('courseId'))
+    const profileId = parseInt(c.req.param('id') || '0')
+    const courseId = parseInt(c.req.param('courseId') || '0')
     const user = c.get('user')
     const body = await c.req.json()
 
@@ -1012,8 +1018,8 @@ applicantProfilesRouter.put('/:id/training-courses/:courseId', authenticate, asy
 
 // DELETE /api/applicant-profiles/:id/training-courses/:courseId
 applicantProfilesRouter.delete('/:id/training-courses/:courseId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
-    const courseId = parseInt(c.req.param('courseId'))
+    const profileId = parseInt(c.req.param('id') || '0')
+    const courseId = parseInt(c.req.param('courseId') || '0')
     const user = c.get('user')
 
     const profile = await db.query.applicantProfiles.findFirst({
@@ -1036,7 +1042,7 @@ applicantProfilesRouter.delete('/:id/training-courses/:courseId', authenticate, 
 
 // GET /api/applicant-profiles/:id/professional-memberships
 applicantProfilesRouter.get('/:id/professional-memberships', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
+    const profileId = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
 
     const profile = await db.query.applicantProfiles.findFirst({
@@ -1060,7 +1066,7 @@ applicantProfilesRouter.get('/:id/professional-memberships', authenticate, async
 
 // POST /api/applicant-profiles/:id/professional-memberships
 applicantProfilesRouter.post('/:id/professional-memberships', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
+    const profileId = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
     const body = await c.req.json()
 
@@ -1091,8 +1097,8 @@ applicantProfilesRouter.post('/:id/professional-memberships', authenticate, asyn
 
 // PUT /api/applicant-profiles/:id/professional-memberships/:membershipId
 applicantProfilesRouter.put('/:id/professional-memberships/:membershipId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
-    const membershipId = parseInt(c.req.param('membershipId'))
+    const profileId = parseInt(c.req.param('id') || '0')
+    const membershipId = parseInt(c.req.param('membershipId') || '0')
     const user = c.get('user')
     const body = await c.req.json()
 
@@ -1131,8 +1137,8 @@ applicantProfilesRouter.put('/:id/professional-memberships/:membershipId', authe
 
 // DELETE /api/applicant-profiles/:id/professional-memberships/:membershipId
 applicantProfilesRouter.delete('/:id/professional-memberships/:membershipId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
-    const membershipId = parseInt(c.req.param('membershipId'))
+    const profileId = parseInt(c.req.param('id') || '0')
+    const membershipId = parseInt(c.req.param('membershipId') || '0')
     const user = c.get('user')
 
     const profile = await db.query.applicantProfiles.findFirst({
@@ -1155,7 +1161,7 @@ applicantProfilesRouter.delete('/:id/professional-memberships/:membershipId', au
 
 // GET /api/applicant-profiles/:id/employment-history
 applicantProfilesRouter.get('/:id/employment-history', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
+    const profileId = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
 
     const profile = await db.query.applicantProfiles.findFirst({
@@ -1179,7 +1185,7 @@ applicantProfilesRouter.get('/:id/employment-history', authenticate, async (c) =
 
 // POST /api/applicant-profiles/:id/employment-history
 applicantProfilesRouter.post('/:id/employment-history', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
+    const profileId = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
     const body = await c.req.json()
 
@@ -1210,8 +1216,8 @@ applicantProfilesRouter.post('/:id/employment-history', authenticate, async (c) 
 
 // PUT /api/applicant-profiles/:id/employment-history/:historyId
 applicantProfilesRouter.put('/:id/employment-history/:historyId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
-    const historyId = parseInt(c.req.param('historyId'))
+    const profileId = parseInt(c.req.param('id') || '0')
+    const historyId = parseInt(c.req.param('historyId') || '0')
     const user = c.get('user')
     const body = await c.req.json()
 
@@ -1250,8 +1256,8 @@ applicantProfilesRouter.put('/:id/employment-history/:historyId', authenticate, 
 
 // DELETE /api/applicant-profiles/:id/employment-history/:historyId
 applicantProfilesRouter.delete('/:id/employment-history/:historyId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id'))
-    const historyId = parseInt(c.req.param('historyId'))
+    const profileId = parseInt(c.req.param('id') || '0')
+    const historyId = parseInt(c.req.param('historyId') || '0')
     const user = c.get('user')
 
     const profile = await db.query.applicantProfiles.findFirst({
@@ -1323,16 +1329,16 @@ applicantProfilesRouter.get('/admin/export', authenticate, requireAdmin, async (
         idNumber: profile.idNumber,
         gender: profile.gender,
         dateOfBirth: profile.dateOfBirth,
-        ethnicity: profile.ethnicity,
+        ethnicity: profile.ethnicityId,
         phoneNumber: profile.phoneNumber,
         email: profile.email,
-        county: profile.homeCounty,
-        subCounty: profile.homeSubCounty,
-        ward: profile.ward,
+        county: profile.homeCountyId,
+        subCounty: profile.homeSubCountyId,
+        ward: profile.wardId,
         impairment: profile.impairment,
         // User data
-        userPhone: (profile.user as any).phoneNumber,
-        userEmail: (profile.user as any).email,
+        userPhone: (profile.user as any)?.phoneNumber,
+        userEmail: (profile.user as any)?.email,
         // Counts
         qualificationsCount: profile.qualifications.length,
         professionalDetailsCount: profile.professionalDetails.length,

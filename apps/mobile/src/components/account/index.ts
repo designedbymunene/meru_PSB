@@ -4,3 +4,4 @@ export { ProfileHeader } from './ProfileHeader';
 export { FieldGroup } from './FieldGroup';
 export { EditableField } from './EditableField';
 export { SummaryDashboard } from './SummaryDashboard';
+export { SettingRow } from './SettingRow';

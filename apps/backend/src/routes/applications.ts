@@ -36,12 +36,13 @@ export const applicationsRouter = new Hono()
 // GET /api/applications/me - Get current user's applications
 applicationsRouter.get('/me', authenticate, async (c) => {
     const user = c.get('user')
-    const { vacancyId } = c.req.query()
+    const { vacancyId: vacancyIdRaw } = c.req.query()
+    const vacancyId = vacancyIdRaw && !isNaN(parseInt(vacancyIdRaw)) ? parseInt(vacancyIdRaw) : undefined
 
     const apps = await db.query.applications.findMany({
         where: and(
             eq(applications.applicantId, user.userId),
-            vacancyId ? eq(applications.vacancyId, parseInt(vacancyId as string)) : undefined
+            vacancyId ? eq(applications.vacancyId, vacancyId) : undefined
         ),
         with: {
             vacancy: {
@@ -68,13 +69,14 @@ applicationsRouter.get('/me', authenticate, async (c) => {
 // GET /api/applications - Get applications (applicants see own, admins see all)
 applicationsRouter.get('/', authenticate, async (c) => {
     const user = c.get('user')
-    const { vacancyId } = c.req.query()
+    const { vacancyId: vacancyIdRaw } = c.req.query()
+    const vacancyId = vacancyIdRaw && !isNaN(parseInt(vacancyIdRaw)) ? parseInt(vacancyIdRaw) : undefined
 
     let allApplications
 
     if (user.role === 'admin') {
         allApplications = await db.query.applications.findMany({
-            where: vacancyId ? eq(applications.vacancyId, parseInt(vacancyId as string)) : undefined,
+            where: vacancyId ? eq(applications.vacancyId, vacancyId) : undefined,
             with: {
                 applicant: {
                     columns: {
@@ -97,7 +99,7 @@ applicationsRouter.get('/', authenticate, async (c) => {
         allApplications = await db.query.applications.findMany({
             where: and(
                 eq(applications.applicantId, user.userId),
-                vacancyId ? eq(applications.vacancyId, parseInt(vacancyId as string)) : undefined
+                vacancyId ? eq(applications.vacancyId, vacancyId) : undefined
             ),
             with: {
                 applicant: {
@@ -124,7 +126,7 @@ applicationsRouter.get('/', authenticate, async (c) => {
 
 // GET /api/applications/:id - Get single application
 applicationsRouter.get('/:id', authenticate, async (c) => {
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
 
     const application = await db.query.applications.findFirst({
@@ -222,7 +224,7 @@ applicationsRouter.post('/', authenticate, async (c) => {
 
 // DELETE /api/applications/:id - Delete own application
 applicationsRouter.delete('/:id', authenticate, async (c) => {
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') || '0')
     const user = c.get('user')
 
     const application = await db.query.applications.findFirst({
@@ -351,7 +353,7 @@ applicationsRouter.patch(
     requireAdmin,
     validate(updateApplicationStatusSchema),
     async (c) => {
-        const id = parseInt(c.req.param('id'))
+        const id = parseInt(c.req.param('id') || '0')
         const data = c.get('validatedData' as any)
         const user = c.get('user')
 
@@ -405,7 +407,7 @@ applicationsRouter.post(
     requireAdmin,
     validate(applicationReviewSchema),
     async (c) => {
-        const id = parseInt(c.req.param('id'))
+        const id = parseInt(c.req.param('id') || '0')
         const data = c.get('validatedData' as any) as ApplicationReviewInput
         const user = c.get('user')
 
@@ -566,7 +568,7 @@ applicationsRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EX
         ).join('\n')
 
         const profDetails = (profile.professionalDetails || []).map((p: any) =>
-            `${p.registrationBody} :: ${p.registrationNumber} :: ${p.expiryDate ? new Date(p.expiryDate).toISOString().split('T')[0] : 'N/A'}`
+            `${p.issuingBody || p.registrationBody} :: ${p.registrationNumber} :: ${p.expiryDate ? new Date(p.expiryDate).toISOString().split('T')[0] : 'N/A'}`
         ).join('\n')
 
         const trainings = (profile.trainingCourses || []).map((t: any) =>

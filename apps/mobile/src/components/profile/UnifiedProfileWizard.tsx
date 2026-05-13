@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
-import { router, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { 
     ChevronLeft, 
     ChevronRight, 
@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient, getApiErrorMessage } from '@/lib/api/client';
 import { runOfflineCapableMutation } from '@/lib/offline-mutations/mutation-strategy';
+import { toast } from 'sonner-native';
 
 // Form Components
 import { PersonalDetailsForm, FormHandle } from './forms/PersonalDetailsForm';
@@ -37,6 +38,8 @@ import { useQualifications } from '@/hooks/use-qualifications';
 import { useEmployment } from '@/hooks/use-employment';
 import { useReferees } from '@/hooks/use-referees';
 import { useProfessionalDetails } from '@/hooks/use-professional-details';
+import { CompletionGuard } from './CompletionGuard';
+
 
 export type WizardMode = 'profile' | 'apply';
 
@@ -68,13 +71,16 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
     const formRef = useRef<FormHandle>(null);
 
     // Fetch profile and all related data
-    const { data: profile, isLoading: isProfileLoading, refetch: refetchProfile } = useQuery({
+    const { data: profileData, isLoading: isProfileLoading, refetch: refetchProfile } = useQuery({
         queryKey: ['profile'],
         queryFn: async () => {
             const response = await apiClient.get('/applicant-profiles/me');
             return response.data.data;
         },
     });
+
+    const profile = profileData;
+    const profileCompletion = profileData?.profileCompletion;
 
     const { data: vacancy } = useQuery({
         queryKey: ['vacancy', vacancyId],
@@ -113,6 +119,8 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
         deleteProfessionalDetail
     } = useProfessionalDetails();
 
+    const isSubmittingRef = useRef(false);
+
     // Mutations
     const updateProfileMutation = useMutation({
         mutationFn: async (data: any) => {
@@ -126,12 +134,15 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
         onSuccess: (result) => {
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (result.queued) {
-                Alert.alert('Offline', 'Changes saved locally and will sync later.');
+                toast.info('Offline', { description: 'Changes saved locally and will sync later.' });
             }
             setCurrentStepIndex(prev => prev + 1);
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to save changes'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to save changes') });
+        },
+        onSettled: () => {
+            isSubmittingRef.current = false;
         }
     });
 
@@ -144,24 +155,29 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
             const refNo = vacancy?.advertisementNumber || 'N/A';
             const title = vacancy?.title || 'this position';
             
-            Alert.alert(
-                'Application Submitted', 
-                `Your application for ${title} (${refNo}) has been submitted successfully.\n\nApplication ID: APP-${app.id.toString().padStart(6, '0')}`,
-                [
-                    { 
-                        text: 'View My Applications', 
-                        onPress: () => {
-                            // Small delay to ensure the alert is fully dismissed
-                            setTimeout(() => {
-                                router.replace('/(tabs)/applications');
-                            }, 100);
+            setTimeout(() => {
+                Alert.alert(
+                    'Application Submitted', 
+                    `Your application for ${title} (${refNo}) has been submitted successfully.\n\nApplication ID: APP-${app.id.toString().padStart(6, '0')}`,
+                    [
+                        { 
+                            text: 'View My Applications', 
+                            onPress: () => {
+                                // Small delay to ensure the alert is fully dismissed
+                                setTimeout(() => {
+                                    router.replace('/(tabs)/applications');
+                                }, 100);
+                            }
                         }
-                    }
-                ]
-            );
+                    ]
+                );
+            }, 100);
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to submit application'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to submit application') });
+        },
+        onSettled: () => {
+            isSubmittingRef.current = false;
         }
     });
 
@@ -171,13 +187,21 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                 id: 'personal', 
                 title: 'Personal Details', 
                 icon: User, 
-                render: () => <PersonalDetailsForm ref={formRef} initialData={profile} onSubmit={(data) => updateProfileMutation.mutate(data)} /> 
+                render: () => <PersonalDetailsForm ref={formRef} initialData={profile} onSubmit={(data) => {
+                    if (isSubmittingRef.current) return;
+                    isSubmittingRef.current = true;
+                    updateProfileMutation.mutate(data);
+                }} /> 
             },
             { 
                 id: 'location', 
                 title: 'Location Details', 
                 icon: MapPin, 
-                render: () => <LocationDetailsForm ref={formRef} initialData={profile} onSubmit={(data) => updateProfileMutation.mutate(data)} /> 
+                render: () => <LocationDetailsForm ref={formRef} initialData={profile} onSubmit={(data) => {
+                    if (isSubmittingRef.current) return;
+                    isSubmittingRef.current = true;
+                    updateProfileMutation.mutate(data);
+                }} /> 
             },
             { 
                 id: 'professional', 
@@ -289,13 +313,25 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                             <Text className="text-blue-700 dark:text-blue-300 text-lg font-black">{vacancy?.title}</Text>
                             <Text className="text-blue-600 dark:text-blue-400 text-xs mt-1">{vacancy?.advertisementNumber}</Text>
                         </View>
+
+                        {profileCompletion && (
+                            <CompletionGuard 
+                                completion={profileCompletion} 
+                                onJumpToStep={(stepId) => {
+                                    const index = steps.findIndex(s => s.id === stepId);
+                                    if (index >= 0) setCurrentStepIndex(index);
+                                }}
+                            />
+                        )}
                         
-                        <View className="space-y-4">
-                            <Text className="text-gray-900 dark:text-white font-black text-lg">Final Declarations</Text>
-                            <Text className="text-gray-500 dark:text-gray-400 text-xs leading-5">
-                                By submitting this application, I declare that all information provided in my Digital CV is true and correct to the best of my knowledge. I understand that any false statements may lead to disqualification or legal action.
-                            </Text>
-                        </View>
+                        {profileCompletion?.overallPercentage === 100 && (
+                            <View className="space-y-4">
+                                <Text className="text-gray-900 dark:text-white font-black text-lg">Final Declarations</Text>
+                                <Text className="text-gray-500 dark:text-gray-400 text-xs leading-5">
+                                    By submitting this application, I declare that all information provided in my Digital CV is true and correct to the best of my knowledge. I understand that any false statements may lead to disqualification or legal action.
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 )
             });
@@ -329,10 +365,15 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
     const isFirstStep = currentStepIndex === 0;
     const isLastStep = currentStepIndex === steps.length - 1;
 
+    const isSaving = updateProfileMutation.isPending || submitApplicationMutation.isPending;
+
     const handleNext = async () => {
+        if (isSaving || isSubmittingRef.current || submitApplicationMutation.isSuccess) return;
+
         if (currentStep.id === 'personal' || currentStep.id === 'location') {
             formRef.current?.submit();
         } else if (currentStep.id === 'review') {
+            isSubmittingRef.current = true;
             submitApplicationMutation.mutate();
         } else {
             // For list-based steps, just proceed if valid (we could add validation here)
@@ -355,8 +396,6 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
             </View>
         );
     }
-
-    const isSaving = updateProfileMutation.isPending || submitApplicationMutation.isPending;
 
     return (
         <SafeAreaView className="flex-1 bg-white dark:bg-gray-950">
@@ -412,18 +451,27 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                     <View className={isFirstStep ? 'flex-1' : 'flex-1 ml-4'}>
                         <TouchableOpacity 
                             onPress={handleNext}
-                            disabled={isSaving}
-                            className={`h-14 rounded-2xl items-center justify-center flex-row shadow-xl ${isSaving ? 'bg-[#004aad]/70' : 'bg-[#004aad] dark:bg-blue-600 shadow-blue-100/50 dark:shadow-none'}`}
+                            disabled={isSaving || submitApplicationMutation.isSuccess || (isLastStep && mode === 'apply' && profileCompletion?.overallPercentage !== 100)}
+                            className={`h-14 rounded-2xl items-center justify-center flex-row shadow-xl ${
+                                (isSaving || submitApplicationMutation.isSuccess || (isLastStep && mode === 'apply' && profileCompletion?.overallPercentage !== 100)) 
+                                ? 'bg-gray-300 dark:bg-gray-800' 
+                                : 'bg-[#004aad] dark:bg-blue-600 shadow-blue-100/50 dark:shadow-none'
+                            }`}
                         >
                             {isSaving ? (
                                 <ActivityIndicator color="white" size="small" />
                             ) : (
                                 <>
                                     <Text className="text-white font-black text-base mr-2">
-                                        {isLastStep ? (mode === 'apply' ? 'Submit Application' : 'Finish') : 'Save & Continue'}
+                                        {isLastStep 
+                                            ? (mode === 'apply' 
+                                                ? (profileCompletion?.overallPercentage === 100 ? 'Submit Application' : 'Complete Profile First') 
+                                                : 'Finish') 
+                                            : 'Save & Continue'}
                                     </Text>
                                     {!isLastStep && <ChevronRight size={20} color="white" strokeWidth={3} />}
-                                    {isLastStep && mode === 'apply' && <CheckCircle2 size={20} color="white" />}
+                                    {isLastStep && mode === 'apply' && profileCompletion?.overallPercentage === 100 && <CheckCircle2 size={20} color="white" />}
+                                    {isLastStep && mode === 'apply' && profileCompletion?.overallPercentage !== 100 && <AlertCircle size={20} color="#94a3b8" />}
                                 </>
                             )}
                         </TouchableOpacity>

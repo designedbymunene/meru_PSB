@@ -13,7 +13,19 @@ export const registerSchema = z.object({
 // User login schema
 export const loginSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(1)
+    password: z.string().min(1),
+    deviceId: z.string().optional(),
+    deviceName: z.string().optional(),
+    os: z.string().optional()
+})
+
+// 2FA login schema
+export const login2faSchema = z.object({
+    email: z.string().email(),
+    otp: z.string().length(6),
+    deviceId: z.string().optional(),
+    deviceName: z.string().optional(),
+    os: z.string().optional()
 })
 
 // Forgot password request schema
@@ -33,8 +45,16 @@ export const resetPasswordSchema = z.object({
     newPassword: z.string().min(8).max(100)
 })
 
+// Change password schema (for authenticated users)
+export const changePasswordSchema = z.object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(8).max(100)
+})
+
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
+export type Login2faInput = z.infer<typeof login2faSchema>
 export type ForgotPasswordRequestInput = z.infer<typeof forgotPasswordRequestSchema>
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>

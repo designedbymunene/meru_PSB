@@ -23,17 +23,28 @@ export function calculateProfileCompletion(profile: any) {
     // 3. Academic (Has at least one qualification)
     sections.education = profile.qualifications?.length > 0 ? 100 : 0
 
-    // 4. Experience (Has at least one employment record)
-    sections.experience = profile.employmentHistory?.length > 0 ? 100 : 0
-
-    // 5. Professional (Has professional details OR memberships)
-    const hasCerts = profile.professionalDetails?.length > 0 || profile.trainingCourses?.length > 0
-    const hasMemberships = profile.professionalMemberships?.length > 0
-    sections.professional = (hasCerts || hasMemberships) ? 100 : 0
-
-    // 6. Referees (Has at least 2 referees)
-    const refereeCount = profile.referees?.length || 0
-    sections.referees = refereeCount >= 2 ? 100 : (refereeCount === 1 ? 50 : 0)
+    // 4. Experience (Has at least one employment record OR marked as N/A)
+    sections.experience = (profile.employmentHistory?.length > 0 || profile.hasNoExperience) ? 100 : 0
+ 
+    // 5. Professional (Has professional details OR memberships OR marked as N/A for all empty sub-sections)
+    const hasCerts = profile.professionalDetails?.length > 0 || profile.hasNoCertificates
+    const hasTrainings = profile.trainingCourses?.length > 0 || profile.hasNoTrainings
+    const hasMemberships = profile.professionalMemberships?.length > 0 || profile.hasNoMemberships
+    
+    // For professional to be complete, they either need at least one record (any) 
+    // OR if they have no records, they must have marked the relevant ones as N/A
+    const hasAnyProfessionalRecord = profile.professionalDetails?.length > 0 || 
+                                     profile.trainingCourses?.length > 0 || 
+                                     profile.professionalMemberships?.length > 0
+                                     
+    if (hasAnyProfessionalRecord) {
+        sections.professional = 100
+    } else {
+        sections.professional = (profile.hasNoCertificates && profile.hasNoTrainings && profile.hasNoMemberships) ? 100 : 0
+    }
+ 
+    // 6. Referees (Has at least 1 referee OR marked as N/A)
+    sections.referees = (profile.referees?.length >= 1 || profile.hasNoReferees) ? 100 : 0
 
     // Overall Calculation (Weighted)
     // Personal: 20%, Location: 20%, Education: 20%, Experience: 20%, Professional: 10%, Referees: 10%

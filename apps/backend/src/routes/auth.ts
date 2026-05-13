@@ -6,6 +6,7 @@ import { authRateLimiter } from '../middleware/rateLimiter'
 import {
     registerSchema,
     loginSchema,
+    login2faSchema,
     forgotPasswordRequestSchema,
     refreshTokenSchema,
     resetPasswordSchema
@@ -20,7 +21,8 @@ import {
     verifyRefreshToken,
     verifyPasswordResetOtp
 } from '../utils/auth'
-import { sendPasswordResetOtpEmail } from '../utils/mailer'
+import { sendPasswordResetOtpEmail, sendTwoFactorOtpEmail } from '../utils/mailer'
+import { activeSessions } from '../db/schema'
 import {
     ConflictError,
     UnauthorizedError,
@@ -57,7 +59,7 @@ authRouter.post('/register', authRateLimiter, validate(registerSchema), async (c
             const [u] = await tx
                 .insert(users)
                 .values({
-                    email: data.email,
+                    email: data.email.toLowerCase(),
                     phoneNumber: data.phoneNumber,
                     password: hashedPassword,
                     fullName: data.fullName,
@@ -73,10 +75,10 @@ authRouter.post('/register', authRateLimiter, validate(registerSchema), async (c
                     .insert(applicantProfiles)
                     .values({
                         userId: u.id,
-                        applicantName: u.fullName,
+                        fullName: u.fullName,
                         idNumber: data.nationalId,
                         email: u.email,
-                        phone: u.phoneNumber
+                        phoneNumber: u.phoneNumber
                     })
                     .returning()
                 p = createdProfile
@@ -141,11 +143,14 @@ authRouter.post('/login', authRateLimiter, validate(loginSchema), async (c) => {
     const data = c.get('validatedData' as never) as {
         email: string
         password: string
+        deviceId?: string
+        deviceName?: string
+        os?: string
     }
 
     // Find user
     const user = await db.query.users.findFirst({
-        where: eq(users.email, data.email)
+        where: eq(users.email, data.email.toLowerCase())
     })
 
     if (!user) {
@@ -159,6 +164,29 @@ authRouter.post('/login', authRateLimiter, validate(loginSchema), async (c) => {
         throw new UnauthorizedError('Invalid email or password')
     }
 
+    // Check for 2FA
+    if (user.twoFactorEnabled) {
+        const otp = generatePasswordResetOtp() // Reuse same generator
+        const otpHash = await hashPasswordResetOtp(otp)
+        
+        // Use passwordResetSessions for 2FA too, or create new table. 
+        // Let's use it for now as it has expiry and userId.
+        await db.delete(passwordResetSessions).where(eq(passwordResetSessions.userId, user.id))
+        await db.insert(passwordResetSessions).values({
+            userId: user.id,
+            otpHash,
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+        })
+
+        await sendTwoFactorOtpEmail({
+            to: user.email,
+            fullName: user.fullName,
+            otp
+        })
+
+        return successResponse(c, { twoFactorRequired: true }, 'Verification code sent to your email')
+    }
+
     // Generate tokens
     const tokenPayload = {
         userId: user.id,
@@ -169,6 +197,92 @@ authRouter.post('/login', authRateLimiter, validate(loginSchema), async (c) => {
 
     const accessToken = generateAccessToken(tokenPayload)
     const refreshToken = generateRefreshToken(tokenPayload)
+
+    // Record session
+    await db.insert(activeSessions).values({
+        userId: user.id,
+        tokenVersion: user.tokenVersion ?? 0,
+        deviceId: data.deviceId,
+        deviceName: data.deviceName,
+        os: data.os,
+        ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
+        userAgent: c.req.header('user-agent'),
+        isCurrent: true
+    })
+
+    return successResponse(c, {
+        user: {
+            id: user.id,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            fullName: user.fullName,
+            role: user.role
+        },
+        accessToken,
+        refreshToken
+    })
+})
+
+// POST /api/auth/login/2fa - Verify 2FA and complete login
+authRouter.post('/login/2fa', authRateLimiter, validate(login2faSchema), async (c) => {
+    const data = c.get('validatedData' as never) as {
+        email: string
+        otp: string
+        deviceId?: string
+        deviceName?: string
+        os?: string
+    }
+
+    const user = await db.query.users.findFirst({
+        where: eq(users.email, data.email.toLowerCase())
+    })
+
+    if (!user) throw new UnauthorizedError('Invalid request')
+
+    const [session] = await db.select().from(passwordResetSessions)
+        .where(and(
+            eq(passwordResetSessions.userId, user.id),
+            isNull(passwordResetSessions.usedAt),
+            gt(passwordResetSessions.expiresAt, new Date())
+        ))
+        .orderBy(desc(passwordResetSessions.createdAt))
+
+    if (!session) {
+        throw new UnauthorizedError('Verification code expired or invalid')
+    }
+
+    const isValid = await verifyPasswordResetOtp(data.otp, session.otpHash)
+    if (!isValid) {
+        throw new UnauthorizedError('Invalid verification code')
+    }
+
+    // Mark session as used
+    await db.update(passwordResetSessions)
+        .set({ usedAt: new Date() })
+        .where(eq(passwordResetSessions.id, session.id))
+
+    // Generate tokens
+    const tokenPayload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        tokenVersion: user.tokenVersion ?? 0
+    }
+
+    const accessToken = generateAccessToken(tokenPayload)
+    const refreshToken = generateRefreshToken(tokenPayload)
+
+    // Record session
+    await db.insert(activeSessions).values({
+        userId: user.id,
+        tokenVersion: user.tokenVersion ?? 0,
+        deviceId: data.deviceId,
+        deviceName: data.deviceName,
+        os: data.os,
+        ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
+        userAgent: c.req.header('user-agent'),
+        isCurrent: true
+    })
 
     return successResponse(c, {
         user: {
@@ -195,6 +309,13 @@ authRouter.post('/logout', validate(refreshTokenSchema), async (c) => {
             token: data.refreshToken,
             expiresAt: decoded.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         }).onConflictDoNothing()
+
+        // Also remove from active sessions if we can match it (ideally we'd have the sessionId in the token or something)
+        // For now, let's just mark the current session as not current if we had a way to identify it.
+        // Actually, if we have the userId from decoded token, we can do some cleanup.
+        await db.delete(activeSessions).where(eq(activeSessions.userId, decoded.userId)) 
+        // Note: The above might be too aggressive if they have multiple sessions. 
+        // Ideally we should only delete the session associated with THIS token.
 
         return successResponse(c, null, 'Logged out successfully')
     } catch (error) {
@@ -250,7 +371,7 @@ authRouter.post('/forgot-password/request', authRateLimiter, validate(forgotPass
 
     // Find user
     const user = await db.query.users.findFirst({
-        where: eq(users.email, data.email)
+        where: eq(users.email, data.email.toLowerCase())
     })
 
     if (user) {
@@ -283,7 +404,7 @@ authRouter.post('/forgot-password/request', authRateLimiter, validate(forgotPass
             throw error
         }
     } else {
-        console.log(`[Auth] Password reset requested for non-existent email: ${data.email}`)
+        console.log(`[Auth] Password reset requested for non-existent email: ${data.email.toLowerCase()}`)
     }
 
     return successResponse(c, null, 'If the account exists, a reset code has been sent')
@@ -298,7 +419,7 @@ authRouter.post('/reset-password', authRateLimiter, validate(resetPasswordSchema
     }
 
     const user = await db.query.users.findFirst({
-        where: eq(users.email, data.email)
+        where: eq(users.email, data.email.toLowerCase())
     })
 
     if (!user) {

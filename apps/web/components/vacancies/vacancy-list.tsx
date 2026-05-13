@@ -20,11 +20,22 @@ export function VacancyList({ filters, limit }: VacancyListProps) {
         return (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: limit || 6 }).map((_, i) => (
-                    <div key={i} className="space-y-4 border rounded-lg p-6">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                        <Skeleton className="h-24 w-full" />
-                        <Skeleton className="h-10 w-full" />
+                    <div key={i} className="space-y-4 border rounded-2xl p-6 bg-slate-50/50">
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-2 flex-1">
+                                <Skeleton className="h-5 w-3/4" />
+                                <Skeleton className="h-3 w-1/2" />
+                            </div>
+                            <Skeleton className="h-6 w-16" />
+                        </div>
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-2/3" />
+                        </div>
+                        <div className="flex justify-end pt-2">
+                            <Skeleton className="h-8 w-24 rounded-lg" />
+                        </div>
                     </div>
                 ))}
             </div>

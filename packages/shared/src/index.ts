@@ -220,9 +220,11 @@ export interface Qualification {
 export interface ProfessionalDetail {
     id: number
     applicantProfileId: number
-    registrationBody: string
-    registrationBodyId: number | null
+    licenseType: string
+    issuingBody: string
+    issuingBodyId: number | null
     registrationNumber: string
+    issueDate: string
     expiryDate: string | null
     createdAt: string
     updatedAt: string

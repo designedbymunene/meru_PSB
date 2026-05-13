@@ -1,162 +1,279 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Switch, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Switch, Alert, ScrollView } from 'react-native';
 import { useColorScheme } from 'nativewind';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
-import { Lock, ShieldAlert, LogOut, Smartphone, Key, History, ShieldCheck } from 'lucide-react-native';
-import { Header } from '@/components/ui/header';
-import { SectionCard } from '@/components/account';
+import { 
+    Lock, 
+    ShieldAlert, 
+    Smartphone, 
+    Key, 
+    History, 
+    ShieldCheck,
+    Fingerprint,
+    LogOut,
+    Trash2
+} from 'lucide-react-native';
+import { SectionCard, SettingRow } from '@/components/account';
 import { FormLayout } from '@/components/ui/form-layout';
 import { ProfileFormLoadingState } from '@/components/ui/loading-skeletons';
+import { router } from 'expo-router';
+import { safeAsyncStorage } from '@/lib/storage';
+import { toast } from 'sonner-native';
+import { formatDistanceToNow } from 'date-fns';
+
+const BIOMETRICS_KEY = 'security_biometrics_enabled';
+
+// Safely import LocalAuthentication to prevent crashes when native module is missing
+const getLocalAuth = () => {
+    try {
+        return require('expo-local-authentication');
+    } catch (e) {
+        console.warn('ExpoLocalAuthentication not available');
+        return null;
+    }
+};
 
 export default function SecuritySettingsScreen() {
     const { colorScheme } = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
-    const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+    const queryClient = useQueryClient();
     
-    const iconColor = isDarkMode ? '#ffffff' : '#0f172a';
+    const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+    const [isBiometricsSupported, setIsBiometricsSupported] = useState(false);
 
-    const { data: security, isLoading } = useQuery({
+    useEffect(() => {
+        const checkBiometrics = async () => {
+            const LocalAuthentication = getLocalAuth();
+            if (!LocalAuthentication) return;
+
+            try {
+                const compatible = await LocalAuthentication.hasHardwareAsync();
+                setIsBiometricsSupported(compatible);
+                
+                const enabled = await safeAsyncStorage.getItem(BIOMETRICS_KEY);
+                setBiometricsEnabled(enabled === 'true');
+            } catch (e) {
+                console.warn('Biometrics check failed:', e);
+            }
+        };
+        checkBiometrics();
+    }, []);
+
+    const { data: security, isLoading: isSecurityLoading } = useQuery({
         queryKey: ['security-settings'],
         queryFn: async () => {
-            try {
-                const response = await apiClient.get('/account/security');
-                return response.data.data;
-            } catch (error) {
-                console.error('Failed to fetch security settings', error);
-                return {
-                    passwordLastChanged: new Date().toISOString(),
-                    twoFactorEnabled: false,
-                    loginAttempts: 0,
-                    sessionTimeout: 30,
-                    activeSessions: 1
-                };
-            }
+            const response = await apiClient.get('/account/security');
+            return response.data.data;
         },
     });
 
+    const { data: sessions, isLoading: isSessionsLoading } = useQuery({
+        queryKey: ['active-sessions'],
+        queryFn: async () => {
+            const response = await apiClient.get('/account/sessions');
+            return response.data.data;
+        },
+    });
+
+    const toggle2faMutation = useMutation({
+        mutationFn: async (enabled: boolean) => {
+            await apiClient.post('/account/2fa/toggle', { enabled });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['security-settings'] });
+            toast.success('Two-factor authentication updated');
+        }
+    });
+
+    const revokeSessionMutation = useMutation({
+        mutationFn: async (id?: number) => {
+            if (id) {
+                await apiClient.delete(`/account/sessions/${id}`);
+            } else {
+                await apiClient.delete('/account/sessions');
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['active-sessions'] });
+            queryClient.invalidateQueries({ queryKey: ['security-settings'] });
+            toast.success('Session(s) revoked');
+        }
+    });
+
+    const handleToggleBiometrics = async (value: boolean) => {
+        const LocalAuthentication = getLocalAuth();
+        if (!LocalAuthentication) {
+            toast.error('Error', { description: 'Biometric authentication is not available on this device.' });
+            setBiometricsEnabled(false);
+            return;
+        }
+
+        if (value) {
+            try {
+                const result = await LocalAuthentication.authenticateAsync({
+                    promptMessage: 'Confirm to enable biometric login',
+                    fallbackLabel: 'Use Passcode',
+                });
+                
+                if (result.success) {
+                    setBiometricsEnabled(true);
+                    await safeAsyncStorage.setItem(BIOMETRICS_KEY, 'true');
+                    toast.success('Biometric login enabled');
+                } else {
+                    setBiometricsEnabled(false);
+                }
+            } catch (e) {
+                console.error('Biometric toggle failed', e);
+                setBiometricsEnabled(false);
+                toast.error('Error', { description: 'Biometric authentication is not available on this device.' });
+            }
+        } else {
+            setBiometricsEnabled(false);
+            await safeAsyncStorage.setItem(BIOMETRICS_KEY, 'false');
+            toast.success('Biometric login disabled');
+        }
+    };
+
     const handleLogoutAll = () => {
         Alert.alert(
-            'Logout from All Devices',
-            'Are you sure you want to sign out from all other active sessions?',
+            'Sign out from all devices?',
+            'This will sign you out from all other active sessions except this one.',
             [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Logout All', style: 'destructive', onPress: () => {} },
+                { 
+                    text: 'Logout All', 
+                    style: 'destructive', 
+                    onPress: () => revokeSessionMutation.mutate() 
+                },
             ]
         );
     };
 
-    if (isLoading) {
+    if (isSecurityLoading || isSessionsLoading) {
         return <ProfileFormLoadingState title="Security" />;
     }
 
-    const SecurityItem = ({ icon: Icon, title, value, color = iconColor, onPress }: any) => (
-        <TouchableOpacity 
-            className="flex-row justify-between items-center py-4 border-b border-gray-100 last:border-b-0 dark:border-gray-800"
-            onPress={onPress}
-            disabled={!onPress}
-        >
-            <View className="flex-row items-center">
-                <View className="w-8 h-8 rounded-lg items-center justify-center mr-3" style={{ backgroundColor: `${color}10` }}>
-                    <Icon size={18} color={color} />
-                </View>
-                <Text className="text-gray-600 text-sm font-medium">{title}</Text>
-            </View>
-            <Text className="text-gray-900 font-bold text-sm">{value}</Text>
-        </TouchableOpacity>
-    );
+    const lastChanged = security?.passwordLastChanged && security.passwordLastChanged !== 'Never' 
+        ? formatDistanceToNow(new Date(security.passwordLastChanged), { addSuffix: true })
+        : 'Never';
 
     return (
         <FormLayout
-            title="Security"
-            onBack={() => {}}
+            title="Security Settings"
+            onBack={() => router.back()}
         >
-            <View className="space-y-6">
-                {/* Password Section */}
-                <SectionCard
-                    title="Authentication"
-                    icon={<Lock size={22} color={iconColor} />}
-                >
-                    <View>
-                        <SecurityItem 
+            <View className="space-y-12 mb-12">
+                {/* Authentication Section */}
+                <View>
+                    <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-5 ml-2">Authentication</Text>
+                    <SectionCard title="Password & Access" icon={<Lock size={18} color="#3b82f6" strokeWidth={2.5} />}>
+                        <SettingRow 
                             icon={Key}
-                            title="Password"
-                            value="Last changed 3 months ago"
-                            onPress={() => {}}
+                            title="Update Password"
+                            subtitle={`Last changed ${lastChanged}`}
+                            onPress={() => router.push('/profile/update-password')}
+                            color="#3b82f6"
                         />
-                        <TouchableOpacity className="bg-blue-50 p-4 rounded-xl border border-blue-100 mt-4 active:bg-blue-100 items-center">
-                            <Text className="text-blue-600 font-black text-xs uppercase tracking-widest">Update Password</Text>
-                        </TouchableOpacity>
-                    </View>
-                </SectionCard>
+                        {isBiometricsSupported && (
+                            <SettingRow 
+                                icon={Fingerprint}
+                                title="Biometric Login"
+                                subtitle="Use FaceID or Fingerprint"
+                                color="#8b5cf6"
+                                rightElement={
+                                    <Switch
+                                        value={biometricsEnabled}
+                                        onValueChange={handleToggleBiometrics}
+                                        trackColor={{ false: '#f1f5f9', true: '#ddd6fe' }}
+                                        thumbColor={biometricsEnabled ? '#8b5cf6' : '#f8fafc'}
+                                    />
+                                }
+                                isLast={true}
+                            />
+                        )}
+                    </SectionCard>
+                </View>
 
                 {/* Two-Factor Authentication */}
-                <SectionCard
-                    title="Two-Step Verification"
-                    icon={<ShieldAlert size={22} color={iconColor} />}
-                >
-                    <View className="py-2">
-                        <View className="flex-row justify-between items-center mb-4">
-                            <View className="flex-1 pr-4">
-                                <Text className="text-gray-900 font-bold text-sm">Two-Step Verification</Text>
-                                <Text className="text-gray-500 text-[10px] mt-1 font-medium leading-4">
-                                    Add an extra layer of security by requiring a code from your phone.
-                                </Text>
+                <View>
+                    <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-5 ml-2">Advanced Security</Text>
+                    <SectionCard title="Two-Step Verification" icon={<ShieldAlert size={18} color="#f59e0b" strokeWidth={2.5} />}>
+                        <View className="py-2">
+                            <View className="flex-row justify-between items-start mb-2">
+                                <View className="flex-1 pr-4">
+                                    <Text className="text-gray-900 dark:text-white font-black text-[13px]">Require code from email</Text>
+                                    <Text className="text-gray-500 dark:text-gray-400 text-[10px] mt-1.5 font-bold leading-4">
+                                        Protect your account by requiring an additional security code sent to your email during login.
+                                    </Text>
+                                </View>
+                                <Switch
+                                    value={security?.twoFactorEnabled}
+                                    onValueChange={(val) => toggle2faMutation.mutate(val)}
+                                    trackColor={{ false: '#f1f5f9', true: '#93c5fd' }}
+                                    thumbColor={security?.twoFactorEnabled ? '#2563eb' : '#f8fafc'}
+                                />
                             </View>
-                            <Switch
-                                value={twoFactorEnabled}
-                                onValueChange={setTwoFactorEnabled}
-                                trackColor={{ false: '#e2e8f0', true: '#93c5fd' }}
-                                thumbColor={twoFactorEnabled ? '#059669' : '#f8fafc'}
-                            />
                         </View>
-                        {twoFactorEnabled && (
-                            <TouchableOpacity className="bg-green-50 p-4 rounded-xl border border-green-100 active:bg-green-100 items-center">
-                                <Text className="text-green-600 font-black text-xs uppercase tracking-widest">Configure Authenticator</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                </SectionCard>
+                    </SectionCard>
+                </View>
 
                 {/* Session Management */}
-                <SectionCard
-                    title="Sessions & Activity"
-                    icon={<Smartphone size={22} color={iconColor} />}
-                >
-                    <View>
-                        <SecurityItem 
-                            icon={Smartphone}
-                            title="Current Device"
-                            value="iPhone 14 Pro"
-                            color="#7c3aed"
-                        />
-                        <SecurityItem 
-                            icon={History}
-                            title="Active Sessions"
-                            value="2 active devices"
-                            color="#7c3aed"
-                        />
-                        <SecurityItem 
-                            icon={ShieldCheck}
-                            title="Security Audit"
-                            value="All clear"
-                            color="#7c3aed"
-                        />
-                        <TouchableOpacity 
-                            className="bg-red-50 p-4 rounded-xl border border-red-100 mt-4 active:bg-red-100 items-center"
-                            onPress={handleLogoutAll}
-                        >
-                            <Text className="text-red-600 font-black text-xs uppercase tracking-widest">Logout All Other Devices</Text>
-                        </TouchableOpacity>
-                    </View>
-                </SectionCard>
+                <View>
+                    <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-5 ml-2">Active Sessions</Text>
+                    <SectionCard title="Devices & Activity" icon={<Smartphone size={18} color="#ec4899" strokeWidth={2.5} />}>
+                        {sessions?.map((session: any, index: number) => (
+                            <View key={session.id} className={`flex-row items-center py-4 ${index === sessions.length - 1 ? '' : 'border-b border-gray-50 dark:border-gray-800'}`}>
+                                <View className={`w-10 h-10 rounded-2xl items-center justify-center mr-4 bg-gray-50 dark:bg-gray-800`}>
+                                    <Smartphone size={20} color={session.isCurrent ? '#ec4899' : '#94a3b8'} strokeWidth={2} />
+                                </View>
+                                <View className="flex-1">
+                                    <View className="flex-row items-center">
+                                        <Text className="text-gray-900 dark:text-white font-black text-[13px]">
+                                            {session.deviceName || 'Unknown Device'}
+                                        </Text>
+                                        {session.isCurrent && (
+                                            <View className="ml-2 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
+                                                <Text className="text-green-700 dark:text-green-400 text-[8px] font-black uppercase">Current</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                    <Text className="text-gray-500 dark:text-gray-400 text-[10px] mt-1 font-bold">
+                                        {session.os || 'Unknown OS'} • {formatDistanceToNow(new Date(session.lastActive), { addSuffix: true })}
+                                    </Text>
+                                </View>
+                                {!session.isCurrent && (
+                                    <TouchableOpacity 
+                                        onPress={() => revokeSessionMutation.mutate(session.id)}
+                                        className="p-2"
+                                    >
+                                        <Trash2 size={18} color="#ef4444" strokeWidth={2} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        ))}
+                        
+                        {sessions?.length > 1 && (
+                            <TouchableOpacity 
+                                className="bg-red-50 dark:bg-red-900/10 p-5 rounded-[24px] mt-6 border border-red-100 dark:border-red-900/20 active:opacity-70 flex-row justify-center items-center"
+                                onPress={handleLogoutAll}
+                            >
+                                <LogOut size={16} color="#ef4444" strokeWidth={2.5} className="mr-2" />
+                                <Text className="text-red-600 dark:text-red-400 font-black text-[10px] uppercase tracking-[2px]">Revoke All Other Sessions</Text>
+                            </TouchableOpacity>
+                        )}
+                    </SectionCard>
+                </View>
 
-                <View className="bg-blue-50 p-4 rounded-2xl flex-row items-start">
-                    <ShieldCheck size={18} color={iconColor} className="mt-0.5" />
-                    <View className="ml-3 flex-1">
-                        <Text className="text-[#004aad] font-bold text-xs">Security Pro-Tip</Text>
-                        <Text className="text-blue-700/60 text-[10px] mt-1 font-medium leading-4">
-                            Enable two-factor authentication and regularly update your password to keep your application data safe.
+                {/* Security Tips */}
+                <View className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 flex-row items-start shadow-sm">
+                    <View className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-900/30 items-center justify-center shadow-sm">
+                        <ShieldCheck size={20} color="#004aad" strokeWidth={2.5} />
+                    </View>
+                    <View className="ml-4 flex-1">
+                        <Text className="text-gray-900 dark:text-white font-black text-sm">Security Pro-Tip</Text>
+                        <Text className="text-gray-500 dark:text-gray-400 text-[10px] mt-1.5 font-bold leading-5">
+                            Keep your account safe by enabling two-factor authentication and using biometrics for faster, more secure access.
                         </Text>
                     </View>
                 </View>

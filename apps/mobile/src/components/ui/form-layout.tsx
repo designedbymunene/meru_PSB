@@ -35,7 +35,7 @@ export function FormLayout({
     const insets = useSafeAreaInsets();
     
     return (
-        <View className="flex-1 bg-white dark:bg-gray-950">
+        <View className="flex-1 bg-gray-50 dark:bg-gray-950">
             <Header title={title} onBack={onBack} />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -52,7 +52,7 @@ export function FormLayout({
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                     >
-                        <View className="p-6">
+                        <View className="p-6 pt-10">
                             {children}
                         </View>
                     </ScrollView>

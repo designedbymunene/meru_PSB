@@ -161,8 +161,8 @@ export const professionalDetailsRelations = relations(professionalDetails, ({ on
         fields: [professionalDetails.applicantProfileId],
         references: [applicantProfiles.id]
     }),
-    registrationBody: one(professionalBodies, {
-        fields: [professionalDetails.registrationBodyId],
+    issuingBody: one(professionalBodies, {
+        fields: [professionalDetails.issuingBodyId],
         references: [professionalBodies.id]
     })
 }))

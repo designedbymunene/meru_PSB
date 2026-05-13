@@ -185,6 +185,40 @@
 					"response": []
 				},
 				{
+					"name": "Forgot Password Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john.doe@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Request a 6-digit OTP for password reset.",
+						"url": {
+							"raw": "{{baseUrl}}/auth/forgot-password/request",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"forgot-password",
+								"request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Reset Password",
 					"request": {
 						"method": "POST",
@@ -196,14 +230,14 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"newPassword\": \"NewSecureP@ss123\"\n}",
+							"raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"NewSecureP@ss123\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
 								}
 							}
 						},
-						"description": "Reset a user's password.",
+						"description": "Confirm password reset using the OTP received via email.",
 						"url": {
 							"raw": "{{baseUrl}}/auth/reset-password",
 							"host": [

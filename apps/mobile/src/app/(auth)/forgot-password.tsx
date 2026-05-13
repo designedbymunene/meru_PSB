@@ -7,8 +7,7 @@ import {
     Text, 
     TextInput, 
     TouchableOpacity, 
-    View, 
-    Alert
+    View 
 } from 'react-native';
 import * as z from 'zod';
 import { apiClient, getApiErrorMessage } from '@/lib/api/client';
@@ -30,7 +29,7 @@ type Step2FormData = z.infer<typeof step2Schema>;
 
 export default function ForgotPasswordScreen() {
     const router = useRouter();
-    const [step, setStep] = useState<1 | 2>(1);
+    const [step, setStep] = useState<1 | 2 | 3>(1);
     const [isLoading, setIsLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -72,11 +71,7 @@ export default function ForgotPasswordScreen() {
                 newPassword: data.newPassword,
             });
             
-            Alert.alert(
-                "Success",
-                "Your password has been reset successfully.",
-                [{ text: "Log In Now", onPress: () => router.replace('/login') }]
-            );
+            setStep(3);
         } catch (err: any) {
             setError(getApiErrorMessage(err, 'Invalid or expired reset code'));
         } finally {
@@ -86,11 +81,15 @@ export default function ForgotPasswordScreen() {
 
     return (
         <FormLayout
-            title={step === 1 ? "Forgot Password" : "Verify Code"}
-            onBack={() => step === 2 ? setStep(1) : router.back()}
+            title={step === 1 ? "Forgot Password" : step === 2 ? "Verify Code" : "Success"}
+            onBack={() => {
+                if (step === 2) setStep(1);
+                else if (step === 3) router.replace('/login');
+                else router.back();
+            }}
             isLoading={isLoading}
-            submitLabel={step === 1 ? "Get Reset Code" : "Update Password"}
-            onSubmit={step === 1 ? form1.handleSubmit(onStep1Submit) : form2.handleSubmit(onStep2Submit)}
+            submitLabel={step === 1 ? "Get Reset Code" : step === 2 ? "Update Password" : "Log In Now"}
+            onSubmit={step === 1 ? form1.handleSubmit(onStep1Submit) : step === 2 ? form2.handleSubmit(onStep2Submit) : () => router.replace('/login')}
         >
             <View className="py-4">
                 {step === 1 ? (
@@ -138,7 +137,7 @@ export default function ForgotPasswordScreen() {
                             </TouchableOpacity>
                         </View>
                     </>
-                ) : (
+                ) : step === 2 ? (
                     <>
                         <View className="mb-10">
                             <View className="bg-slate-50 dark:bg-gray-900 w-20 h-20 rounded-3xl items-center justify-center mb-6 shadow-sm border border-slate-100 dark:border-gray-800">
@@ -220,6 +219,16 @@ export default function ForgotPasswordScreen() {
                             </TouchableOpacity>
                         </View>
                     </>
+                ) : (
+                    <View className="flex-1 items-center justify-center py-10">
+                        <View className="bg-emerald-50 dark:bg-emerald-900/20 w-24 h-24 rounded-full items-center justify-center mb-8 shadow-sm border border-emerald-100 dark:border-emerald-800/30">
+                            <CheckCircle2 size={56} color="#059669" />
+                        </View>
+                        <Text className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight text-center">Success!</Text>
+                        <Text className="text-slate-500 dark:text-gray-400 text-lg mt-4 leading-7 text-center px-4">
+                            Your password has been reset successfully. You can now log in with your new credentials.
+                        </Text>
+                    </View>
                 )}
             </View>
         </FormLayout>

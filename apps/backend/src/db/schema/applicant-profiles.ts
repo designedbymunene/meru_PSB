@@ -33,6 +33,13 @@ export const applicantProfiles = pgTable('applicant_profiles', {
     publicServiceInfo: text('public_service_info'), // Public service information
     personalNumber: varchar('personal_number', { length: 50 }), // Personal/Staff number
 
+    // N/A Flags for beginners
+    hasNoExperience: boolean('has_no_experience').default(false).notNull(),
+    hasNoCertificates: boolean('has_no_certificates').default(false).notNull(),
+    hasNoMemberships: boolean('has_no_memberships').default(false).notNull(),
+    hasNoTrainings: boolean('has_no_trainings').default(false).notNull(),
+    hasNoReferees: boolean('has_no_referees').default(false).notNull(),
+
     ...timestamps
 })
 

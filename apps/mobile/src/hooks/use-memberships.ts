@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert } from 'react-native';
+import { toast } from 'sonner-native';
 import { apiClient, getApiErrorMessage } from '@/lib/api/client';
 import { runOfflineCapableMutation } from '@/lib/offline-mutations/mutation-strategy';
 
@@ -9,7 +9,7 @@ export function useMemberships() {
     const { data: memberships, isLoading, refetch } = useQuery({
         queryKey: ['memberships'],
         queryFn: async () => {
-            const response = await apiClient.get('/applicant-profiles/me/memberships');
+            const response = await apiClient.get('/applicant-profiles/me/professional-memberships');
             return response.data.data || [];
         },
     });
@@ -17,9 +17,9 @@ export function useMemberships() {
     const addMembership = useMutation({
         mutationFn: async (data: any) => {
             return runOfflineCapableMutation({
-                request: () => apiClient.post('/applicant-profiles/me/memberships', data),
+                request: () => apiClient.post('/applicant-profiles/me/professional-memberships', data),
                 method: 'post',
-                path: '/applicant-profiles/me/memberships',
+                path: '/applicant-profiles/me/professional-memberships',
                 body: data,
             });
         },
@@ -27,22 +27,22 @@ export function useMemberships() {
             queryClient.invalidateQueries({ queryKey: ['memberships'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (result.queued) {
-                Alert.alert('Queued', 'Saved offline and will sync later.');
+                toast.info('Queued', { description: 'Saved offline and will sync later.' });
             } else {
-                Alert.alert('Success', 'Membership added successfully');
+                toast.success('Success', { description: 'Membership added successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to add membership'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to add membership') });
         }
     });
 
     const updateMembership = useMutation({
         mutationFn: async ({ id, data }: { id: string | number, data: any }) => {
             return runOfflineCapableMutation({
-                request: () => apiClient.put(`/applicant-profiles/me/memberships/${id}`, data),
+                request: () => apiClient.put(`/applicant-profiles/me/professional-memberships/${id}`, data),
                 method: 'put',
-                path: `/applicant-profiles/me/memberships/${id}`,
+                path: `/applicant-profiles/me/professional-memberships/${id}`,
                 body: data,
             });
         },
@@ -50,33 +50,33 @@ export function useMemberships() {
             queryClient.invalidateQueries({ queryKey: ['memberships'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (result.queued) {
-                Alert.alert('Queued', 'Updates saved offline.');
+                toast.info('Queued', { description: 'Updates saved offline.' });
             } else {
-                Alert.alert('Success', 'Membership updated successfully');
+                toast.success('Success', { description: 'Membership updated successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to update membership'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to update membership') });
         }
     });
 
     const deleteMembership = useMutation({
         mutationFn: async (id: string | number) => {
             return runOfflineCapableMutation({
-                request: () => apiClient.delete(`/applicant-profiles/me/memberships/${id}`),
+                request: () => apiClient.delete(`/applicant-profiles/me/professional-memberships/${id}`),
                 method: 'delete',
-                path: `/applicant-profiles/me/memberships/${id}`,
+                path: `/applicant-profiles/me/professional-memberships/${id}`,
             });
         },
         onSuccess: (result) => {
             queryClient.invalidateQueries({ queryKey: ['memberships'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (!result.queued) {
-                Alert.alert('Success', 'Membership deleted successfully');
+                toast.success('Success', { description: 'Membership deleted successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to delete membership'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to delete membership') });
         }
     });
 

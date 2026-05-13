@@ -129,7 +129,7 @@ export default function DashboardScreen() {
                             <Text className="text-gray-400 dark:text-gray-500 text-sm font-medium">Welcome back,</Text>
                             <Text className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{user?.fullName?.split(' ')[0] || 'Applicant'} 👋</Text>
                         </View>
-                         <TouchableOpacity
+                        <TouchableOpacity
                             onPress={() => router.push('/vacancies')}
                             className="w-12 h-12 rounded-full bg-gray-50 dark:bg-gray-900 items-center justify-center border border-gray-100 dark:border-gray-800"
                         >
@@ -141,7 +141,7 @@ export default function DashboardScreen() {
                     <View className="flex-row flex-wrap mb-10 -mx-1.5">
                         {stats.map((stat, idx) => (
                             <View key={idx} className="w-1/2 p-1.5">
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={() => router.push(stat.path as any)}
                                     activeOpacity={0.7}
                                     className={`flex-row items-center ${stat.bg} dark:bg-gray-900/50 px-3 py-4 rounded-2xl border border-gray-100/50 dark:border-gray-800`}

@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, Text, View, TouchableOpacity } from 'react-native';
+import { Text, View, TouchableOpacity } from 'react-native';
+import { toast } from 'sonner-native';
 import * as z from 'zod';
 import { FormLayout } from '@/components/ui/form-layout';
 import { FormPicker } from '@/components/ui/form-picker';
@@ -57,11 +58,11 @@ export default function LocationDetailsScreen() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['profile'] });
-            Alert.alert('Success', 'Location details updated successfully');
+            toast.success('Success', { description: 'Location details updated successfully' });
             router.back();
         },
         onError: (error: unknown) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to update location details'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to update location details') });
         }
     });
 
@@ -107,79 +108,83 @@ export default function LocationDetailsScreen() {
             submitLabel="Save Details"
             onSubmit={handleSubmit((data) => mutation.mutate(data))}
         >
-            <View className="px-4 space-y-2">
-                <Controller
-                    control={control}
-                    name="homeCountyId"
-                    render={({ field: { onChange, value } }) => (
-                        <FormPicker
-                            label="Home County"
-                            items={counties}
-                            icon={Globe}
-                            onValueChange={(val) => {
-                                onChange(val);
-                                setValue('homeSubCountyId', undefined);
-                                setValue('wardId', undefined);
-                            }}
-                            value={value}
-                            error={errors.homeCountyId?.message}
-                            placeholder="Select your county"
+            <View className="space-y-8">
+                <SectionCard title="Origin & Identity" icon={<Globe size={18} color="#004aad" strokeWidth={2.5} />}>
+                    <View className="space-y-4 py-2">
+                        <Controller
+                            control={control}
+                            name="homeCountyId"
+                            render={({ field: { onChange, value } }) => (
+                                <FormPicker
+                                    label="Home County"
+                                    items={counties}
+                                    icon={Globe}
+                                    onValueChange={(val) => {
+                                        onChange(val);
+                                        setValue('homeSubCountyId', undefined);
+                                        setValue('wardId', undefined);
+                                    }}
+                                    value={value}
+                                    error={errors.homeCountyId?.message}
+                                    placeholder="Select your county"
+                                />
+                            )}
                         />
-                    )}
-                />
 
-                <Controller
-                    control={control}
-                    name="homeSubCountyId"
-                    render={({ field: { onChange, value } }) => (
-                        <FormPicker
-                            label="Home Sub-County"
-                            items={subCounties}
-                            icon={MapPin}
-                            onValueChange={(val) => {
-                                onChange(val);
-                                setValue('wardId', undefined);
-                            }}
-                            value={value}
-                            error={errors.homeSubCountyId?.message}
-                            placeholder="Select sub-county"
-                            enabled={!!selectedCountyId}
+                        <Controller
+                            control={control}
+                            name="homeSubCountyId"
+                            render={({ field: { onChange, value } }) => (
+                                <FormPicker
+                                    label="Home Sub-County"
+                                    items={subCounties}
+                                    icon={MapPin}
+                                    onValueChange={(val) => {
+                                        onChange(val);
+                                        setValue('wardId', undefined);
+                                    }}
+                                    value={value}
+                                    error={errors.homeSubCountyId?.message}
+                                    placeholder="Select sub-county"
+                                    enabled={!!selectedCountyId}
+                                />
+                            )}
                         />
-                    )}
-                />
 
-                <Controller
-                    control={control}
-                    name="wardId"
-                    render={({ field: { onChange, value } }) => (
-                        <FormPicker
-                            label="Ward"
-                            items={wards}
-                            icon={MapPin}
-                            onValueChange={onChange}
-                            value={value}
-                            error={errors.wardId?.message}
-                            placeholder="Select ward"
-                            enabled={!!selectedSubCountyId}
+                        <Controller
+                            control={control}
+                            name="wardId"
+                            render={({ field: { onChange, value } }) => (
+                                <FormPicker
+                                    label="Ward"
+                                    items={wards}
+                                    icon={MapPin}
+                                    onValueChange={onChange}
+                                    value={value}
+                                    error={errors.wardId?.message}
+                                    placeholder="Select ward"
+                                    enabled={!!selectedSubCountyId}
+                                />
+                            )}
                         />
-                    )}
-                />
 
-                <Controller
-                    control={control}
-                    name="ethnicityId"
-                    render={({ field: { onChange, value } }) => (
-                        <FormPicker
-                            label="Ethnicity"
-                            items={ethnicities}
-                            icon={Users}
-                            onValueChange={onChange}
-                            value={value}
-                            error={errors.ethnicityId?.message}
-                            placeholder="Select ethnicity"
+                        <Controller
+                            control={control}
+                            name="ethnicityId"
+                            render={({ field: { onChange, value } }) => (
+                                <FormPicker
+                                    label="Ethnicity"
+                                    items={ethnicities}
+                                    icon={Users}
+                                    onValueChange={onChange}
+                                    value={value}
+                                    error={errors.ethnicityId?.message}
+                                    placeholder="Select ethnicity"
+                                />
+                            )}
                         />
-                    )}
-                />
+                    </View>
+                </SectionCard>
             </View>
         </FormLayout>
     );

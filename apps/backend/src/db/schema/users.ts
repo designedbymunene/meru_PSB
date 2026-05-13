@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, text, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, integer, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core'
 import { timestamps } from './common'
 
 // Users table
@@ -13,6 +13,7 @@ export const users = pgTable('users', {
     fullName: text('full_name').notNull(),
     role: varchar('role', { length: 20 }).notNull().default('applicant'), // 'applicant' or 'admin'
     tokenVersion: integer('token_version').notNull().default(0),
+    twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
     ...timestamps
 })
 

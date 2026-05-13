@@ -28,7 +28,7 @@ function invalidateAffectedQueries(path: string) {
     invalidations.push(["qualifications"]);
   }
 
-  if (path.startsWith("/applicant-profiles/me/professional-memberships") || path.startsWith("/applicant-profiles/memberships")) {
+  if (path.startsWith("/applicant-profiles/me/professional-memberships") || path.includes("/professional-memberships")) {
     invalidations.push(["memberships"]);
   }
 

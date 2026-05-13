@@ -6,10 +6,10 @@ import { SectionCard } from '@/components/account/SectionCard';
 interface TrainingCardProps {
     training: {
         id: number | string;
-        course: string;
+        courseName: string;
         institution: string;
         year?: number | string;
-        duration?: string;
+        grade?: string;
     };
     onEdit?: () => void;
     onDelete?: () => void;
@@ -22,7 +22,7 @@ export const TrainingCard: React.FC<TrainingCardProps> = ({
 }) => {
     return (
         <SectionCard
-            title={training.course}
+            title={training.courseName}
             icon={<BookOpen size={20} color="#004aad" />}
             subtitle={training.institution}
             onEdit={onEdit}
@@ -32,7 +32,7 @@ export const TrainingCard: React.FC<TrainingCardProps> = ({
                 <View className="flex-row items-center mt-2">
                     <Text className="text-slate-500 dark:text-slate-500 text-xs">
                         {training.year ? `Year: ${training.year}` : 'Date N/A'}
-                        {training.duration ? ` • ${training.duration}` : ''}
+                        {training.grade ? ` • Grade: ${training.grade}` : ''}
                     </Text>
                 </View>
             </View>

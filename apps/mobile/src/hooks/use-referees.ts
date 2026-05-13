@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert } from 'react-native';
+import { toast } from 'sonner-native';
 import { apiClient, getApiErrorMessage } from '@/lib/api/client';
 import { runOfflineCapableMutation } from '@/lib/offline-mutations/mutation-strategy';
 
@@ -27,13 +27,13 @@ export function useReferees() {
             queryClient.invalidateQueries({ queryKey: ['referees'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (result.queued) {
-                Alert.alert('Queued', 'Saved offline and will sync later.');
+                toast.info('Queued', { description: 'Saved offline and will sync later.' });
             } else {
-                Alert.alert('Success', 'Referee added successfully');
+                toast.success('Success', { description: 'Referee added successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to add referee'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to add referee') });
         }
     });
 
@@ -50,13 +50,13 @@ export function useReferees() {
             queryClient.invalidateQueries({ queryKey: ['referees'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (result.queued) {
-                Alert.alert('Queued', 'Updates saved offline.');
+                toast.info('Queued', { description: 'Updates saved offline.' });
             } else {
-                Alert.alert('Success', 'Referee updated successfully');
+                toast.success('Success', { description: 'Referee updated successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to update referee'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to update referee') });
         }
     });
 
@@ -72,11 +72,11 @@ export function useReferees() {
             queryClient.invalidateQueries({ queryKey: ['referees'] });
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             if (!result.queued) {
-                Alert.alert('Success', 'Referee deleted successfully');
+                toast.success('Success', { description: 'Referee deleted successfully' });
             }
         },
         onError: (error) => {
-            Alert.alert('Error', getApiErrorMessage(error, 'Failed to delete referee'));
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to delete referee') });
         }
     });
 

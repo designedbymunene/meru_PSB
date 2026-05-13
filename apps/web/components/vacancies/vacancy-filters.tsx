@@ -21,16 +21,20 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 
-// import { useJobGroups } from '@/hooks/use-job-groups' // To be implemented
+import { useDepartments } from '@/hooks/use-departments'
+import { useJobGroups } from '@/hooks/use-job-groups'
 
 export function VacancyFilters() {
     const [search, setSearch] = useQueryState('search', { defaultValue: '' })
     const [status, setStatus] = useQueryState('status', { defaultValue: 'open' })
     const [departmentId, setDepartmentId] = useQueryState('departmentId', { defaultValue: '' })
+    const [jobGroupId, setJobGroupId] = useQueryState('jobGroupId', { defaultValue: '' })
 
-    // Placeholder hooks until implemented
+    const { data: departmentsData } = useDepartments()
+    const { data: jobGroupsData } = useJobGroups()
 
-    // const { data: jobGroups } = useJobGroups()
+    const departments = departmentsData?.data || []
+    const jobGroups = jobGroupsData?.data || []
 
     return (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -39,13 +43,13 @@ export function VacancyFilters() {
                 <Input
                     placeholder="Search vacancies..."
                     className="pl-9"
-                    value={search}
+                    value={search || ''}
                     onChange={(e) => setSearch(e.target.value || null)}
                 />
             </div>
             <div className="flex gap-2">
                 <Select
-                    value={status}
+                    value={status || 'all'}
                     onValueChange={(val) => setStatus(val === 'all' ? null : val)}
                 >
                     <SelectTrigger className="w-[140px]">
@@ -54,46 +58,78 @@ export function VacancyFilters() {
                     <SelectContent>
                         <SelectItem value="open">Open</SelectItem>
                         <SelectItem value="closed">Closed</SelectItem>
-                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="all">All Status</SelectItem>
                     </SelectContent>
                 </Select>
 
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button variant="outline" size="icon">
+                        <Button variant="outline" size="icon" className="relative">
                             <FilterIcon className="h-4 w-4" />
+                            {(departmentId || jobGroupId) && (
+                                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" />
+                            )}
                         </Button>
                     </SheetTrigger>
                     <SheetContent>
                         <SheetHeader>
-                            <SheetTitle>Filters</SheetTitle>
+                            <SheetTitle>Advanced Filters</SheetTitle>
                             <SheetDescription>
-                                Narrow down job opportunities
+                                Narrow down job opportunities by department or job group.
                             </SheetDescription>
                         </SheetHeader>
                         <div className="py-6 space-y-6">
-
                             <div className="space-y-2">
-                                <Label>Job Group</Label>
-                                <Select disabled>
+                                <Label>Department</Label>
+                                <Select
+                                    value={departmentId || 'all'}
+                                    onValueChange={(val) => setDepartmentId(val === 'all' ? null : val)}
+                                >
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select Job Group" />
+                                        <SelectValue placeholder="All Departments" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {/* To be populated */}
+                                        <SelectItem value="all">All Departments</SelectItem>
+                                        {departments.map((dept) => (
+                                            <SelectItem key={dept.id} value={String(dept.id)}>
+                                                {dept.name}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
+
+                            <div className="space-y-2">
+                                <Label>Job Group</Label>
+                                <Select
+                                    value={jobGroupId || 'all'}
+                                    onValueChange={(val) => setJobGroupId(val === 'all' ? null : val)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All Job Groups" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Job Groups</SelectItem>
+                                        {jobGroups.map((jg) => (
+                                            <SelectItem key={jg.id} value={String(jg.id)}>
+                                                {jg.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
                             <Button
                                 variant="outline"
                                 className="w-full"
                                 onClick={() => {
                                     setDepartmentId(null)
+                                    setJobGroupId(null)
                                     setStatus('open')
                                     setSearch(null)
                                 }}
                             >
-                                Reset Filters
+                                Reset All Filters
                             </Button>
                         </div>
                     </SheetContent>

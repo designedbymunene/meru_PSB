@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
-import { Plus, X } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView, Alert, Switch, ActivityIndicator } from 'react-native';
+import { Plus, X, Info } from 'lucide-react-native';
 import { SectionCard } from '@/components/account/SectionCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,6 +14,8 @@ interface ListSectionWrapperProps<T> {
     onDelete: (id: string | number) => Promise<void>;
     emptyMessage: string;
     emptyIcon: React.ReactNode;
+    isNA?: boolean;
+    onToggleNA?: (value: boolean) => void;
 }
 
 export function ListSectionWrapper<T extends { id: string | number }>({
@@ -26,6 +28,8 @@ export function ListSectionWrapper<T extends { id: string | number }>({
     onDelete: onDeleteItem,
     emptyMessage,
     emptyIcon,
+    isNA = false,
+    onToggleNA,
 }: ListSectionWrapperProps<T>) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<T | null>(null);
@@ -42,7 +46,11 @@ export function ListSectionWrapper<T extends { id: string | number }>({
         setIsModalOpen(true);
     };
 
+    const [isSavingLocal, setIsSavingLocal] = useState(false);
+
     const handleSave = async (data: T) => {
+        if (isSavingLocal) return;
+        setIsSavingLocal(true);
         try {
             if (editingItem) {
                 await onUpdate(editingItem.id, data);
@@ -52,6 +60,8 @@ export function ListSectionWrapper<T extends { id: string | number }>({
             setIsModalOpen(false);
         } catch (error) {
             // Error handling is usually done in the mutation hooks passed to onAdd/onUpdate
+        } finally {
+            setIsSavingLocal(false);
         }
     };
 
@@ -69,25 +79,67 @@ export function ListSectionWrapper<T extends { id: string | number }>({
     return (
         <View>
             {title && (
-                <View className="mb-4">
-                    <Text className="text-xl font-black text-slate-900 dark:text-white">{title}</Text>
+                <View className="mb-6 ml-2">
+                    <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px]">{title}</Text>
                 </View>
             )}
 
-            <TouchableOpacity 
-                onPress={handleOpenAdd}
-                className="w-full flex-row items-center justify-center bg-[#004aad] h-12 rounded-2xl shadow-sm mb-6"
-            >
-                <Plus size={18} color="white" />
-                <Text className="text-white font-bold ml-2 text-sm">Add New</Text>
-            </TouchableOpacity>
+            {onToggleNA && items.length === 0 && (
+                <View 
+                    className={`mb-6 p-6 rounded-[32px] border ${isNA ? 'bg-blue-50 border-blue-100 dark:bg-blue-950/30 dark:border-blue-900/50 shadow-sm' : 'bg-white border-gray-100 dark:bg-gray-900 dark:border-gray-800 shadow-sm'} flex-row items-center justify-between`}
+                >
+                    <View className="flex-1 mr-4">
+                        <View className="flex-row items-center mb-1.5">
+                            <Info size={14} color={isNA ? "#2563eb" : "#64748b"} strokeWidth={2.5} />
+                            <Text className={`font-black ml-1.5 text-[11px] uppercase tracking-wider ${isNA ? 'text-blue-700 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                                Not Applicable
+                            </Text>
+                        </View>
+                        <Text className="text-gray-500 dark:text-gray-400 text-[10px] font-bold leading-4">
+                            {isNA ? "You've marked this as not applicable. This helps you reach 100% completion." : "Don't have any records for this section? Toggle this to skip."}
+                        </Text>
+                    </View>
+                    <Switch
+                        value={isNA}
+                        onValueChange={onToggleNA}
+                        trackColor={{ false: '#f1f5f9', true: '#93c5fd' }}
+                        thumbColor={isNA ? '#004aad' : '#f8fafc'}
+                    />
+                </View>
+            )}
+
+            {!isNA && (
+                <TouchableOpacity 
+                    onPress={handleOpenAdd}
+                    className="w-full flex-row items-center justify-center bg-[#004aad] h-14 rounded-2xl shadow-lg shadow-blue-200 dark:shadow-none mb-8 active:opacity-80"
+                >
+                    <Plus size={18} color="white" strokeWidth={3} />
+                    <Text className="text-white font-black ml-2 text-sm uppercase tracking-widest">Add New Record</Text>
+                </TouchableOpacity>
+            )}
 
             {items.length > 0 ? (
                 items.map((item) => renderItem(item, () => handleOpenEdit(item), () => handleDelete(item.id)))
             ) : (
-                <View className="items-center justify-center py-10 bg-gray-50 dark:bg-gray-900 rounded-[32px] border border-dashed border-gray-200 dark:border-gray-800">
-                    {emptyIcon}
-                    <Text className="text-gray-400 dark:text-gray-500 text-xs mt-3">{emptyMessage}</Text>
+                <View className={`items-center justify-center py-12 rounded-[32px] border border-dashed ${isNA ? 'bg-blue-50/50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-900/30' : 'bg-white/50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-800'}`}>
+                    {isNA ? (
+                        <View className="items-center">
+                            <View className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-3xl items-center justify-center mb-4 shadow-sm">
+                                <X size={32} color="#2563eb" strokeWidth={2.5} />
+                            </View>
+                            <Text className="text-blue-700 dark:text-blue-400 font-black text-lg">Marked as N/A</Text>
+                            <Text className="text-blue-600/60 dark:text-blue-400/60 text-[10px] font-bold mt-2 text-center px-8 uppercase tracking-tighter leading-4">
+                                This section will be considered complete for your profile.
+                            </Text>
+                        </View>
+                    ) : (
+                        <View className="items-center">
+                            <View className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-3xl items-center justify-center mb-4">
+                                {emptyIcon}
+                            </View>
+                            <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-widest">{emptyMessage}</Text>
+                        </View>
+                    )}
                 </View>
             )}
 
@@ -97,28 +149,30 @@ export function ListSectionWrapper<T extends { id: string | number }>({
                 presentationStyle="pageSheet"
                 onRequestClose={() => setIsModalOpen(false)}
             >
-                <View className="flex-1 bg-white dark:bg-gray-950">
+                <View className="flex-1 bg-gray-50 dark:bg-gray-950">
                     <View 
                         style={{ paddingTop: Math.max(insets.top, 16) }}
-                        className="relative flex-row items-center justify-center px-6 pb-3 border-b border-gray-100 dark:border-gray-800"
+                        className="relative flex-row items-center justify-center px-6 pb-4 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800"
                     >
-                        <Text className="text-lg font-black text-gray-900 dark:text-white text-center">
-                            {editingItem ? 'Edit' : 'Add'} {title ? title.slice(0, -1) : 'Item'}
+                        <Text className="text-base font-black text-gray-900 dark:text-white text-center uppercase tracking-widest">
+                            {editingItem ? 'Edit' : 'Add'} {title ? title.replace(/s$/, '') : 'Item'}
                         </Text>
                         <TouchableOpacity 
                             onPress={() => setIsModalOpen(false)}
-                            style={{ top: Math.max(insets.top, 16) - 6 }}
-                            className="absolute right-6 bg-gray-100 dark:bg-gray-900 p-2 rounded-full"
+                            style={{ top: Math.max(insets.top, 16) - 4 }}
+                            className="absolute right-6 bg-gray-100 dark:bg-gray-800 p-2 rounded-full active:opacity-70"
                         >
-                            <X size={18} color="#64748b" />
+                            <X size={18} color="#64748b" strokeWidth={2.5} />
                         </TouchableOpacity>
                     </View>
 
                     <ScrollView 
                         className="flex-1 px-6" 
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingTop: 8, paddingBottom: 40 }}
-                    >                        <FormComponent 
+                        contentContainerStyle={{ paddingTop: 24, paddingBottom: 40 }}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        <FormComponent 
                             ref={formRef} 
                             initialData={editingItem || undefined} 
                             onSubmit={handleSave} 
@@ -131,9 +185,14 @@ export function ListSectionWrapper<T extends { id: string | number }>({
                     >
                         <TouchableOpacity 
                             onPress={() => formRef.current?.submit()}
-                            className="bg-[#004aad] h-14 rounded-2xl items-center justify-center"
+                            disabled={isSavingLocal}
+                            className={`${isSavingLocal ? 'bg-gray-300 dark:bg-gray-800' : 'bg-[#004aad]'} h-14 rounded-2xl items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none active:opacity-80`}
                         >
-                            <Text className="text-white font-bold text-lg">Save Record</Text>
+                            {isSavingLocal ? (
+                                <ActivityIndicator color="white" size="small" />
+                            ) : (
+                                <Text className="text-white font-black text-sm uppercase tracking-widest">Save Record</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>

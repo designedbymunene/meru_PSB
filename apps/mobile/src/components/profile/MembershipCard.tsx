@@ -6,10 +6,10 @@ import { SectionCard } from '@/components/account/SectionCard';
 interface MembershipCardProps {
     membership: {
         id: number | string;
-        organization: string;
-        membershipNumber?: string;
-        role?: string;
-        yearJoined?: number | string;
+        membershipBody: string;
+        membershipType: string;
+        registrationNumber?: string;
+        expiryDate?: string;
     };
     onEdit?: () => void;
     onDelete?: () => void;
@@ -22,23 +22,23 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
 }) => {
     return (
         <SectionCard
-            title={membership.organization}
+            title={membership.membershipBody}
             icon={<Award size={20} color="#004aad" />}
-            subtitle={membership.role || 'Professional Member'}
+            subtitle={membership.membershipType}
             onEdit={onEdit}
             onDelete={onDelete}
         >
             <View className="mt-0.5">
-                {membership.membershipNumber && (
+                {membership.registrationNumber && (
                     <Text className="text-slate-600 dark:text-slate-400 text-sm font-semibold">
-                        Reg No: {membership.membershipNumber}
+                        Reg No: {membership.registrationNumber}
                     </Text>
                 )}
                 
-                {membership.yearJoined && (
+                {membership.expiryDate && (
                     <View className="flex-row items-center mt-2">
                         <Text className="text-slate-500 dark:text-slate-500 text-xs">
-                            Joined in {membership.yearJoined}
+                            Expires on: {new Date(membership.expiryDate).toLocaleDateString()}
                         </Text>
                     </View>
                 )}

@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useRouter } from 'expo-router';
 import { Eye, EyeOff, Fingerprint, Headphones, Lock, Mail } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
     ActivityIndicator,
@@ -19,6 +19,18 @@ import * as z from 'zod';
 import { useAuth } from '@/context/auth-context';
 import { getApiErrorMessage } from '@/lib/api/client';
 import { FormField } from '@/components/ui/form-field';
+import { safeAsyncStorage } from '@/lib/storage';
+import { toast } from 'sonner-native';
+
+// Safely import LocalAuthentication to prevent crashes when native module is missing
+const getLocalAuth = () => {
+    try {
+        return require('expo-local-authentication');
+    } catch (e) {
+        console.warn('ExpoLocalAuthentication not available');
+        return null;
+    }
+};
 
 const loginSchema = z.object({
     email: z.string().email('Invalid email address'),
@@ -33,11 +45,11 @@ export default function LoginScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
-    const [isBiometricAvailable] = useState(true); // Placeholder for biometric check
+    const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
 
     const passwordRef = useRef<TextInput>(null);
 
-    const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
+    const { control, handleSubmit, setValue, formState: { errors } } = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
         defaultValues: {
             email: '',
@@ -45,11 +57,62 @@ export default function LoginScreen() {
         },
     });
 
+    useEffect(() => {
+        const checkBiometrics = async () => {
+            const LocalAuthentication = getLocalAuth();
+            if (!LocalAuthentication) return;
+
+            try {
+                const hasHardware = await LocalAuthentication.hasHardwareAsync();
+                const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+                const enabled = await safeAsyncStorage.getItem('security_biometrics_enabled');
+
+                if (hasHardware && isEnrolled && enabled === 'true') {
+                    setIsBiometricAvailable(true);
+                }
+            } catch (e) {
+                console.warn('Biometrics not available:', e);
+            }
+        };
+        checkBiometrics();
+    }, []);
+
+    const handleBiometricLogin = async () => {
+        const LocalAuthentication = getLocalAuth();
+        if (!LocalAuthentication) {
+            toast.error('Error', { description: 'Biometric authentication is not available on this device.' });
+            return;
+        }
+
+        try {
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Sign in with Biometrics',
+                fallbackLabel: 'Use Password',
+            });
+
+            if (result.success) {
+                const storedEmail = await safeAsyncStorage.getItem('last_login_email');
+                if (storedEmail) {
+                    setValue('email', storedEmail);
+                }
+                toast.success('Identity Verified');
+            }
+        } catch (e) {
+            console.error('Biometric auth failed', e);
+            toast.error('Error', { description: 'Biometric authentication failed or was cancelled.' });
+        }
+    };
+
     const onSubmit = async (data: LoginFormData) => {
         setIsLoading(true);
         setError(null);
         try {
-            await login(data);
+            const result = await login(data);
+            await safeAsyncStorage.setItem('last_login_email', data.email);
+            
+            if (result?.twoFactorRequired) {
+                router.push({ pathname: '/(auth)/login-2fa', params: { email: data.email } });
+            }
         } catch (err: any) {
             setError(getApiErrorMessage(err, 'Login failed. Please check your credentials.'));
         } finally {
@@ -180,10 +243,11 @@ export default function LoginScreen() {
                         <View className="flex-row gap-4">
                             {isBiometricAvailable && (
                                 <TouchableOpacity 
+                                    onPress={handleBiometricLogin}
                                     className="flex-1 flex-row items-center justify-center h-14 rounded-2xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900 active:bg-slate-50 dark:active:bg-gray-800 shadow-sm"
                                 >
                                     <Fingerprint size={22} color="#004aad" className="dark:text-blue-400" />
-                                    <Text className="ml-2 font-bold text-slate-700 dark:text-gray-300">Touch ID</Text>
+                                    <Text className="ml-2 font-bold text-slate-700 dark:text-gray-300">Biometrics</Text>
                                 </TouchableOpacity>
                             )}
                             <TouchableOpacity 

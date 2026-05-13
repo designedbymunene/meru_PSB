@@ -7,15 +7,19 @@ import { ListSectionWrapper } from '@/components/profile/forms/ListSectionWrappe
 import { MembershipForm } from '@/components/profile/forms/MembershipForm';
 import { MembershipCard } from '@/components/profile/MembershipCard';
 import { useMemberships } from '@/hooks/use-memberships';
+import { useProfile } from '@/hooks/use-profile';
 
 export default function MembershipsScreen() {
     const { 
         memberships, 
-        isLoading, 
+        isLoading: isLoadingRecords, 
         addMembership, 
         updateMembership, 
         deleteMembership 
     } = useMemberships();
+    
+    const { profile, isLoading: isLoadingProfile, toggleNA } = useProfile();
+    const isLoading = isLoadingRecords || isLoadingProfile;
 
     if (isLoading) {
         return <ProfileRecordsLoadingState title="Memberships" />;
@@ -25,7 +29,7 @@ export default function MembershipsScreen() {
         <View className="flex-1 bg-gray-50 dark:bg-gray-950">
             <Header title="Memberships" />
 
-            <View className="flex-1 p-4">
+            <View className="flex-1 p-6 pt-10">
                 <ListSectionWrapper
                     title="Professional Memberships"
                     items={memberships || []}
@@ -35,6 +39,8 @@ export default function MembershipsScreen() {
                     onDelete={deleteMembership}
                     emptyMessage="No memberships added yet"
                     emptyIcon={<Award size={48} color="#cbd5e1" />}
+                    isNA={profile?.hasNoMemberships}
+                    onToggleNA={(val) => toggleNA('hasNoMemberships', val)}
                     renderItem={(item, onEdit, onDelete) => (
                         <MembershipCard 
                             key={item.id}

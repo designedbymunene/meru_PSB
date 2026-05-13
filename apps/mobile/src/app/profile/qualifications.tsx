@@ -23,11 +23,11 @@ export default function QualificationsScreen() {
 
     return (
         <View className="flex-1 bg-gray-50 dark:bg-gray-950">
-            <Header title="Qualifications" />
+            <Header title="Academic Qualifications" />
 
-            <View className="flex-1 p-4">
+            <View className="flex-1 p-6 pt-10">
                 <ListSectionWrapper
-                    title="Educational Background"
+                    title="Education History"
                     items={qualifications || []}
                     FormComponent={QualificationForm}
                     onAdd={addQualification}

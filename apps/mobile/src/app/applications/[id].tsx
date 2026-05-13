@@ -1,17 +1,20 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useNetInfo } from '@react-native-community/netinfo';
-import { Clock, CheckCircle2, FileText, Calendar, MapPin, ShieldCheck, AlertCircle } from 'lucide-react-native';
+import { Clock, CheckCircle2, FileText, Calendar, MapPin, ShieldCheck, AlertCircle, ChevronRight } from 'lucide-react-native';
 import { Header } from '@/components/ui/header';
 import { apiClient, getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
 import { ApplicationDetailsLoadingState } from '@/components/ui/loading-skeletons';
+import { SnapshotCVViewer } from '@/components/profile/SnapshotCVViewer';
 
+// LayoutAnimation is handled automatically in the New Architecture or can be omitted if not used.
 export default function TrackApplicationScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const netInfo = useNetInfo();
+    const [showSnapshot, setShowSnapshot] = useState(false);
     const isActivePlaceholder = id === 'active';
 
     const { data: application, isLoading, error, isError, refetch } = useQuery({
@@ -160,6 +163,38 @@ export default function TrackApplicationScreen() {
                             ))}
                         </View>
                     </View>
+                    
+                    {/* Snapshot Section */}
+                    {displayData?.profileSnapshot && (
+                        <View className="mb-10">
+                            <TouchableOpacity 
+                                onPress={() => {
+                                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                                    setShowSnapshot(!showSnapshot);
+                                }}
+                                className="flex-row items-center justify-between bg-blue-50 dark:bg-blue-900/10 p-5 rounded-[32px] border border-blue-100 dark:border-blue-800"
+                            >
+                                <View className="flex-row items-center">
+                                    <View className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800 items-center justify-center">
+                                        <FileText size={20} color="#004aad" />
+                                    </View>
+                                    <View className="ml-3">
+                                        <Text className="text-blue-900 dark:text-blue-200 font-black text-base">Submitted CV</Text>
+                                        <Text className="text-blue-700 dark:text-blue-400 text-[10px] font-bold uppercase">View Snapshot</Text>
+                                    </View>
+                                </View>
+                                <View className={`w-8 h-8 rounded-full bg-white dark:bg-gray-800 items-center justify-center border border-blue-100 dark:border-blue-800 transition-transform ${showSnapshot ? 'rotate-180' : ''}`}>
+                                    <ChevronRight size={16} color="#004aad" style={{ transform: [{ rotate: showSnapshot ? '90deg' : '0deg' }] }} />
+                                </View>
+                            </TouchableOpacity>
+
+                            {showSnapshot && (
+                                <View className="mt-6 px-2">
+                                    <SnapshotCVViewer snapshot={displayData.profileSnapshot} />
+                                </View>
+                            )}
+                        </View>
+                    )}
 
                     {/* Support / Contact Section */}
                     <View className="bg-gray-50 p-6 rounded-[32px] border border-gray-100 items-center mb-10">

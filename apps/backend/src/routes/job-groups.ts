@@ -26,7 +26,7 @@ jobGroupsRouter.get('/', async (c) => {
 
 // GET /api/job-groups/:id - Get single job group
 jobGroupsRouter.get('/:id', async (c) => {
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') || '0')
 
     const jobGroup = await db.query.jobGroups.findFirst({
         where: eq(jobGroups.id, id)
@@ -76,7 +76,7 @@ jobGroupsRouter.put(
     requireAdmin,
     validate(updateJobGroupSchema),
     async (c) => {
-        const id = parseInt(c.req.param('id'))
+        const id = parseInt(c.req.param('id') || '0')
         const data = c.get('validatedData' as never) as Partial<{
             name: string
             description: string
@@ -101,7 +101,7 @@ jobGroupsRouter.put(
 
 // DELETE /api/job-groups/:id - Delete job group (admin only)
 jobGroupsRouter.delete('/:id', authenticate, requireAdmin, async (c) => {
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') || '0')
 
     const [deletedJobGroup] = await db
         .delete(jobGroups)

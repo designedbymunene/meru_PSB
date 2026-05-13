@@ -57,8 +57,10 @@ export function ProfessionalDetailsManager() {
     const form = useForm({
         resolver: zodResolver(createProfessionalDetailSchema),
         defaultValues: {
-            registrationBody: '',
+            licenseType: '',
+            issuingBody: '',
             registrationNumber: '',
+            issueDate: '',
             expiryDate: '',
         },
     })
@@ -79,8 +81,10 @@ export function ProfessionalDetailsManager() {
     const handleEdit = (detail: ProfessionalDetail) => {
         setEditing(detail)
         form.reset({
-            registrationBody: detail.registrationBody,
+            licenseType: detail.licenseType,
+            issuingBody: detail.issuingBody,
             registrationNumber: detail.registrationNumber,
+            issueDate: detail.issueDate || '',
             expiryDate: detail.expiryDate || '',
         })
         setIsDialogOpen(true)
@@ -108,10 +112,23 @@ export function ProfessionalDetailsManager() {
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                                     <FormField
                                         control={form.control}
-                                        name="registrationBody"
+                                        name="licenseType"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Registration Body *</FormLabel>
+                                                <FormLabel>License / Certificate Type *</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. Practicing License" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="issuingBody"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Issuing Body *</FormLabel>
                                                 <FormControl>
                                                     <Input placeholder="e.g. Engineers Board of Kenya" {...field} />
                                                 </FormControl>
@@ -127,6 +144,19 @@ export function ProfessionalDetailsManager() {
                                                 <FormLabel>Registration Number *</FormLabel>
                                                 <FormControl>
                                                     <Input placeholder="e.g. EBK/12345" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="issueDate"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Issue Date *</FormLabel>
+                                                <FormControl>
+                                                    <Input type="date" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -180,17 +210,21 @@ export function ProfessionalDetailsManager() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Registration Body</TableHead>
-                                <TableHead>Registration Number</TableHead>
-                                <TableHead>Expiry Date</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Issuing Body</TableHead>
+                                <TableHead>Number</TableHead>
+                                <TableHead>Issued</TableHead>
+                                <TableHead>Expiry</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {details.map((detail) => (
                                 <TableRow key={detail.id}>
-                                    <TableCell className="font-medium">{detail.registrationBody}</TableCell>
+                                    <TableCell className="font-medium">{detail.licenseType}</TableCell>
+                                    <TableCell>{detail.issuingBody}</TableCell>
                                     <TableCell>{detail.registrationNumber}</TableCell>
+                                    <TableCell>{detail.issueDate}</TableCell>
                                     <TableCell>{detail.expiryDate || '-'}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">

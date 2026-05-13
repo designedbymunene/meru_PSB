@@ -16,9 +16,11 @@ export * from './referees'
 export * from './locations'
 export * from './reference-data'
 export * from './audit-logs'
+export * from './active-sessions'
 
 // Import tables and relations for schema object
 import { users, revokedTokens } from './users'
+import { activeSessions } from './active-sessions'
 import { vacancies } from './vacancies'
 import { applications } from './applications'
 import { departments } from './departments'
@@ -66,6 +68,7 @@ import {
 export const schema = {
     users,
     revokedTokens,
+    activeSessions,
     vacancies,
     applications,
     departments,

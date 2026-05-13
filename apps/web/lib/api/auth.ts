@@ -52,14 +52,26 @@ export async function refreshAccessToken(
     return data
 }
 
+// Request password reset code
+export async function requestPasswordReset(
+    email: string
+): Promise<ApiResponse<{ message: string }>> {
+    const { data } = await apiClient.post<ApiResponse<{ message: string }>>(
+        '/auth/forgot-password/request',
+        { email }
+    )
+    return data
+}
+
 // Reset password
 export async function resetPassword(
     email: string,
+    otp: string,
     newPassword: string
 ): Promise<ApiResponse<{ message: string }>> {
     const { data } = await apiClient.post<ApiResponse<{ message: string }>>(
         '/auth/reset-password',
-        { email, newPassword }
+        { email, otp, newPassword }
     )
     return data
 }

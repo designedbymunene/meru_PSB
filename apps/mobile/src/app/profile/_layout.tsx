@@ -11,14 +11,16 @@ export default function ProfileLayout() {
             <Stack.Screen name="professional-details" options={{ title: 'Professional Details' }} />
             <Stack.Screen name="employment-history" options={{ title: 'Employment History' }} />
             <Stack.Screen name="memberships" options={{ title: 'Professional Memberships' }} />
-            <Stack.Screen name="add-qualification" options={{ title: 'Add Qualification' }} />
-            <Stack.Screen name="edit-qualification" options={{ title: 'Edit Qualification' }} />
-            <Stack.Screen name="add-employment" options={{ title: 'Add Employment' }} />
-            <Stack.Screen name="add-membership" options={{ title: 'Add Membership' }} />
-            <Stack.Screen name="add-referee" options={{ title: 'Add Referee' }} />
+            <Stack.Screen name="training" options={{ title: 'Training & Short Courses' }} />
+            <Stack.Screen name="referees" options={{ title: 'Referees' }} />
             <Stack.Screen name="security-settings" options={{ title: 'Security Settings' }} />
             <Stack.Screen name="preferences" options={{ title: 'Preferences' }} />
             <Stack.Screen name="documents" options={{ title: 'Documents & Compliance' }} />
+            <Stack.Screen name="about" options={{ title: 'About Meru PSB' }} />
+            <Stack.Screen name="privacy" options={{ title: 'Data & Privacy' }} />
+            <Stack.Screen name="general-settings" options={{ title: 'General Settings' }} />
+            <Stack.Screen name="location-details" options={{ title: 'Location Details' }} />
+            <Stack.Screen name="wizard" options={{ title: 'Profile Wizard', headerShown: false }} />
         </Stack>
     );
 }
