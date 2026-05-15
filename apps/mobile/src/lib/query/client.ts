@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { getNormalizedApiError } from "@/lib/api/client";
+import { getNormalizedApiError } from "@meru/shared";
 import { hasRetryBudget, isRetryableApiError } from "@/lib/retry-policy";
 import { setupQueryOnlineManager } from "./online-manager";
 

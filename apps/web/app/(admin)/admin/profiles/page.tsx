@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Loader2, Download, Search, Eye, Filter, Users } from 'lucide-react'
 import { format } from 'date-fns'
+import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,10 +52,15 @@ export default function AdminProfilesPage() {
 
     // Filter profiles based on search and filters
     const filteredProfiles = profiles.filter((profile) => {
+        const query = searchQuery.toLowerCase()
+        const name = (profile.applicantName || (profile as any).fullName || '').toLowerCase()
+        const email = (profile.email || '').toLowerCase()
+        const idNumber = (profile.idNumber || '').toLowerCase()
+
         const matchesSearch =
-            profile.applicantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            profile.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            profile.idNumber.toLowerCase().includes(searchQuery.toLowerCase())
+            name.includes(query) ||
+            email.includes(query) ||
+            idNumber.includes(query)
 
         const matchesGender = genderFilter === 'all' || profile.gender === genderFilter
 
@@ -200,7 +206,7 @@ export default function AdminProfilesPage() {
                                     {filteredProfiles.map((profile) => (
                                         <TableRow key={profile.id}>
                                             <TableCell className="font-medium">
-                                                {profile.applicantName}
+                                                {profile.applicantName || (profile as any).fullName}
                                                 {profile.impairment && (
                                                     <Badge
                                                         variant="outline"
@@ -229,14 +235,26 @@ export default function AdminProfilesPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setSelectedProfile(profile)}
-                                                >
-                                                    <Eye className="h-4 w-4 mr-2" />
-                                                    View
-                                                </Button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => setSelectedProfile(profile)}
+                                                        title="Quick View"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        asChild
+                                                        title="Full View"
+                                                    >
+                                                        <Link href={`/admin/profiles/${(profile as any).userId || profile.applicantId}`}>
+                                                            <Users className="h-4 w-4" />
+                                                        </Link>
+                                                    </Button>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))}

@@ -7,11 +7,14 @@ import { FormLayout } from '@/components/ui/form-layout';
 import { FormField } from '@/components/ui/form-field';
 import { apiClient } from '@/lib/api/client';
 import { router } from 'expo-router';
-import { Lock, ShieldCheck } from 'lucide-react-native';
+import { Lock, ShieldCheck, Eye, EyeOff } from 'lucide-react-native';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner-native';
 
 export default function UpdatePasswordScreen() {
+    const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
+    const [showNewPassword, setShowNewPassword] = React.useState(false);
+
     const { control, handleSubmit, formState: { errors } } = useForm<ChangePasswordInput>({
         resolver: zodResolver(changePasswordSchema),
         defaultValues: {
@@ -61,11 +64,16 @@ export default function UpdatePasswordScreen() {
                         <FormField
                             label="Current Password"
                             placeholder="Enter current password"
-                            secureTextEntry
+                            secureTextEntry={!showCurrentPassword}
                             value={value}
                             onChangeText={onChange}
                             error={errors.currentPassword?.message}
                             icon={Lock}
+                            rightElement={
+                                <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
+                                    {showCurrentPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
+                                </TouchableOpacity>
+                            }
                         />
                     )}
                 />
@@ -77,11 +85,16 @@ export default function UpdatePasswordScreen() {
                         <FormField
                             label="New Password"
                             placeholder="Min. 8 characters"
-                            secureTextEntry
+                            secureTextEntry={!showNewPassword}
                             value={value}
                             onChangeText={onChange}
                             error={errors.newPassword?.message}
                             icon={Lock}
+                            rightElement={
+                                <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+                                    {showNewPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
+                                </TouchableOpacity>
+                            }
                         />
                     )}
                 />

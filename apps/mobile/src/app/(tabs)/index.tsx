@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useApplications } from '@/hooks/use-applications';
+import { useVacancies } from '@/hooks/use-vacancies';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import { Bell, Briefcase, Calendar, CheckCircle, ChevronRight, Clock, FileText, MapPin, Search } from 'lucide-react-native';
@@ -8,7 +9,7 @@ import { Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header, HeaderAction } from '@/components/ui/header';
 import { useAuth } from '@/context/auth-context';
-import { apiClient, getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
+import { getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
 import { DashboardLoadingState } from '@/components/ui/loading-skeletons';
 
 export default function DashboardScreen() {
@@ -26,13 +27,7 @@ export default function DashboardScreen() {
         isError: hasApplicationsError,
         refetch: refetchApplications,
         isLoading: isApplicationsLoading,
-    } = useQuery({
-        queryKey: ['applications-preview'],
-        queryFn: async () => {
-            const response = await apiClient.get('/applications');
-            return response.data.data;
-        },
-    });
+    } = useApplications();
 
     const {
         data: vacancies,
@@ -40,13 +35,7 @@ export default function DashboardScreen() {
         isError: hasVacanciesError,
         refetch: refetchVacancies,
         isLoading: isVacanciesLoading,
-    } = useQuery({
-        queryKey: ['vacancies-preview'],
-        queryFn: async () => {
-            const response = await apiClient.get('/vacancies');
-            return response.data.data;
-        },
-    });
+    } = useVacancies();
 
     const onRefresh = React.useCallback(async () => {
         setRefreshing(true);

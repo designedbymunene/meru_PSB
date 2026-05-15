@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, text } from 'drizzle-orm/pg-core'
+import { pgTable, integer, varchar, text, unique } from 'drizzle-orm/pg-core'
 import { timestamps } from './common'
 
 // Ethnicities table
@@ -46,7 +46,9 @@ export const educationGrades = pgTable('education_grades', {
     levelId: integer('level_id').notNull().references(() => educationLevels.id, { onDelete: 'cascade' }),
     grade: varchar('grade', { length: 50 }).notNull(),
     ...timestamps
-})
+}, (t) => ({
+    unq: unique().on(t.levelId, t.grade)
+}))
 
 // Types
 export type Ethnicity = typeof ethnicities.$inferSelect

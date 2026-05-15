@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useVacancy } from '@/hooks/use-vacancies';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
     ChevronLeft,
@@ -22,7 +22,6 @@ import {
     StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { apiClient } from '@/lib/api/client';
 import { VacancyDetailsLoadingState } from '@/components/ui/loading-skeletons';
 
 const { width } = Dimensions.get('window');
@@ -34,13 +33,7 @@ export default function JobDetailsScreen() {
     const isDarkMode = colorScheme === 'dark';
     const insets = useSafeAreaInsets();
 
-    const { data: job, isLoading, error, refetch } = useQuery({
-        queryKey: ['vacancy', id],
-        queryFn: async () => {
-            const response = await apiClient.get(`/vacancies/${id}`);
-            return response.data.data;
-        },
-    });
+    const { data: job, isLoading, error, refetch } = useVacancy(id as string);
 
     const handleShare = async () => {
         const webUrl = 'https://recruitment.merupublicserviceboard.or.ke';

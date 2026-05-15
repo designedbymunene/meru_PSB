@@ -4,32 +4,25 @@ import { VacancyFilters } from '@/components/vacancies/vacancy-filters'
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
 
-export default async function VacanciesPage(props: { searchParams: SearchParams }) {
-    const searchParams = await props.searchParams
-
-    // Parse filters from search params
-    const filters = {
-        search: (searchParams.search as string) || undefined,
-        status: (searchParams.status as 'open' | 'closed') || 'open',
-        departmentId: searchParams.departmentId ? String(searchParams.departmentId) : undefined,
-    }
-
+export default async function VacanciesPage() {
     return (
-        <div className="w-full py-8 space-y-8">
-            <div className="flex flex-col gap-4">
-                <h1 className="text-3xl font-bold tracking-tight">Career Opportunities</h1>
-                <p className="text-muted-foreground">
-                    Explore available positions and help us serve the people of Meru County.
+        <div className="w-full py-8 space-y-10">
+            <div className="flex flex-col gap-2">
+                <h1 className="text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">Career Opportunities</h1>
+                <p className="text-slate-500 dark:text-slate-400 text-base max-w-2xl">
+                    Join Meru County Government and contribute to our mission of delivering excellence through public service.
                 </p>
             </div>
 
-            <Suspense fallback={<div>Loading filters...</div>}>
-                <VacancyFilters />
-            </Suspense>
+            <div className="space-y-8">
+                <Suspense fallback={<div className="h-10 w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" />}>
+                    <VacancyFilters />
+                </Suspense>
 
-            <Suspense fallback={<div>Loading vacancies...</div>}>
-                <VacancyList filters={filters} />
-            </Suspense>
+                <Suspense fallback={<div className="h-64 w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-3xl" />}>
+                    <VacancyList />
+                </Suspense>
+            </div>
         </div>
     )
 }

@@ -3,8 +3,9 @@
 import { useAllApplications } from "@/hooks/use-applications"
 import { useVacancies } from "@/hooks/use-vacancies"
 import { StatsCard } from "@/components/admin/stats-card"
-import { RecentApplications } from "@/components/admin/recent-applications"
-import { Users, FileText, CheckCircle, Clock } from "lucide-react"
+import { QuickActions } from "@/components/admin/quick-actions"
+import { ApplicationStatusOverview } from "@/components/admin/application-status-overview"
+import { Users, FileText, CheckCircle, Clock, BarChart3 } from "lucide-react"
 
 export default function AdminDashboardPage() {
     const { data: vacanciesData, isLoading: isLoadingVacancies } = useVacancies()
@@ -23,51 +24,67 @@ export default function AdminDashboardPage() {
     const isLoading = isLoadingVacancies || isLoadingApplications
 
     return (
-        <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex-1 space-y-8 p-8 pt-6">
             <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Admin Dashboard</h2>
+                    <p className="text-slate-500 font-medium mt-1">System overview and administrative controls</p>
+                </div>
             </div>
 
             {/* Stats Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 <StatsCard
                     title="Total Vacancies"
                     value={isLoading ? 0 : totalVacancies}
                     loading={isLoading}
                     icon={FileText}
-                    description="All created vacancies"
+                    description="All job advertisements"
                 />
                 <StatsCard
                     title="Open Vacancies"
                     value={isLoading ? 0 : openVacancies}
                     loading={isLoading}
                     icon={CheckCircle}
-                    description="Currently accepting applications"
+                    description="Live for applications"
                 />
                 <StatsCard
                     title="Total Applications"
                     value={isLoading ? 0 : totalApplications}
                     loading={isLoading}
                     icon={Users}
-                    description="All time applications"
+                    description="Cumulative total"
                 />
                 <StatsCard
                     title="Pending Review"
                     value={isLoading ? 0 : pendingApplications}
                     loading={isLoading}
                     icon={Clock}
-                    description="Applications awaiting review"
+                    description="Awaiting action"
                 />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <div className="col-span-4 lg:col-span-4">
-                    {/* We can put a chart here in the future, for now maybe just recent applications takes full width or split with something else */}
-                    <RecentApplications />
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
+                {/* Main Content Area */}
+                <div className="lg:col-span-8 space-y-6">
+                    <QuickActions />
                 </div>
-                <div className="col-span-3 lg:col-span-3">
-                    {/* Maybe a 'Recent Activities' or 'Quick Actions' list in future */}
-                    {/* For now leaving it empty or we can make RecentApplications full width if we remove grid-cols-7 */}
+
+                {/* Sidebar Area */}
+                <div className="lg:col-span-4 space-y-6">
+                    <ApplicationStatusOverview />
+                    
+                    {/* Placeholder for future system alerts or notices */}
+                    <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 space-y-3">
+                        <div className="flex items-center gap-2 text-primary">
+                            <BarChart3 className="h-5 w-5" />
+                            <h3 className="font-bold text-sm">System Performance</h3>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                            The recruitment system is currently operating at optimal capacity. 
+                            All scheduled tasks and notifications are being processed.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

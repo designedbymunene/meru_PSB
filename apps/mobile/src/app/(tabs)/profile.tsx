@@ -76,36 +76,45 @@ export default function ProfileScreen() {
                             />
                         </View>
 
-                        {/* Quick Stats Grid */}
-                        <View className="flex-row space-x-3 mb-10">
+                        {/* Premium Stats Grid */}
+                        <View className="flex-row space-x-3 mb-12">
                             <TouchableOpacity
-                                className="flex-1 bg-white dark:bg-gray-900 p-5 rounded-[32px] border border-gray-100 dark:border-gray-800 items-center justify-center shadow-sm active:opacity-80"
+                                className="flex-1 bg-white dark:bg-gray-900 p-5 rounded-[28px] border border-gray-100/50 dark:border-gray-800 shadow-sm active:opacity-80"
                                 onPress={() => router.push('/applications')}
                             >
-                                <View className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-2xl items-center justify-center mb-3">
-                                    <Briefcase size={22} color="#004aad" strokeWidth={2.5} />
+                                <View className="w-12 h-12 bg-[#004aad]/5 dark:bg-blue-900/20 rounded-2xl items-center justify-center mb-3">
+                                    <View className="w-8 h-8 bg-[#004aad] rounded-lg items-center justify-center shadow-lg shadow-blue-200">
+                                        <Briefcase size={16} color="white" strokeWidth={2.5} />
+                                    </View>
                                 </View>
-                                <Text className="text-gray-900 dark:text-white font-bold text-sm">Applications</Text>
-                                <Text className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-tighter mt-1">Check Status</Text>
+                                <Text className="text-gray-900 dark:text-white font-black text-[13px] tracking-tight">Applications</Text>
+                                <View className="flex-row items-center mt-1">
+                                    <Text className="text-gray-400 dark:text-gray-500 text-[9px] font-black uppercase tracking-widest">Check Status</Text>
+                                    <ChevronRight size={8} color="#94a3b8" />
+                                </View>
                             </TouchableOpacity>
 
                             <TouchableOpacity
-                                className="flex-1 bg-white dark:bg-gray-900 p-5 rounded-[32px] border border-gray-100 dark:border-gray-800 items-center justify-center shadow-sm active:opacity-80"
+                                className="flex-1 bg-white dark:bg-gray-900 p-5 rounded-[28px] border border-gray-100/50 dark:border-gray-800 shadow-sm active:opacity-80"
                                 onPress={() => router.push('/digital-cv')}
                             >
-                                <View className="w-12 h-12 bg-green-50 dark:bg-green-900/30 rounded-2xl items-center justify-center mb-3">
-                                    <FileText size={22} color="#10b981" strokeWidth={2.5} />
+                                <View className="w-12 h-12 bg-green-50/50 dark:bg-green-900/20 rounded-2xl items-center justify-center mb-3">
+                                    <View className="w-8 h-8 bg-green-600 rounded-lg items-center justify-center shadow-lg shadow-green-200">
+                                        <FileText size={16} color="white" strokeWidth={2.5} />
+                                    </View>
                                 </View>
-                                <Text className="text-gray-900 dark:text-white font-bold text-sm">Digital CV</Text>
-                                <Text className="text-green-600 dark:text-green-400 text-[10px] font-bold uppercase tracking-tighter mt-1">{completion}% Complete</Text>
+                                <Text className="text-gray-900 dark:text-white font-black text-[13px] tracking-tight">Digital CV</Text>
+                                <View className="bg-green-50 dark:bg-green-900/30 self-start px-2 py-0.5 rounded-full mt-1">
+                                    <Text className="text-green-600 dark:text-green-400 text-[8px] font-black uppercase tracking-widest">{completion}% Complete</Text>
+                                </View>
                             </TouchableOpacity>
                         </View>
 
                         {/* Settings Groups */}
-                        <View className="space-y-10">
+                        <View className="space-y-14">
                             {/* Account & Security */}
                             <View>
-                                <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-4 ml-2">Account & Security</Text>
+                                <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mt-4 mb-2 ml-2">Account & Security</Text>
                                 <View className="bg-white dark:bg-gray-900 rounded-[32px] px-6 border border-gray-100 dark:border-gray-800 shadow-xl shadow-gray-200/40 dark:shadow-none">
                                     <SettingRow
                                         icon={UserRound}
@@ -134,7 +143,7 @@ export default function ProfileScreen() {
 
                             {/* App Preferences */}
                             <View>
-                                <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-4 ml-2">App Preferences</Text>
+                                <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mt-4 mb-2 ml-2">App Preferences</Text>
                                 <View className="bg-white dark:bg-gray-900 rounded-[32px] px-6 border border-gray-100 dark:border-gray-800 shadow-xl shadow-gray-200/40 dark:shadow-none">
                                     <SettingRow
                                         icon={isDarkMode ? Moon : Sun}
@@ -170,7 +179,7 @@ export default function ProfileScreen() {
 
                             {/* Support & Legal */}
                             <View>
-                                <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-4 ml-2">Support & Legal</Text>
+                                <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mt-4 mb-2 ml-2">Support & Legal</Text>
                                 <View className="bg-white dark:bg-gray-900 rounded-[32px] px-6 border border-gray-100 dark:border-gray-800 shadow-xl shadow-gray-200/40 dark:shadow-none">
                                     <SettingRow
                                         icon={HelpCircle}

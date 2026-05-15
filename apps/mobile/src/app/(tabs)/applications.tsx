@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
+import { useApplications } from '@/hooks/use-applications';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
-import { apiClient, getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
+import { getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
 import { Calendar, Info, ChevronRight, FileText, Building2 } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { ApplicationsListLoadingState } from '@/components/ui/loading-skeletons';
@@ -15,13 +15,7 @@ export default function ApplicationsScreen() {
     const isDarkMode = colorScheme === 'dark';
     const netInfo = useNetInfo();
     const insets = useSafeAreaInsets();
-    const { data, isLoading, error, isError, refetch, isRefetching } = useQuery({
-        queryKey: ['applications'],
-        queryFn: async () => {
-            const response = await apiClient.get('/applications');
-            return response.data.data;
-        },
-    });
+    const { data, isLoading, error, isError, refetch, isRefetching } = useApplications();
     const applications = data || [];
     const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
     const normalizedError = error ? getNormalizedApiError(error) : null;

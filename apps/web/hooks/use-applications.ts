@@ -43,7 +43,15 @@ export function useApplication(id: number) {
 export function useAllApplications(filters?: ApplicationFilters) {
     return useQuery({
         queryKey: [...QUERY_KEYS.APPLICATIONS, filters],
-        queryFn: () => applicationApi.getApplications(filters),
+        queryFn: async () => {
+            const response = await applicationApi.getAdminApplications(filters)
+            // If the response follows the { data, pagination } format
+            if (response.data && 'pagination' in response.data) {
+                return response.data as { data: ApplicationWithRelations[], pagination: any }
+            }
+            // Fallback for old format or unexpected response
+            return response as unknown as { data: ApplicationWithRelations[], pagination: any }
+        },
     })
 }
 

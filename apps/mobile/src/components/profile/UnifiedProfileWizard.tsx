@@ -12,7 +12,9 @@ import {
     Award, 
     Users,
     ClipboardCheck,
-    AlertCircle
+    AlertCircle,
+    BookOpen,
+    FileUp
 } from 'lucide-react-native';
 import { Header } from '@/components/ui/header';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,15 +31,17 @@ import { QualificationForm } from './forms/QualificationForm';
 import { EmploymentForm } from './forms/EmploymentForm';
 import { RefereeForm } from './forms/RefereeForm';
 import { ProfessionalDetailForm } from './forms/ProfessionalDetailForm';
-import { SectionCard } from '../account/SectionCard';
+import { TrainingForm } from './forms/TrainingForm';
 import { QualificationCard } from './QualificationCard';
 import { EmploymentCard } from './EmploymentCard';
 import { RefereeCard } from './RefereeCard';
 import { ProfessionalDetailCard } from './ProfessionalDetailCard';
+import { TrainingCard } from './TrainingCard';
 import { useQualifications } from '@/hooks/use-qualifications';
 import { useEmployment } from '@/hooks/use-employment';
 import { useReferees } from '@/hooks/use-referees';
 import { useProfessionalDetails } from '@/hooks/use-professional-details';
+import { useTraining } from '@/hooks/use-training';
 import { CompletionGuard } from './CompletionGuard';
 
 
@@ -60,8 +64,10 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                 'location', 
                 'academic', 
                 'experience', 
+                'training',
                 'professional', 
                 'referees', 
+                'documents',
                 'review'
             ].indexOf(initialStep);
             return index >= 0 ? index : 0;
@@ -71,7 +77,7 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
     const formRef = useRef<FormHandle>(null);
 
     // Fetch profile and all related data
-    const { data: profileData, isLoading: isProfileLoading, refetch: refetchProfile } = useQuery({
+    const { data: profileData, isLoading: isProfileLoading } = useQuery({
         queryKey: ['profile'],
         queryFn: async () => {
             const response = await apiClient.get('/applicant-profiles/me');
@@ -118,6 +124,13 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
         updateProfessionalDetail,
         deleteProfessionalDetail
     } = useProfessionalDetails();
+
+    const {
+        trainingCourses,
+        addTrainingCourse,
+        updateTrainingCourse,
+        deleteTrainingCourse
+    } = useTraining();
 
     const isSubmittingRef = useRef(false);
 
@@ -183,9 +196,10 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
 
     const steps = useMemo(() => {
         const baseSteps = [
+            // --- REQUIRED SECTIONS ---
             { 
                 id: 'personal', 
-                title: 'Personal Details', 
+                title: 'Personal Details (Required)', 
                 icon: User, 
                 render: () => <PersonalDetailsForm ref={formRef} initialData={profile} onSubmit={(data) => {
                     if (isSubmittingRef.current) return;
@@ -195,7 +209,7 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
             },
             { 
                 id: 'location', 
-                title: 'Location Details', 
+                title: 'Location Details (Required)', 
                 icon: MapPin, 
                 render: () => <LocationDetailsForm ref={formRef} initialData={profile} onSubmit={(data) => {
                     if (isSubmittingRef.current) return;
@@ -204,32 +218,8 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                 }} /> 
             },
             { 
-                id: 'professional', 
-                title: 'Professional Details', 
-                icon: Award, 
-                render: () => (
-                    <ListSectionWrapper 
-                        items={professionalDetails || []}
-                        FormComponent={ProfessionalDetailForm as any}
-                        onAdd={addProfessionalDetail}
-                        onUpdate={updateProfessionalDetail}
-                        onDelete={deleteProfessionalDetail}
-                        emptyMessage="No professional details added yet."
-                        emptyIcon={<Award size={48} color="#cbd5e1" />}
-                        renderItem={(item, onEdit, onDelete) => (
-                            <ProfessionalDetailCard 
-                                key={item.id}
-                                detail={item}
-                                onEdit={onEdit}
-                                onDelete={onDelete}
-                            />
-                        )}
-                    />
-                )
-            },
-            { 
                 id: 'academic', 
-                title: 'Academic History', 
+                title: 'Academic History (Required)', 
                 icon: GraduationCap, 
                 render: () => (
                     <ListSectionWrapper 
@@ -253,7 +243,7 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
             },
             { 
                 id: 'experience', 
-                title: 'Work Experience', 
+                title: 'Work Experience (Required)', 
                 icon: Briefcase, 
                 render: () => (
                     <ListSectionWrapper 
@@ -276,8 +266,57 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                 )
             },
             { 
+                id: 'training', 
+                title: 'Training Courses (Required)', 
+                icon: BookOpen, 
+                render: () => (
+                    <ListSectionWrapper 
+                        items={trainingCourses || []}
+                        FormComponent={TrainingForm as any}
+                        onAdd={addTrainingCourse}
+                        onUpdate={updateTrainingCourse}
+                        onDelete={deleteTrainingCourse}
+                        emptyMessage="No training courses added yet."
+                        emptyIcon={<BookOpen size={48} color="#cbd5e1" />}
+                        renderItem={(item, onEdit, onDelete) => (
+                            <TrainingCard 
+                                key={item.id}
+                                training={item}
+                                onEdit={onEdit}
+                                onDelete={onDelete}
+                            />
+                        )}
+                    />
+                )
+            },
+            // --- OPTIONAL SECTIONS ---
+            { 
+                id: 'professional', 
+                title: 'Professional Details (Optional)', 
+                icon: Award, 
+                render: () => (
+                    <ListSectionWrapper 
+                        items={professionalDetails || []}
+                        FormComponent={ProfessionalDetailForm as any}
+                        onAdd={addProfessionalDetail}
+                        onUpdate={updateProfessionalDetail}
+                        onDelete={deleteProfessionalDetail}
+                        emptyMessage="No professional details added yet."
+                        emptyIcon={<Award size={48} color="#cbd5e1" />}
+                        renderItem={(item, onEdit, onDelete) => (
+                            <ProfessionalDetailCard 
+                                key={item.id}
+                                detail={item}
+                                onEdit={onEdit}
+                                onDelete={onDelete}
+                            />
+                        )}
+                    />
+                )
+            },
+            { 
                 id: 'referees', 
-                title: 'Referees', 
+                title: 'Referees (Optional)', 
                 icon: Users, 
                 render: () => (
                     <ListSectionWrapper 
@@ -299,6 +338,32 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                     />
                 )
             },
+            {
+                id: 'documents',
+                title: 'Uploads (Optional)',
+                icon: FileUp,
+                render: () => (
+                    <View className="space-y-4">
+                        <View className="bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 rounded-[24px] border-dashed items-center">
+                            <View className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm mb-3">
+                                <FileUp size={22} color="#64748b" />
+                            </View>
+                            <Text className="text-gray-900 dark:text-white font-bold text-sm text-center">Manage Documents</Text>
+                            <Text className="text-gray-400 dark:text-gray-500 text-[10px] text-center mt-1 px-6 leading-4">
+                                Upload your ID, CV and other supporting documents.
+                            </Text>
+
+                            <TouchableOpacity 
+                                onPress={() => router.push('/profile/documents')}
+                                className="mt-5 flex-row items-center bg-gray-900 px-5 py-3 rounded-xl"
+                            >
+                                <Plus size={16} color="white" />
+                                <Text className="text-white font-bold text-xs ml-2">Open Manager</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )
+            }
         ];
 
         if (mode === 'apply') {
@@ -324,7 +389,7 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                             />
                         )}
                         
-                        {profileCompletion?.overallPercentage === 100 && (
+                        {profileCompletion?.canApply && (
                             <View className="space-y-4">
                                 <Text className="text-gray-900 dark:text-white font-black text-lg">Final Declarations</Text>
                                 <Text className="text-gray-500 dark:text-gray-400 text-xs leading-5">
@@ -358,7 +423,8 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
         addProfessionalDetail,
         updateProfessionalDetail,
         deleteProfessionalDetail,
-        updateProfileMutation
+        updateProfileMutation,
+        profileCompletion
     ]);
 
     const currentStep = steps[currentStepIndex];
@@ -451,9 +517,9 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                     <View className={isFirstStep ? 'flex-1' : 'flex-1 ml-4'}>
                         <TouchableOpacity 
                             onPress={handleNext}
-                            disabled={isSaving || submitApplicationMutation.isSuccess || (isLastStep && mode === 'apply' && profileCompletion?.overallPercentage !== 100)}
+                            disabled={isSaving || submitApplicationMutation.isSuccess || (isLastStep && mode === 'apply' && !profileCompletion?.canApply)}
                             className={`h-14 rounded-2xl items-center justify-center flex-row shadow-xl ${
-                                (isSaving || submitApplicationMutation.isSuccess || (isLastStep && mode === 'apply' && profileCompletion?.overallPercentage !== 100)) 
+                                (isSaving || submitApplicationMutation.isSuccess || (isLastStep && mode === 'apply' && !profileCompletion?.canApply)) 
                                 ? 'bg-gray-300 dark:bg-gray-800' 
                                 : 'bg-[#004aad] dark:bg-blue-600 shadow-blue-100/50 dark:shadow-none'
                             }`}
@@ -465,13 +531,13 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                                     <Text className="text-white font-black text-base mr-2">
                                         {isLastStep 
                                             ? (mode === 'apply' 
-                                                ? (profileCompletion?.overallPercentage === 100 ? 'Submit Application' : 'Complete Profile First') 
+                                            ? (profileCompletion?.canApply ? 'Submit Application' : 'Complete Required Sections') 
                                                 : 'Finish') 
                                             : 'Save & Continue'}
                                     </Text>
                                     {!isLastStep && <ChevronRight size={20} color="white" strokeWidth={3} />}
-                                    {isLastStep && mode === 'apply' && profileCompletion?.overallPercentage === 100 && <CheckCircle2 size={20} color="white" />}
-                                    {isLastStep && mode === 'apply' && profileCompletion?.overallPercentage !== 100 && <AlertCircle size={20} color="#94a3b8" />}
+                                    {isLastStep && mode === 'apply' && profileCompletion?.canApply && <CheckCircle2 size={20} color="white" />}
+                                    {isLastStep && mode === 'apply' && !profileCompletion?.canApply && <AlertCircle size={20} color="#94a3b8" />}
                                 </>
                             )}
                         </TouchableOpacity>

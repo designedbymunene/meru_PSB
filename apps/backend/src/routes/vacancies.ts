@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { db, vacancies, vacancyDocuments, applications, departments, jobGroups, users } from '../db'
-import { eq, desc, and, inArray } from 'drizzle-orm'
+import { eq, desc, and, inArray, sql } from 'drizzle-orm'
 import { authenticate, optionalAuthenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
@@ -46,7 +46,7 @@ vacanciesRouter.get('/', async (c) => {
     const creatorIds = [...new Set(vacancyList.map(v => v.createdBy))]
 
     // Fetch related data in parallel
-    const [departmentList, jobGroupList, creatorList] = await Promise.all([
+    const [departmentList, jobGroupList, creatorList, applicationCounts] = await Promise.all([
         departmentIds.length > 0
             ? db.select().from(departments).where(inArray(departments.id, departmentIds))
             : Promise.resolve([]),
@@ -56,20 +56,29 @@ vacanciesRouter.get('/', async (c) => {
             phoneNumber: users.phoneNumber,
             fullName: users.fullName,
             email: users.email
-        }).from(users).where(inArray(users.id, creatorIds))
+        }).from(users).where(inArray(users.id, creatorIds)),
+        db.select({
+            vacancyId: applications.vacancyId,
+            count: sql<number>`count(*)::int`
+        })
+            .from(applications)
+            .where(inArray(applications.vacancyId, vacancyList.map(v => v.id)))
+            .groupBy(applications.vacancyId)
     ])
 
     // Create lookup maps
     const departmentMap = new Map(departmentList.map(d => [d.id, d]))
     const jobGroupMap = new Map(jobGroupList.map(jg => [jg.id, jg]))
     const creatorMap = new Map(creatorList.map(u => [u.id, u]))
+    const applicationCountMap = new Map(applicationCounts.map(ac => [ac.vacancyId, ac.count]))
 
     // Combine results
     const allVacancies = vacancyList.map(vacancy => ({
         ...vacancy,
         department: vacancy.departmentId ? departmentMap.get(vacancy.departmentId) ?? null : null,
         jobGroup: jobGroupMap.get(vacancy.jobGroupId) ?? null,
-        creator: creatorMap.get(vacancy.createdBy) ?? null
+        creator: creatorMap.get(vacancy.createdBy) ?? null,
+        applicationsCount: applicationCountMap.get(vacancy.id) || 0
     }))
 
     return successResponse(c, allVacancies)
@@ -122,7 +131,13 @@ vacanciesRouter.get('/:id', optionalAuthenticate, async (c) => {
         hasApplied = !!application
     }
 
-    return successResponse(c, { ...vacancy, hasApplied })
+    // Get applications count
+    const [{ count: applicationsCount }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(applications)
+        .where(eq(applications.vacancyId, id))
+
+    return successResponse(c, { ...vacancy, hasApplied, applicationsCount })
 })
 
 // POST /api/vacancies - Create vacancy (admin only)

@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, LayoutAnimation, ImageBackground, StatusBar } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useApplication } from '@/hooks/use-applications';
 import { useNetInfo } from '@react-native-community/netinfo';
-import { Clock, CheckCircle2, FileText, Calendar, MapPin, ShieldCheck, AlertCircle, ChevronRight } from 'lucide-react-native';
+import { 
+    Clock, CheckCircle2, FileText, Calendar, MapPin, 
+    ShieldCheck, AlertCircle, ChevronRight, Search, 
+    ListFilter, Users, Award, Flag, ChevronDown, 
+    Download, Info, Building2, Briefcase
+} from 'lucide-react-native';
 import { Header } from '@/components/ui/header';
-import { apiClient, getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
+import { getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
 import { ApplicationDetailsLoadingState } from '@/components/ui/loading-skeletons';
 import { SnapshotCVViewer } from '@/components/profile/SnapshotCVViewer';
+import { LinearGradient } from 'expo-linear-gradient';
 
-// LayoutAnimation is handled automatically in the New Architecture or can be omitted if not used.
 export default function TrackApplicationScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
@@ -17,13 +22,8 @@ export default function TrackApplicationScreen() {
     const [showSnapshot, setShowSnapshot] = useState(false);
     const isActivePlaceholder = id === 'active';
 
-    const { data: application, isLoading, error, isError, refetch } = useQuery({
-        queryKey: ['application', id],
-        queryFn: async () => {
-            const response = await apiClient.get(`/applications/${id}`);
-            return response.data.data;
-        },
-        enabled: !!id && !isActivePlaceholder,
+    const { data: application, isLoading, error, isError, refetch } = useApplication(id as string, {
+        enabled: !!id && !isActivePlaceholder
     });
 
     const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
@@ -33,182 +33,261 @@ export default function TrackApplicationScreen() {
 
     const displayData = application;
 
-    // Use steps from API or default empty
-    const steps = application?.steps || [];
+    // Derived recruitment stages
+    const stages = useMemo(() => {
+        if (!displayData) return [];
+        const status = displayData.status.toLowerCase();
+        
+        return [
+            { id: 1, title: 'Submitted', subtitle: 'Application received', status: 'completed', icon: CheckCircle2 },
+            { id: 2, title: 'Screening', subtitle: 'Document verification', status: status === 'pending' ? 'current' : 'completed', icon: Search },
+            { id: 3, title: 'Shortlisting', subtitle: 'Candidate selection', status: status === 'reviewed' ? 'current' : (status === 'accepted' || status === 'rejected' ? 'completed' : 'upcoming'), icon: ListFilter },
+            { id: 4, title: 'Interview', subtitle: 'Technical assessment', status: (status === 'accepted' && !displayData.feedbackToApplicant) ? 'current' : (status === 'accepted' || status === 'rejected' ? 'completed' : 'upcoming'), icon: Users },
+            { id: 5, title: 'Outcome', subtitle: 'Final decision', status: (status === 'accepted' || status === 'rejected') ? 'completed' : 'upcoming', icon: Flag },
+        ];
+    }, [displayData]);
+
+    const currentStageIndex = stages.findIndex(s => s.status === 'current');
+    const displayStageIndex = currentStageIndex !== -1 ? currentStageIndex : (stages.every(s => s.status === 'completed') ? stages.length - 1 : 0);
 
     if (isLoading && !displayData && !isError) {
         return <ApplicationDetailsLoadingState />;
     }
 
-    return (
-        <View className="flex-1 bg-white">
-            <Header 
-                title="Track Application" 
-                showBackButton={true}
-                onBackPress={() => router.back()}
-            />
+    const getStatusColor = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'pending': return '#f59e0b';
+            case 'reviewed': return '#3b82f6';
+            case 'accepted': return '#10b981';
+            case 'rejected': return '#ef4444';
+            default: return '#64748b';
+        }
+    };
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                <View className="p-6">
+    return (
+        <View className="flex-1 bg-[#F8FAFC]">
+            <StatusBar barStyle="light-content" />
+            
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
+                {/* Custom Header with Background */}
+                <View>
+                    <ImageBackground 
+                        source={require('../../../assets/images/track-header-bg.png')}
+                        className="h-72 w-full"
+                    >
+                        <LinearGradient
+                            colors={['rgba(0,0,0,0.4)', 'rgba(248,250,252,1)']}
+                            className="flex-1"
+                        >
+                            <View className="flex-1 p-6 justify-end pb-10">
+                                <TouchableOpacity 
+                                    onPress={() => router.back()}
+                                    className="absolute top-12 left-6 w-10 h-10 rounded-full bg-black/20 items-center justify-center border border-white/20"
+                                >
+                                    <ChevronRight size={20} color="white" style={{ transform: [{ rotate: '180deg' }] }} />
+                                </TouchableOpacity>
+
+                                <View className="bg-white/20 self-start px-3 py-1 rounded-full mb-3 backdrop-blur-md border border-white/30">
+                                    <Text className="text-white text-[10px] font-black uppercase tracking-widest">
+                                        {displayData?.status || 'Processing'}
+                                    </Text>
+                                </View>
+                                
+                                <Text className="text-white text-3xl font-black leading-tight mb-2 shadow-sm">
+                                    {displayData?.vacancy?.title || 'Application'}
+                                </Text>
+                                
+                                <View className="flex-row items-center mb-1">
+                                    <Building2 size={14} color="rgba(255,255,255,0.7)" />
+                                    <Text className="text-white/70 text-sm ml-2 font-bold">{displayData?.vacancy?.department?.name || 'Public Service Board'}</Text>
+                                </View>
+                                
+                                <View className="flex-row items-center">
+                                    <Briefcase size={14} color="rgba(255,255,255,0.7)" />
+                                    <Text className="text-white/70 text-xs ml-2 font-medium">Ref: {displayData?.vacancy?.advertisementNumber || 'N/A'}</Text>
+                                </View>
+                            </View>
+                        </LinearGradient>
+                    </ImageBackground>
+                </View>
+
+                <View className="px-6 -mt-8 pb-20">
                     {showOfflineBanner && (
-                        <View className="mb-6 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50">
-                            <Text className="text-amber-700 text-xs font-semibold">
-                                You&apos;re offline. Showing cached application details where available.
+                        <View className="mb-6 px-4 py-3 rounded-2xl border border-amber-200 bg-amber-50 flex-row items-center">
+                            <AlertCircle size={16} color="#b45309" />
+                            <Text className="text-amber-800 text-[10px] font-bold ml-2">
+                                Offline Mode: Showing cached data.
                             </Text>
                         </View>
                     )}
 
                     {!displayData ? (
-                        <View className="bg-gray-50 border border-gray-100 p-6 rounded-3xl mb-8">
-                            <Text className="text-gray-900 font-bold text-base">Application details unavailable</Text>
-                            <Text className="text-gray-500 text-xs mt-2 leading-5">
-                                {errorMessage || 'We could not load this application at the moment.'}
+                        <View className="bg-white border border-gray-100 p-8 rounded-[40px] shadow-sm items-center">
+                            <View className="w-16 h-16 bg-rose-50 rounded-full items-center justify-center mb-4">
+                                <AlertCircle size={32} color="#ef4444" />
+                            </View>
+                            <Text className="text-gray-900 font-black text-xl text-center">Data Unavailable</Text>
+                            <Text className="text-gray-500 text-sm mt-2 text-center leading-5 px-4">
+                                {errorMessage || 'We could not fetch your application details at this time.'}
                             </Text>
                             <TouchableOpacity
                                 onPress={() => refetch()}
-                                className="self-start mt-4 px-4 py-2.5 rounded-full bg-[#004aad]"
+                                className="mt-8 px-10 py-4 rounded-3xl bg-[#004aad] shadow-lg shadow-blue-200"
                             >
-                                <Text className="text-white font-semibold text-xs">Try Again</Text>
+                                <Text className="text-white font-black text-xs uppercase tracking-widest">Retry Connection</Text>
                             </TouchableOpacity>
                         </View>
                     ) : (
                         <>
-                    {/* Job Summary Header */}
-                    <View className="bg-gray-900 p-6 rounded-[32px] shadow-xl shadow-gray-200 mb-8 overflow-hidden">
-                        <View className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full" />
-                        
-                        <View className="bg-white/10 self-start px-3 py-1 rounded-full mb-4">
-                            <Text className="text-white/80 text-[10px] font-bold uppercase tracking-widest">{displayData.status}</Text>
-                        </View>
-                            <Text className="text-white text-2xl font-bold leading-tight mb-2">{displayData.vacancy?.title || 'Application'}</Text>
-                            <View className="flex-row items-center mb-6">
-                                <MapPin size={14} color="#94a3b8" />
-                                <Text className="text-gray-400 text-xs ml-2 font-medium">{displayData.vacancy?.department?.name || 'Department'}</Text>
-                            </View>
-
-                        <View className="bg-white/10 h-[1px] w-full mb-6" />
-
-                        <View className="flex-row justify-between items-center">
-                            <View>
-                                <Text className="text-white/50 text-[10px] font-bold uppercase tracking-tighter">Reference No.</Text>
-                                    <Text className="text-white font-bold text-sm mt-1">{displayData.vacancy?.advertisementNumber || 'N/A'}</Text>
-                                </View>
-                            <View className="items-end">
-                                <Text className="text-white/50 text-[10px] font-bold uppercase tracking-tighter">Applied On</Text>
-                                <Text className="text-white font-bold text-sm mt-1">{new Date(displayData.appliedAt).toLocaleDateString()}</Text>
-                            </View>
-                        </View>
-                    </View>
-
-                    {/* Progress Timeline */}
-                    <View className="mb-10">
-                        <Text className="text-xl font-bold text-gray-900 mb-6">Application Status</Text>
-                        
-                        <View className="pl-2">
-                            {steps.map((step, index) => (
-                                <View key={index} className="flex-row mb-8 last:mb-0">
-                                    {/* Timeline Line & Icon */}
-                                    <View className="items-center mr-4">
-                                        <View 
-                                            className={`w-10 h-10 rounded-full items-center justify-center z-10 ${
-                                                step.status === 'completed' ? 'bg-green-500' : 
-                                                step.status === 'current' ? 'bg-[#004aad]' : 'bg-gray-200'
-                                            }`}
-                                        >
-                                            {step.status === 'completed' ? (
-                                                <CheckCircle2 size={20} color="white" />
-                                            ) : step.icon}
-                                        </View>
-                                        {index < steps.length - 1 && (
-                                            <View 
-                                                className={`w-0.5 h-12 -mb-2 mt-2 ${
-                                                    step.status === 'completed' ? 'bg-green-200' : 'bg-gray-100'
-                                                }`} 
-                                            />
-                                        )}
-                                    </View>
-
-                                    {/* Step Content */}
-                                    <View className="flex-1 pt-1">
-                                        <Text className={`text-base font-bold ${
-                                            step.status === 'upcoming' ? 'text-gray-400' : 'text-gray-900'
-                                        }`}>
-                                            {step.title}
+                            {/* Current Status Card */}
+                            <View className="bg-white rounded-[40px] p-6 shadow-sm border border-gray-100 mb-6">
+                                <View className="flex-row justify-between items-center mb-6">
+                                    <View>
+                                        <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Current Status</Text>
+                                        <Text className="text-gray-900 text-2xl font-black mt-1" style={{ color: getStatusColor(displayData.status) }}>
+                                            {displayData.status.charAt(0).toUpperCase() + displayData.status.slice(1)}
                                         </Text>
-                                        <View className="flex-row items-center mt-1">
-                                            {step.status === 'current' && (
-                                                <View className="w-2 h-2 rounded-full bg-blue-500 mr-2" />
-                                            )}
-                                            <Text className={`text-xs ${
-                                                step.status === 'upcoming' ? 'text-gray-300' : 'text-gray-500'
-                                            }`}>
-                                                {step.date}
+                                    </View>
+                                    <View className="w-12 h-12 rounded-2xl bg-gray-50 items-center justify-center">
+                                        <Calendar size={24} color="#64748b" />
+                                    </View>
+                                </View>
+
+                                <View className="bg-gray-50 rounded-3xl p-5 border border-gray-100">
+                                    <View className="flex-row items-start">
+                                        <Info size={18} color="#004aad" className="mt-0.5" />
+                                        <View className="ml-3 flex-1">
+                                            <Text className="text-gray-900 font-bold text-sm">Status Update</Text>
+                                            <Text className="text-gray-500 text-xs mt-1 leading-5">
+                                                {displayData.feedbackToApplicant || (
+                                                    displayData.status === 'pending' ? 'Your application is currently undergoing preliminary screening by the board.' :
+                                                    displayData.status === 'reviewed' ? 'Your profile has been reviewed and moved to the shortlisting phase.' :
+                                                    displayData.status === 'accepted' ? 'Congratulations! Your application has been successful. Please check your email for further instructions.' :
+                                                    'Your application has been processed and a decision has been reached.'
+                                                )}
                                             </Text>
                                         </View>
-                                        {step.status === 'current' && (
-                                            <View className="bg-blue-50 border border-blue-100 p-4 rounded-2xl mt-4">
-                                                <View className="flex-row items-start">
-                                                    <AlertCircle size={16} color="#004aad" className="mt-0.5" />
-                                                    <View className="ml-3 flex-1">
-                                                        <Text className="text-[#004aad] font-bold text-sm">Action Required</Text>
-                                                        <Text className="text-blue-700/80 text-xs mt-1 leading-4">
-                                                            Your documents have been verified. We are now reviewing your technical qualifications. No further action needed.
-                                                        </Text>
-                                                    </View>
-                                                </View>
-                                            </View>
-                                        )}
                                     </View>
                                 </View>
-                            ))}
-                        </View>
-                    </View>
-                    
-                    {/* Snapshot Section */}
-                    {displayData?.profileSnapshot && (
-                        <View className="mb-10">
+                            </View>
+
+                            {/* Stage Indicator (Stepper) */}
+                            <View className="mb-8">
+                                <Text className="text-xl font-black text-gray-900 mb-6 px-2">Recruitment Pipeline</Text>
+                                <View className="flex-row justify-between items-start px-2">
+                                    {stages.map((stage, index) => (
+                                        <View key={stage.id} className="items-center flex-1">
+                                            <View className="relative items-center justify-center">
+                                                {/* Connector Line */}
+                                                {index > 0 && (
+                                                    <View 
+                                                        className={`absolute right-[50%] top-5 w-full h-[2px] -z-10 ${
+                                                            index <= (currentStageIndex === -1 ? stages.length : currentStageIndex) ? 'bg-[#004aad]' : 'bg-gray-200'
+                                                        }`}
+                                                    />
+                                                )}
+                                                
+                                                <View 
+                                                    className={`w-10 h-10 rounded-full items-center justify-center border-4 ${
+                                                        stage.status === 'completed' ? 'bg-[#004aad] border-blue-100' : 
+                                                        stage.status === 'current' ? 'bg-white border-[#004aad]' : 
+                                                        'bg-white border-gray-100'
+                                                    }`}
+                                                >
+                                                    {stage.status === 'completed' ? (
+                                                        <CheckCircle2 size={14} color="white" />
+                                                    ) : (
+                                                        <stage.icon size={14} color={stage.status === 'current' ? '#004aad' : '#cbd5e1'} />
+                                                    )}
+                                                </View>
+                                            </View>
+                                            <Text className={`text-[8px] font-black uppercase mt-3 text-center px-1 ${
+                                                stage.status === 'current' ? 'text-[#004aad]' : 
+                                                stage.status === 'completed' ? 'text-gray-900' : 'text-gray-400'
+                                            }`}>
+                                                {stage.title}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+
+                            {/* Document Checklist */}
+                            <View className="bg-white rounded-[40px] p-6 shadow-sm border border-gray-100 mb-6">
+                                <View className="flex-row items-center justify-between mb-6">
+                                    <Text className="text-lg font-black text-gray-900">Document Status</Text>
+                                    <View className="bg-blue-50 px-3 py-1 rounded-full">
+                                        <Text className="text-[#004aad] text-[10px] font-black uppercase">Verified</Text>
+                                    </View>
+                                </View>
+
+                                {[
+                                    { name: 'National ID / Passport', status: 'verified' },
+                                    { name: 'Academic Certificates', status: 'verified' },
+                                    { name: 'Professional Memberships', status: 'verified' },
+                                    { name: 'Chapter 6 Clearances', status: 'pending' },
+                                ].map((doc, idx) => (
+                                    <View key={idx} className="flex-row items-center justify-between mb-4 last:mb-0">
+                                        <View className="flex-row items-center">
+                                            <View className={`w-8 h-8 rounded-xl items-center justify-center ${doc.status === 'verified' ? 'bg-emerald-50' : 'bg-amber-50'}`}>
+                                                {doc.status === 'verified' ? (
+                                                    <ShieldCheck size={16} color="#10b981" />
+                                                ) : (
+                                                    <Clock size={16} color="#f59e0b" />
+                                                )}
+                                            </View>
+                                            <Text className="ml-3 text-sm font-bold text-gray-700">{doc.name}</Text>
+                                        </View>
+                                        <View className={`w-2 h-2 rounded-full ${doc.status === 'verified' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                                    </View>
+                                ))}
+                            </View>
+
+                            {/* Submitted Profile Action */}
                             <TouchableOpacity 
                                 onPress={() => {
                                     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                                     setShowSnapshot(!showSnapshot);
                                 }}
-                                className="flex-row items-center justify-between bg-blue-50 dark:bg-blue-900/10 p-5 rounded-[32px] border border-blue-100 dark:border-blue-800"
+                                activeOpacity={0.7}
+                                className="bg-[#004aad] rounded-[40px] p-6 shadow-lg shadow-blue-200 mb-6 flex-row items-center justify-between overflow-hidden"
                             >
+                                <LinearGradient
+                                    colors={['rgba(255,255,255,0.1)', 'transparent']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    className="absolute inset-0"
+                                />
                                 <View className="flex-row items-center">
-                                    <View className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800 items-center justify-center">
-                                        <FileText size={20} color="#004aad" />
+                                    <View className="w-12 h-12 rounded-2xl bg-white/20 items-center justify-center">
+                                        <FileText size={24} color="white" />
                                     </View>
-                                    <View className="ml-3">
-                                        <Text className="text-blue-900 dark:text-blue-200 font-black text-base">Submitted CV</Text>
-                                        <Text className="text-blue-700 dark:text-blue-400 text-[10px] font-bold uppercase">View Snapshot</Text>
+                                    <View className="ml-4">
+                                        <Text className="text-white font-black text-lg">Submitted CV</Text>
+                                        <Text className="text-white/70 text-[10px] font-bold uppercase tracking-widest">Snapshot at submission</Text>
                                     </View>
                                 </View>
-                                <View className={`w-8 h-8 rounded-full bg-white dark:bg-gray-800 items-center justify-center border border-blue-100 dark:border-blue-800 transition-transform ${showSnapshot ? 'rotate-180' : ''}`}>
-                                    <ChevronRight size={16} color="#004aad" style={{ transform: [{ rotate: showSnapshot ? '90deg' : '0deg' }] }} />
+                                <View className={`w-10 h-10 rounded-full bg-white/20 items-center justify-center ${showSnapshot ? 'rotate-180' : ''}`}>
+                                    <ChevronDown size={20} color="white" />
                                 </View>
                             </TouchableOpacity>
 
                             {showSnapshot && (
-                                <View className="mt-6 px-2">
+                                <View className="bg-white rounded-[40px] p-8 border border-gray-100 mb-6 shadow-sm">
                                     <SnapshotCVViewer snapshot={displayData.profileSnapshot} />
                                 </View>
                             )}
-                        </View>
-                    )}
 
-                    {/* Support / Contact Section */}
-                    <View className="bg-gray-50 p-6 rounded-[32px] border border-gray-100 items-center mb-10">
-                        <View className="bg-white p-3 rounded-2xl shadow-sm mb-4">
-                            <Clock size={24} color="#64748b" />
-                        </View>
-                        <Text className="text-gray-900 font-bold text-base text-center">Need help with this application?</Text>
-                        <Text className="text-gray-500 text-xs text-center mt-2 leading-5 px-4">
-                            If you have any questions regarding the recruitment process, please reach out to our support team.
-                        </Text>
-                        <TouchableOpacity className="mt-6 bg-white px-8 py-3 rounded-2xl border border-gray-200 shadow-sm">
-                            <Text className="text-gray-900 font-bold text-sm">Contact Support</Text>
-                        </TouchableOpacity>
-                    </View>
+                            {/* Help & Support */}
+                            <View className="items-center py-10">
+                                <Text className="text-gray-400 text-xs font-bold text-center mb-6">
+                                    Applied on {new Date(displayData.appliedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                </Text>
+                                <TouchableOpacity className="flex-row items-center bg-gray-100 px-6 py-3 rounded-2xl">
+                                    <Download size={16} color="#64748b" />
+                                    <Text className="text-gray-600 font-bold text-xs ml-2 uppercase tracking-widest">Download P.107 Form</Text>
+                                </TouchableOpacity>
+                            </View>
                         </>
                     )}
                 </View>

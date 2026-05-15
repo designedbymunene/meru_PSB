@@ -13,6 +13,7 @@ import * as z from 'zod';
 import { apiClient, getApiErrorMessage } from '@/lib/api/client';
 import { FormLayout } from '@/components/ui/form-layout';
 import { FormField } from '@/components/ui/form-field';
+import { useMutation } from '@tanstack/react-query';
 
 // Schemas
 const step1Schema = z.object({
@@ -30,7 +31,6 @@ type Step2FormData = z.infer<typeof step2Schema>;
 export default function ForgotPasswordScreen() {
     const router = useRouter();
     const [step, setStep] = useState<1 | 2 | 3>(1);
-    const [isLoading, setIsLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -47,37 +47,47 @@ export default function ForgotPasswordScreen() {
         defaultValues: { otp: '', newPassword: '' },
     });
 
-    const onStep1Submit = async (data: Step1FormData) => {
-        setIsLoading(true);
-        setError(null);
-        try {
+    const requestResetMutation = useMutation({
+        mutationFn: async (data: Step1FormData) => {
             await apiClient.post('/auth/forgot-password/request', { email: data.email });
-            setEmail(data.email);
+            return data.email;
+        },
+        onSuccess: (email) => {
+            setEmail(email);
             setStep(2);
-        } catch (err: any) {
+            setError(null);
+        },
+        onError: (err) => {
             setError(getApiErrorMessage(err, 'Failed to request reset code. Please try again.'));
-        } finally {
-            setIsLoading(false);
         }
-    };
+    });
 
-    const onStep2Submit = async (data: Step2FormData) => {
-        setIsLoading(true);
-        setError(null);
-        try {
+    const resetPasswordMutation = useMutation({
+        mutationFn: async (data: Step2FormData) => {
             await apiClient.post('/auth/reset-password', {
                 email,
                 otp: data.otp,
                 newPassword: data.newPassword,
             });
-            
+        },
+        onSuccess: () => {
             setStep(3);
-        } catch (err: any) {
+            setError(null);
+        },
+        onError: (err) => {
             setError(getApiErrorMessage(err, 'Invalid or expired reset code'));
-        } finally {
-            setIsLoading(false);
         }
+    });
+
+    const onStep1Submit = (data: Step1FormData) => {
+        requestResetMutation.mutate(data);
     };
+
+    const onStep2Submit = (data: Step2FormData) => {
+        resetPasswordMutation.mutate(data);
+    };
+
+    const isLoading = requestResetMutation.isPending || resetPasswordMutation.isPending;
 
     return (
         <FormLayout
@@ -94,18 +104,15 @@ export default function ForgotPasswordScreen() {
             <View className="py-4">
                 {step === 1 ? (
                     <>
-                        <View className="mb-10">
-                            <View className="bg-slate-50 dark:bg-gray-900 w-20 h-20 rounded-3xl items-center justify-center mb-6 shadow-sm border border-slate-100 dark:border-gray-800">
-                                <KeyRound size={40} color="#004aad" className="dark:text-blue-400" />
-                            </View>
+                        <View className="mb-6">
                             <Text className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Forgot Password?</Text>
-                            <Text className="text-slate-500 dark:text-gray-400 text-lg mt-3 leading-7">
+                            <Text className="text-slate-500 dark:text-gray-400 text-base mt-2 leading-6">
                                 Enter your registered email address and we&apos;ll send you a 6-digit verification code.
                             </Text>
                         </View>
 
                         {error && (
-                            <View className="mb-8 bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100 dark:border-red-900/20 flex-row items-center">
+                            <View className="mb-6 bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/20 flex-row items-center">
                                 <Text className="text-red-600 dark:text-red-400 text-sm font-semibold flex-1">{error}</Text>
                             </View>
                         )}
@@ -133,89 +140,112 @@ export default function ForgotPasswordScreen() {
                                 className="py-2"
                                 onPress={() => router.back()}
                             >
-                                <Text className="text-slate-500 dark:text-gray-400 text-base">Remember password? <Text className="text-[#004aad] dark:text-blue-400 font-bold">Sign In</Text></Text>
+                                <Text className="text-slate-500 dark:text-gray-400 text-sm">Remember password? <Text className="text-[#004aad] dark:text-blue-400 font-bold">Sign In</Text></Text>
                             </TouchableOpacity>
                         </View>
                     </>
                 ) : step === 2 ? (
                     <>
-                        <View className="mb-10">
-                            <View className="bg-slate-50 dark:bg-gray-900 w-20 h-20 rounded-3xl items-center justify-center mb-6 shadow-sm border border-slate-100 dark:border-gray-800">
-                                <MailCheck size={40} color="#059669" />
-                            </View>
-                            <Text className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Check Your Inbox</Text>
-                            <View className="mt-3 bg-slate-50 dark:bg-gray-900 p-4 rounded-2xl border border-slate-100 dark:border-gray-800">
-                                <Text className="text-slate-600 dark:text-gray-400 text-base leading-6">
-                                    We sent a code to <Text className="font-bold text-slate-900 dark:text-white">{email}</Text>. Please enter it below.
-                                </Text>
-                            </View>
+                        <View className="mb-6">
+                            <Text className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Verify Code</Text>
+                            <Text className="text-slate-500 dark:text-gray-400 mt-2 text-base leading-6">
+                                We sent a secure code to{"\n"}
+                                <Text className="font-bold text-[#004aad] dark:text-blue-400">{email}</Text>. Please enter it below.
+                            </Text>
                         </View>
 
                         {error && (
-                            <View className="mb-8 bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100 dark:border-red-900/20 flex-row items-center">
+                            <View className="mb-6 bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/20 flex-row items-center">
                                 <Text className="text-red-600 dark:text-red-400 text-sm font-semibold flex-1">{error}</Text>
                             </View>
                         )}
 
                         <View className="space-y-6">
-                            <Controller
-                                control={form2.control}
-                                name="otp"
-                                render={({ field: { onChange, onBlur, value } }) => (
-                                    <FormField
-                                        label="Verification Code"
-                                        placeholder="000000"
-                                        icon={ShieldCheck}
-                                        onBlur={onBlur}
-                                        onChangeText={onChange}
-                                        value={value}
-                                        error={form2.formState.errors.otp?.message}
-                                        keyboardType="number-pad"
-                                        maxLength={6}
-                                        style={{ textAlign: 'center', letterSpacing: 8, fontWeight: '700', fontSize: 24 }}
-                                    />
-                                )}
-                            />
+                            <View>
+                                <Text className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-3 ml-1">
+                                    Verification Code
+                                </Text>
+                                <Controller
+                                    control={form2.control}
+                                    name="otp"
+                                    render={({ field: { onChange, value } }) => (
+                                        <View>
+                                            <View className="flex-row justify-between">
+                                                {[0, 1, 2, 3, 4, 5].map((index) => (
+                                                    <View 
+                                                        key={index} 
+                                                        className={`w-[15%] aspect-square rounded-xl border-2 items-center justify-center bg-white dark:bg-gray-900 ${
+                                                            value && value[index] 
+                                                                ? 'border-[#004aad] dark:border-blue-500' 
+                                                                : 'border-slate-100 dark:border-gray-800'
+                                                        }`}
+                                                    >
+                                                        <Text className="text-xl font-bold text-slate-900 dark:text-white">
+                                                            {value ? value[index] : ""}
+                                                        </Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                            <TextInput
+                                                value={value}
+                                                onChangeText={onChange}
+                                                keyboardType="number-pad"
+                                                maxLength={6}
+                                                className="absolute w-full h-full opacity-0"
+                                                autoFocus
+                                            />
+                                            {form2.formState.errors.otp && (
+                                                <Text className="mt-2 ml-1 text-xs text-red-500 font-medium">
+                                                    {form2.formState.errors.otp.message}
+                                                </Text>
+                                            )}
+                                        </View>
+                                    )}
+                                />
+                            </View>
 
                             <Controller
                                 control={form2.control}
                                 name="newPassword"
                                 render={({ field: { onChange, onBlur, value } }) => (
-                                    <View>
-                                        <FormField
-                                            label="New Password"
-                                            placeholder="••••••••"
-                                            icon={Lock}
-                                            onBlur={onBlur}
-                                            onChangeText={onChange}
-                                            value={value}
-                                            error={form2.formState.errors.newPassword?.message}
-                                            secureTextEntry={!showPassword}
-                                        />
-                                        <TouchableOpacity 
-                                            onPress={() => setShowPassword(!showPassword)} 
-                                            className="absolute right-4 top-[50px]"
-                                        >
-                                            {showPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
-                                        </TouchableOpacity>
-                                    </View>
+                                    <FormField
+                                        label="New Password"
+                                        placeholder="Enter your new password"
+                                        icon={Lock}
+                                        onBlur={onBlur}
+                                        onChangeText={onChange}
+                                        value={value}
+                                        error={form2.formState.errors.newPassword?.message}
+                                        secureTextEntry={!showPassword}
+                                        rightElement={
+                                            <TouchableOpacity 
+                                                onPress={() => setShowPassword(!showPassword)}
+                                                className="w-10 h-10 items-center justify-center"
+                                            >
+                                                {showPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
+                                            </TouchableOpacity>
+                                        }
+                                    />
                                 )}
                             />
 
-                            <View className="flex-row items-center mt-1 ml-1">
-                                <CheckCircle2 size={12} color="#94a3b8" />
-                                <Text className="text-slate-400 text-[11px] ml-1 font-medium">
+                            <View className="flex-row items-center ml-1">
+                                <View className={`w-4 h-4 rounded-full items-center justify-center ${form2.watch('newPassword')?.length >= 8 ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-gray-800'}`}>
+                                    <CheckCircle2 size={10} color="white" />
+                                </View>
+                                <Text className={`text-xs ml-2 font-medium ${form2.watch('newPassword')?.length >= 8 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
                                     Must be at least 8 characters long
                                 </Text>
                             </View>
                         </View>
 
-                        <View className="items-center mt-6">
+                        <View className="items-center mt-8">
                             <TouchableOpacity
-                                className="py-2"
+                                className="py-2 flex-row items-center"
                                 onPress={() => setStep(1)}
                             >
-                                <Text className="text-[#004aad] dark:text-blue-400 font-bold text-base">Re-enter email address</Text>
+                                <Text className="text-slate-500 dark:text-gray-400 text-sm">Wait, I want to </Text>
+                                <Text className="text-[#004aad] dark:text-blue-400 font-bold text-sm underline">change my email</Text>
                             </TouchableOpacity>
                         </View>
                     </>

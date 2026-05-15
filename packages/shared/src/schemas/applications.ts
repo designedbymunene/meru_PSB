@@ -7,14 +7,14 @@ export const createApplicationSchema = z.object({
 
 // Application status update schema
 export const updateApplicationStatusSchema = z.object({
-    status: z.enum(['pending', 'reviewed', 'accepted', 'rejected']),
+    status: z.enum(['pending', 'reviewed', 'shortlisted', 'interviewed', 'accepted', 'rejected']),
     notes: z.string().optional(),
     rejectionReason: z.string().optional()
 })
 
 // Application review filters schema
 export const applicationFiltersSchema = z.object({
-    status: z.enum(['pending', 'reviewed', 'accepted', 'rejected']).optional(),
+    status: z.enum(['pending', 'reviewed', 'shortlisted', 'interviewed', 'accepted', 'rejected']).optional(),
     vacancyId: z.string().optional(),
     applicantId: z.string().optional(),
     searchTerm: z.string().optional(),
@@ -27,13 +27,13 @@ export const applicationFiltersSchema = z.object({
 // Bulk status update schema
 export const bulkApplicationStatusSchema = z.object({
     applicationIds: z.array(z.number().int().positive()).min(1),
-    status: z.enum(['pending', 'reviewed', 'accepted', 'rejected']),
+    status: z.enum(['pending', 'reviewed', 'shortlisted', 'interviewed', 'accepted', 'rejected']),
     notes: z.string().optional()
 })
 
 // Application review schema
 export const applicationReviewSchema = z.object({
-    status: z.enum(['reviewed', 'accepted', 'rejected']),
+    status: z.enum(['reviewed', 'shortlisted', 'interviewed', 'accepted', 'rejected']),
     notes: z.string().min(1),
     rating: z.number().int().min(1).max(5).optional(),
     rejectionReason: z.string().optional(),

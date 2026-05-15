@@ -1,40 +1,37 @@
 import { test } from 'node:test'
-import assert from 'node:assert'
-import { ProfileService } from '../../services/profile-service'
+import assert from 'node:assert/strict'
+import { calculateProfileCompletion } from '@meru/shared'
 
-// We'll mock the db behavior by overriding the query result if possible, 
-// but since ProfileService calls db.query directly, we need to mock that.
-// For this unit test, we will test the logic that would exist if we passed data to it.
-// Actually, let's refactor ProfileService slightly to expose a pure calculation function 
-// if it doesn't already, or just mock the DB.
-
-test('ProfileService - completion calculation logic', async () => {
-    // This is a placeholder for actual service testing.
-    // Ideally we would mock the database response here.
-    
-    // For now, let's verify the logic that the service uses.
-    const mockProfile = {
+test('profile completion marks required sections separately from optional ones', () => {
+    const profile = {
         fullName: 'John Doe',
         idNumber: '12345678',
-        email: 'john@example.com',
-        phoneNumber: '0712345678',
         gender: 'Male',
-        birthYear: '1990',
-        ethnicity: 'Kikuyu',
-        homeCounty: 'Nyeri',
-        homeSubCounty: 'Nyeri Central',
-        ward: 'Rware',
-        qualifications: [{}], // Has 1
-        employmentHistory: [{}], // Has 1
-        professionalDetails: [], // Missing
-        trainingCourses: [], // Missing
-        professionalMemberships: [], // Missing
-        referees: [{}, {}, {}] // Has 3
+        dateOfBirth: '1990-01-01',
+        phoneNumber: '0712345678',
+        email: 'john@example.com',
+        qualifications: [{}],
     }
-    
-    // In a real scenario, we'd call ProfileService.getCompletionPercentage(userId)
-    // and mock the DB. 
-    
-    // Let's just assert that the 100% check is robust.
-    assert.strictEqual(typeof ProfileService, 'function' || 'object')
+
+    const completion = calculateProfileCompletion(profile)
+
+    assert.equal(completion.canApply, true)
+    assert.equal(completion.requiredPercentage, 100)
+    assert.equal(completion.optionalPercentage < 100, true)
+    assert.deepEqual(completion.requiredMissing, [])
+})
+
+test('profile completion blocks application when required sections are missing', () => {
+    const profile = {
+        fullName: 'John Doe',
+        idNumber: '12345678',
+        gender: 'Male',
+        dateOfBirth: '1990-01-01',
+    }
+
+    const completion = calculateProfileCompletion(profile)
+
+    assert.equal(completion.canApply, false)
+    assert.ok(completion.requiredMissing.includes('Contact Details'))
+    assert.ok(completion.requiredMissing.includes('Academic History'))
 })

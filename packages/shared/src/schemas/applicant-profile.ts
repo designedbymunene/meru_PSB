@@ -10,6 +10,74 @@ const coerceNullableId = z.preprocess(
     z.coerce.number().nullable().optional()
 )
 
+// --- Qualification Levels and Grading Constants ---
+
+export const KNQF_LEVELS = [
+    'Level 10 (Doctorate / PhD)',
+    'Level 9 (Master\'s Degree)',
+    'Level 8 (Postgrad Diploma / Professional Bachelor\'s)',
+    'Level 7 (Bachelor\'s Degree / Professional Diploma)',
+    'Level 6 (National Diploma / NSC V / HND)',
+    'Level 5 (Craft Certificate / NSC IV)',
+    'Level 4 (Artisan Certificate / NSC III / GTT I)',
+    'Level 3 (Senior Secondary / KCSE / NSC II / GTT II)',
+    'Level 2 (Junior Secondary / NSC I / GTT III)',
+    'Level 1 (Primary Certificate / Basic Skills)',
+] as const
+
+export type KNQFLevel = typeof KNQF_LEVELS[number]
+
+/**
+ * Maps legacy qualification levels to their KNQF equivalents.
+ * Ensures backward compatibility with existing data.
+ */
+export const LEGACY_LEVEL_MAP: Record<string, KNQFLevel> = {
+    'DOCTORATE': 'Level 10 (Doctorate / PhD)',
+    'MASTERS': 'Level 9 (Master\'s Degree)',
+    'BACHELORS': 'Level 7 (Bachelor\'s Degree / Professional Diploma)',
+    'DIPLOMA': 'Level 6 (National Diploma / NSC V / HND)',
+    'CERTIFICATE': 'Level 5 (Craft Certificate / NSC IV)',
+    'KCSE': 'Level 3 (Senior Secondary / KCSE / NSC II / GTT II)',
+    'KCPE': 'Level 1 (Primary Certificate / Basic Skills)',
+}
+
+export const KCSE_GRADES = ['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'E'] as const
+export const TVET_GRADES = ['Distinction', 'Credit', 'Pass', 'Fail', 'Refer'] as const
+export const UNIVERSITY_GRADES = [
+    'First Class Honours',
+    'Second Class Honours (Upper Division)',
+    'Second Class Honours (Lower Division)',
+    'Pass',
+    'Fail'
+] as const
+
+/**
+ * Validates a grade against a qualification level based on the Kenyan grading system.
+ */
+export const validateGradeForLevel = (level: string, grade: string | undefined | null) => {
+    if (!grade || grade === 'N/A') return true;
+
+    // Normalize level
+    const normalizedLevel = LEGACY_LEVEL_MAP[level] || level;
+
+    // Level 3 / KCSE
+    if (normalizedLevel.includes('Level 3') || level === 'KCSE') {
+        return KCSE_GRADES.includes(grade as any);
+    }
+
+    // Level 4-6 / TVET (Artisan, Craft, Diploma)
+    if (normalizedLevel.match(/Level [456]/) || ['DIPLOMA', 'CERTIFICATE'].includes(level)) {
+        return TVET_GRADES.includes(grade as any) || /^[1-7]$/.test(grade);
+    }
+
+    // Level 7-10 / University (Bachelors, PGD, Masters, PhD)
+    if (normalizedLevel.match(/Level (7|8|9|10)/) || ['BACHELORS', 'MASTERS', 'DOCTORATE'].includes(level)) {
+        return UNIVERSITY_GRADES.includes(grade as any) || ['Pass', 'Fail'].includes(grade);
+    }
+
+    return true; // Default for other levels or if no match
+}
+
 // Applicant Profile Schema
 export const applicantProfileSchema = z.object({
 
@@ -17,12 +85,12 @@ export const applicantProfileSchema = z.object({
     idNumber: z.string().min(1, 'ID number is required'), // Free text - no strict format
     gender: z.enum(['Male', 'Female', 'Other'], { required_error: 'Gender is required' }),
     dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format'),
-    ethnicityId: coerceNullableId,
+    ethnicityId: z.coerce.number({ required_error: 'Ethnicity is required' }),
     phoneNumber: z.string().min(1, 'Phone number is required'), // Free text - supports international
     email: z.string().email('Invalid email address'),
-    homeCountyId: coerceNullableId,
-    homeSubCountyId: coerceNullableId,
-    wardId: coerceNullableId,
+    homeCountyId: z.coerce.number({ required_error: 'Home County is required' }),
+    homeSubCountyId: z.coerce.number({ required_error: 'Sub-County is required' }),
+    wardId: z.coerce.number({ required_error: 'Ward is required' }),
     impairment: z.boolean().default(false),
     impairmentDetails: z.string().optional(),
     publicServiceInfo: z.string().optional(),
@@ -56,18 +124,37 @@ export const qualificationSchema = z.object({
         .optional()
         .nullable(),
     stillStudying: z.boolean().optional().default(false)
-}).refine(
-    (data) => {
-        if (data.yearStart && data.yearEnd && !data.stillStudying) {
-            return data.yearEnd >= data.yearStart
+}).superRefine((data, ctx) => {
+    // Year validation
+    if (data.yearStart && data.yearEnd && !data.stillStudying) {
+        if (data.yearEnd < data.yearStart) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'End year must be after or equal to start year',
+                path: ['yearEnd']
+            })
         }
-        return true
-    },
-    {
-        message: 'End year must be after or equal to start year',
-        path: ['yearEnd']
     }
-)
+
+    // Grade validation
+    if (data.level && data.grade && !validateGradeForLevel(data.level, data.grade)) {
+        const normalizedLevel = LEGACY_LEVEL_MAP[data.level] || data.level
+        let expected = ''
+        if (normalizedLevel.includes('Level 3') || data.level === 'KCSE') {
+            expected = `one of: ${KCSE_GRADES.join(', ')}`
+        } else if (normalizedLevel.match(/Level [456]/) || ['DIPLOMA', 'CERTIFICATE'].includes(data.level)) {
+            expected = `one of: ${TVET_GRADES.join(', ')} or 1-7`
+        } else if (normalizedLevel.match(/Level (7|8|9|10)/) || ['BACHELORS', 'MASTERS', 'DOCTORATE'].includes(data.level)) {
+            expected = `one of: ${UNIVERSITY_GRADES.join(', ')}`
+        }
+
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid grade for ${data.level}. Expected ${expected}`,
+            path: ['grade']
+        })
+    }
+})
 
 // Update schema - defined separately to avoid .partial() on refined schema
 export const updateQualificationSchema = z.object({
@@ -87,18 +174,37 @@ export const updateQualificationSchema = z.object({
         .optional()
         .nullable(),
     stillStudying: z.boolean().optional()
-}).refine(
-    (data) => {
-        if (data.yearStart && data.yearEnd && !data.stillStudying) {
-            return data.yearEnd >= data.yearStart
+}).superRefine((data, ctx) => {
+    // Year validation
+    if (data.yearStart && data.yearEnd && !data.stillStudying) {
+        if (data.yearEnd < data.yearStart) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'End year must be after or equal to start year',
+                path: ['yearEnd']
+            })
         }
-        return true
-    },
-    {
-        message: 'End year must be after or equal to start year',
-        path: ['yearEnd']
     }
-)
+
+    // Grade validation (only if both are provided in the update, or we'd need current record)
+    if (data.level && data.grade && !validateGradeForLevel(data.level, data.grade)) {
+        const normalizedLevel = LEGACY_LEVEL_MAP[data.level] || data.level
+        let expected = ''
+        if (normalizedLevel.includes('Level 3') || data.level === 'KCSE') {
+            expected = `one of: ${KCSE_GRADES.join(', ')}`
+        } else if (normalizedLevel.match(/Level [456]/) || ['DIPLOMA', 'CERTIFICATE'].includes(data.level)) {
+            expected = `one of: ${TVET_GRADES.join(', ')} or 1-7`
+        } else if (normalizedLevel.match(/Level (7|8|9|10)/) || ['BACHELORS', 'MASTERS', 'DOCTORATE'].includes(data.level)) {
+            expected = `one of: ${UNIVERSITY_GRADES.join(', ')}`
+        }
+
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid grade for ${data.level}. Expected ${expected}`,
+            path: ['grade']
+        })
+    }
+})
 
 // Professional Detail Schema
 export const professionalDetailSchema = z.object({

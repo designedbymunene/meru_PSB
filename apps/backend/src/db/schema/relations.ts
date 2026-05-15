@@ -13,6 +13,8 @@ import { trainingCourses } from './training-courses'
 import { professionalMemberships } from './professional-memberships'
 import { employmentHistory } from './employment-history'
 import { referees } from './referees'
+import { applicantDocuments } from './applicant-documents'
+
 import { counties, constituencies, wards } from './locations'
 import { 
     ethnicities, 
@@ -31,7 +33,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     applicantProfile: one(applicantProfiles, {
         fields: [users.id],
         references: [applicantProfiles.userId]
-    })
+    }),
+    documents: many(applicantDocuments)
 }))
 
 // Relations for password reset sessions
@@ -128,7 +131,8 @@ export const applicantProfilesRelations = relations(applicantProfiles, ({ one, m
     trainingCourses: many(trainingCourses),
     professionalMemberships: many(professionalMemberships),
     employmentHistory: many(employmentHistory),
-    referees: many(referees)
+    referees: many(referees),
+    documents: many(applicantDocuments)
 }))
 
 // Relations for qualifications
@@ -200,5 +204,21 @@ export const refereesRelations = relations(referees, ({ one }) => ({
     profile: one(applicantProfiles, {
         fields: [referees.applicantProfileId],
         references: [applicantProfiles.id]
+    })
+}))
+
+// Relations for applicant documents
+export const applicantDocumentsRelations = relations(applicantDocuments, ({ one }) => ({
+    user: one(users, {
+        fields: [applicantDocuments.userId],
+        references: [users.id]
+    }),
+    profile: one(applicantProfiles, {
+        fields: [applicantDocuments.userId],
+        references: [applicantProfiles.userId]
+    }),
+    verifier: one(users, {
+        fields: [applicantDocuments.verifiedBy],
+        references: [users.id]
     })
 }))

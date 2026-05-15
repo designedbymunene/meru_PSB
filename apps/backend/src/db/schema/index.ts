@@ -17,6 +17,8 @@ export * from './locations'
 export * from './reference-data'
 export * from './audit-logs'
 export * from './active-sessions'
+export * from './applicant-documents'
+
 
 // Import tables and relations for schema object
 import { users, revokedTokens } from './users'
@@ -44,6 +46,8 @@ import {
     educationGrades
 } from './reference-data'
 import { auditLogs } from './audit-logs'
+import { applicantDocuments } from './applicant-documents'
+
 
 export * from './relations'
 
@@ -61,7 +65,8 @@ import {
     professionalDetailsRelations,
     trainingCoursesRelations,
     professionalMembershipsRelations,
-    refereesRelations
+    refereesRelations,
+    applicantDocumentsRelations
 } from './relations'
 
 // Export schema object with relations for query API
@@ -92,6 +97,7 @@ export const schema = {
     educationLevels,
     educationGrades,
     auditLogs,
+    applicantDocuments,
     // Relations
     usersRelations,
     vacanciesRelations,
@@ -106,5 +112,6 @@ export const schema = {
     professionalDetailsRelations,
     trainingCoursesRelations,
     professionalMembershipsRelations,
-    refereesRelations
+    refereesRelations,
+    applicantDocumentsRelations
 }

@@ -1,18 +1,16 @@
 "use client"
 
-import { useVacancies } from "@/hooks/use-vacancies"
+import { useVacancies, useDeleteVacancy } from "@/hooks/use-vacancies"
 import { DataTable } from "@/components/admin/data-table"
 import { TableSkeleton } from "@/components/shared/table-skeleton"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, MoreHorizontal, Edit, Trash, FileText, Users } from "lucide-react"
 import Link from "next/link"
 import { ColumnDef } from "@tanstack/react-table"
 import { VacancyWithRelations } from "@/types"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Edit, Trash, FileText } from "lucide-react"
-import { useDeleteVacancy } from "@/hooks/use-vacancies"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -22,122 +20,161 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useState } from "react"
+import { VacancyFilters } from "@/components/vacancies/vacancy-filters"
+import { useQueryState } from "nuqs"
+
+const VacancyActions = ({ vacancy }: { vacancy: VacancyWithRelations }) => {
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+    const deleteVacancy = useDeleteVacancy()
+
+    return (
+        <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" asChild title="View Details">
+                <Link href={`/admin/vacancies/${vacancy.id}`}>
+                    <FileText className="h-4 w-4" />
+                    <span className="sr-only">View</span>
+                </Link>
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" asChild title="Edit Vacancy">
+                <Link href={`/admin/vacancies/${vacancy.id}/edit`}>
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Edit</span>
+                </Link>
+            </Button>
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10" 
+                onClick={() => setShowDeleteDialog(true)}
+                title="Delete Vacancy"
+            >
+                <Trash className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+            </Button>
+
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the vacancy
+                            &quot;{vacancy.title}&quot; and all associated applications.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => deleteVacancy.mutate(vacancy.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
+    )
+}
 
 export default function VacanciesPage() {
-    const { data, isLoading } = useVacancies()
-    const deleteVacancy = useDeleteVacancy()
+    const [search] = useQueryState('search')
+    const [status] = useQueryState('status')
+    const [departmentId] = useQueryState('departmentId')
+    const [jobGroupId] = useQueryState('jobGroupId')
+
+    const filters = {
+        search: search || undefined,
+        status: (status as 'open' | 'closed') || undefined,
+        departmentId: departmentId || undefined,
+        jobGroupId: jobGroupId || undefined,
+    }
+
+    const { data, isLoading } = useVacancies(filters)
     const vacancies = data?.data || []
 
     const columns: ColumnDef<VacancyWithRelations>[] = [
         {
             accessorKey: "advertisementNumber",
             header: "Ref No.",
+            cell: ({ row }) => (
+                <span className="font-mono text-xs font-medium">{row.original.advertisementNumber}</span>
+            )
         },
         {
             accessorKey: "title",
             header: "Title",
+            cell: ({ row }) => (
+                <div className="flex flex-col">
+                    <span className="font-semibold">{row.original.title}</span>
+                    <span className="text-xs text-muted-foreground">{row.original.department?.name}</span>
+                </div>
+            )
         },
-
         {
             accessorKey: "closingDate",
             header: "Closing Date",
-            cell: ({ row }) => format(new Date(row.original.closingDate), "PP"),
+            cell: ({ row }) => {
+                const date = new Date(row.original.closingDate)
+                const isExpired = date < new Date() && row.original.status === 'open'
+                return (
+                    <div className="flex flex-col">
+                        <span>{format(date, "PP")}</span>
+                        {isExpired && <span className="text-[10px] text-destructive font-bold uppercase">Expired</span>}
+                    </div>
+                )
+            },
         },
         {
             accessorKey: "status",
             header: "Status",
             cell: ({ row }) => (
-                <Badge variant={row.original.status === 'open' ? 'default' : 'secondary'}>
+                <Badge variant={row.original.status === 'open' ? 'default' : 'secondary'} className="capitalize">
                     {row.original.status}
                 </Badge>
             ),
         },
         {
-            accessorKey: "applicationsCount", // Assuming backend returns this, otherwise we might not have it in list
-            header: "Applications",
-            cell: ({ row }) => {
-                // Fallback if not available
-                return row.original.openPositions ? `${row.original.openPositions} Pos.` : '-'
-            }
+            accessorKey: "applicationsCount",
+            header: () => (
+                <div className="flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5" />
+                    <span>Apps</span>
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="flex flex-col">
+                    <span className="font-bold">{row.original.applicationsCount || 0}</span>
+                    <span className="text-[10px] text-muted-foreground">{row.original.openPositions} positions</span>
+                </div>
+            )
         },
         {
             id: "actions",
-            cell: ({ row }) => {
-                const vacancy = row.original
-                // eslint-disable-next-line react-hooks/rules-of-hooks
-                const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-
-                return (
-                    <>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem asChild>
-                                    <Link href={`/admin/vacancies/${vacancy.id}`}>
-                                        <FileText className="mr-2 h-4 w-4" /> View Details
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <Link href={`/admin/vacancies/${vacancy.id}/edit`}>
-                                        <Edit className="mr-2 h-4 w-4" /> Edit
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => setShowDeleteDialog(true)} className="text-destructive">
-                                    <Trash className="mr-2 h-4 w-4" /> Delete
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete the vacancy.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                        onClick={() => deleteVacancy.mutate(vacancy.id)}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                        Delete
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </>
-                )
-            },
+            cell: ({ row }) => <VacancyActions vacancy={row.original} />,
         },
     ]
 
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Vacancies</h2>
-                <div className="flex items-center space-x-2">
-                    <Button asChild>
-                        <Link href="/admin/vacancies/new">
-                            <Plus className="mr-2 h-4 w-4" /> Create Vacancy
-                        </Link>
-                    </Button>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Vacancies</h2>
+                    <p className="text-muted-foreground">Manage and monitor job advertisements</p>
                 </div>
+                <Button asChild>
+                    <Link href="/admin/vacancies/new">
+                        <Plus className="mr-2 h-4 w-4" /> Create Vacancy
+                    </Link>
+                </Button>
             </div>
 
-            <div className="hidden md:block">
+            <VacancyFilters />
+
+            <div className="mt-4">
                 {isLoading ? (
-                    <TableSkeleton columnCount={7} />
+                    <TableSkeleton columnCount={6} />
                 ) : (
                     <DataTable columns={columns} data={vacancies} searchKey="title" />
                 )}

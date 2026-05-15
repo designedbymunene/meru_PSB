@@ -49,7 +49,8 @@ applicantProfilesRouter.get('/', authenticate, async (c) => {
                 trainingCourses: true,
                 professionalMemberships: true,
                 employmentHistory: true,
-                referees: true
+                referees: true,
+                documents: true
             }
         })
 
@@ -82,8 +83,10 @@ applicantProfilesRouter.get('/me', authenticate, async (c) => {
             trainingCourses: true,
             professionalMemberships: true,
             employmentHistory: true,
-            referees: true
+            referees: true,
+            documents: true
         }
+
     })
 
     if (!profile) {
@@ -1295,7 +1298,8 @@ applicantProfilesRouter.get('/admin/all', authenticate, requireAdmin, async (c) 
             trainingCourses: true,
             professionalMemberships: true,
             employmentHistory: true,
-            referees: true
+            referees: true,
+            documents: true
         }
     })
 
@@ -1318,7 +1322,8 @@ applicantProfilesRouter.get('/admin/export', authenticate, requireAdmin, async (
             trainingCourses: true,
             professionalMemberships: true,
             employmentHistory: true,
-            referees: true
+            referees: true,
+            documents: true
         }
     })
 

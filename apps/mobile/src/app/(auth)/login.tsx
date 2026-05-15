@@ -187,33 +187,29 @@ export default function LoginScreen() {
                                         <Text className="text-sm font-bold text-[#004aad] dark:text-blue-400">Forgot password?</Text>
                                     </TouchableOpacity>
                                 </View>
-                                <View className="relative">
-                                    <Controller
-                                        control={control}
-                                        name="password"
-                                        render={({ field: { onChange, onBlur, value } }) => (
-                                            <FormField
-                                                ref={passwordRef}
-                                                label=""
-                                                placeholder="••••••••"
-                                                icon={Lock}
-                                                onBlur={onBlur}
-                                                onChangeText={onChange}
-                                                value={value}
-                                                error={errors.password?.message}
-                                                secureTextEntry={!showPassword}
-                                                returnKeyType="done"
-                                                onSubmitEditing={handleSubmit(onSubmit)}
-                                            />
-                                        )}
+                            <Controller
+                                control={control}
+                                name="password"
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <FormField
+                                        ref={passwordRef}
+                                        placeholder="••••••••"
+                                        icon={Lock}
+                                        onBlur={onBlur}
+                                        onChangeText={onChange}
+                                        value={value}
+                                        error={errors.password?.message}
+                                        secureTextEntry={!showPassword}
+                                        returnKeyType="done"
+                                        onSubmitEditing={handleSubmit(onSubmit)}
+                                        rightElement={
+                                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                                {showPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
+                                            </TouchableOpacity>
+                                        }
                                     />
-                                    <TouchableOpacity 
-                                        onPress={() => setShowPassword(!showPassword)} 
-                                        className="absolute right-4 top-[14px]"
-                                    >
-                                        {showPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
-                                    </TouchableOpacity>
-                                </View>
+                                )}
+                            />
                             </View>
 
                             {/* Sign In Button */}
@@ -255,7 +251,7 @@ export default function LoginScreen() {
                                 className="flex-1 flex-row items-center justify-center h-14 rounded-2xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-900 active:bg-slate-50 dark:active:bg-gray-800 shadow-sm"
                             >
                                 <Mail size={22} color="#004aad" className="dark:text-blue-400" />
-                                <Text className="ml-2 font-bold text-slate-700 dark:text-gray-300">OTP</Text>
+                                <Text className="ml-2 font-bold text-slate-700 dark:text-gray-300">Login with OTP</Text>
                             </TouchableOpacity>
                         </View>
 

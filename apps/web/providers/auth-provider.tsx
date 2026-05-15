@@ -44,6 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 localStorage.removeItem('refreshToken')
                 deleteCookie('accessToken')
             }
+        } else {
+            // If we don't have both, ensure cookie is also cleared to prevent middleware loops
+            deleteCookie('accessToken')
         }
         setIsLoading(false)
     }, [])

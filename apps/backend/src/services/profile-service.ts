@@ -16,20 +16,21 @@ export class ProfileService {
                 trainingCourses: true,
                 professionalMemberships: true,
                 employmentHistory: true,
-                referees: true
+                referees: true,
+                documents: true
             }
         })
     }
 
     /**
-     * Checks if a profile is 100% complete.
+     * Checks if a profile satisfies the required application sections.
      */
     static async isProfileComplete(userId: number) {
         const profile = await this.getFullProfile(userId)
         if (!profile) return false
 
         const completion = calculateProfileCompletion(profile)
-        return completion.overallPercentage === 100
+        return completion.canApply
     }
 
     /**

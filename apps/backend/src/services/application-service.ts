@@ -48,8 +48,11 @@ export class ApplicationService {
             }
 
             const completion = await ProfileService.getCompletionStats(userId)
-            if (!completion || completion.overallPercentage < 100) {
-                throw new ValidationError('Your Digital CV must be 100% complete to apply. Current: ' + (completion?.overallPercentage || 0) + '%')
+            if (!completion || !completion.canApply) {
+                throw new ValidationError(
+                    'Complete the required profile sections before applying. Missing: ' +
+                    (completion?.requiredMissing?.join(', ') || 'Required sections')
+                )
             }
 
             // 5. Create application with snapshot

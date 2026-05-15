@@ -84,7 +84,8 @@ describe('Job Application Flow Integration Test', () => {
         }))
         await traceRequest('Step 1: Login', 'POST', '/api/auth/login', payload, res)
         expect(res.status).toBe(200)
-        applicantToken = (await res.json()).data.accessToken
+        const loginBody = await res.json() as any
+        applicantToken = loginBody.data.accessToken
     })
 
     it('Step 2: Attempt to apply for a job with a partially filled CV', async () => {
@@ -133,13 +134,11 @@ describe('Job Application Flow Integration Test', () => {
         const payload = { vacancyId: 101 }
         ;(db.query.vacancies.findFirst as any).mockResolvedValue({ id: 101, status: 'open', closingDate: '2099-01-01' })
         
-        // Comprehensive mock for 100% completion based on utility logic
+        // Required fields mock for application eligibility
         ;(db.query.applicantProfiles.findFirst as any).mockResolvedValue({
             id: 1, userId: 1, fullName: 'John Doe', idNumber: '12345678', gender: 'Male',
             phoneNumber: '0712345678', email: 'john@example.com', dateOfBirth: '1990-01-01',
-            ethnicityId: 1, homeCountyId: 1, homeSubCountyId: 1, wardId: 1,
-            qualifications: [{}], employmentHistory: [{}], professionalDetails: [{}],
-            trainingCourses: [{}], professionalMemberships: [{}], referees: [{}, {}, {}]
+            qualifications: [{}]
         })
 
         applicationId = 501
@@ -170,7 +169,7 @@ describe('Job Application Flow Integration Test', () => {
         }))
         await traceRequest('Step 5: Admin Login', 'POST', '/api/auth/login', payload, res)
         expect(res.status).toBe(200)
-        const body = await res.json()
+        const body = await res.json() as any
         adminToken = body.data.accessToken
         expect(adminToken).toBe('admin-token')
         expect(body.data.user.role).toBe('admin')

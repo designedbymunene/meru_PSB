@@ -7,6 +7,15 @@ import { successResponse, ValidationError, UnauthorizedError, NotFoundError } fr
 import { hashPassword, verifyPassword } from '../utils/auth'
 import { validate } from '../middleware/validation'
 import { changePasswordSchema } from '@meru/shared'
+import { applicantDocuments } from '../db/schema'
+import path from 'path'
+import fs from 'fs/promises'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const UPLOADS_DIR = path.join(__dirname, '../../uploads/applicant-documents')
+
 
 export const accountRouter = new Hono()
 
@@ -119,3 +128,90 @@ accountRouter.delete('/sessions', authenticate, async (c) => {
         
     return successResponse(c, null, 'All other sessions revoked')
 })
+
+// GET /api/account/documents - List user's documents
+accountRouter.get('/documents', authenticate, async (c) => {
+    const user = c.get('user')
+    
+    const docs = await db.select().from(applicantDocuments)
+        .where(eq(applicantDocuments.userId, user.userId))
+        .orderBy(applicantDocuments.createdAt)
+        
+    return successResponse(c, docs)
+})
+
+// POST /api/account/documents/upload - Upload a document
+accountRouter.post('/documents/upload', authenticate, async (c) => {
+    const user = c.get('user')
+    const body = await c.req.parseBody()
+    
+    const file = body['file'] as any
+    const documentType = body['documentType'] as string
+    
+    if (!file || !documentType) {
+        throw new ValidationError('File and document type are required')
+    }
+
+    // Create uploads directory if it doesn't exist
+    try {
+        await fs.access(UPLOADS_DIR)
+    } catch {
+        await fs.mkdir(UPLOADS_DIR, { recursive: true })
+    }
+
+    const originalName = file.name
+    const mimeType = file.type
+    const fileSize = file.size
+    const extension = path.extname(originalName)
+    const filename = `${user.userId}-${Date.now()}${extension}`
+    const filePath = path.join(UPLOADS_DIR, filename)
+
+    // Save file to disk
+    const arrayBuffer = await file.arrayBuffer()
+    await fs.writeFile(filePath, Buffer.from(arrayBuffer))
+
+    // Save record to database
+    const [doc] = await db.insert(applicantDocuments).values({
+        userId: user.userId,
+        documentType,
+        originalName,
+        filename,
+        filePath: `applicant-documents/${filename}`,
+        fileSize,
+        mimeType,
+        status: 'uploaded'
+    }).returning()
+
+    return successResponse(c, doc, 'Document uploaded successfully')
+})
+
+// DELETE /api/account/documents/:id - Delete a document
+accountRouter.delete('/documents/:id', authenticate, async (c) => {
+    const user = c.get('user')
+    const docId = parseInt(c.req.param('id'))
+    
+    const [doc] = await db.select().from(applicantDocuments)
+        .where(and(
+            eq(applicantDocuments.id, docId),
+            eq(applicantDocuments.userId, user.userId)
+        ))
+        
+    if (!doc) {
+        throw new NotFoundError('Document not found')
+    }
+
+    // Delete from disk
+    const absolutePath = path.join(__dirname, '../../uploads', doc.filePath)
+    try {
+        await fs.unlink(absolutePath)
+    } catch (err) {
+        console.error(`Failed to delete file: ${absolutePath}`, err)
+    }
+
+    // Delete from database
+    await db.delete(applicantDocuments)
+        .where(eq(applicantDocuments.id, docId))
+        
+    return successResponse(c, null, 'Document deleted')
+})
+

@@ -1,10 +1,8 @@
 "use client"
 
-import { useState } from "react"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { useCreateVacancy, useUpdateVacancy } from "@/hooks/use-vacancies"
 import { useDepartments } from "@/hooks/use-departments"
@@ -35,17 +33,17 @@ import { VacancyWithRelations, CreateVacancyData } from "@/types"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 
 const vacancySchema = z.object({
-    // advertisementNumber is auto-generated on backend
     title: z.string().min(1, "Title is required"),
     description: z.string().min(10, "Description must be at least 10 characters"),
-
     departmentId: z.number().min(1, "Department is required"),
     jobGroupId: z.number().min(1, "Job Group is required"),
-    closingDate: z.date(),
+    closingDate: z.date().refine(date => date >= new Date(new Date().setHours(0,0,0,0)), {
+        message: "Closing date cannot be in the past"
+    }),
     openPositions: z.number().min(1, "Must have at least 1 position"),
     status: z.enum(["open", "closed"]),
-    jobRequirements: z.array(z.object({ value: z.string().min(1, "Requirement cannot be empty") })),
-    jobResponsibilities: z.array(z.object({ value: z.string().min(1, "Responsibility cannot be empty") })),
+    jobRequirements: z.array(z.object({ value: z.string().min(1, "Requirement cannot be empty") })).min(1, "At least one requirement is required"),
+    jobResponsibilities: z.array(z.object({ value: z.string().min(1, "Responsibility cannot be empty") })).min(1, "At least one responsibility is required"),
 })
 
 type VacancyFormValues = z.infer<typeof vacancySchema>
@@ -60,24 +58,20 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
     const createVacancy = useCreateVacancy()
     const updateVacancy = useUpdateVacancy()
 
-    // Use defined hooks for reference data
-
     const { data: jobGroupsData, isLoading: isLoadingJobGroups } = useJobGroups()
+    const { data: departmentsData, isLoading: isLoadingDepartments } = useDepartments()
 
     const defaultValues: Partial<VacancyFormValues> = initialData
         ? {
             ...initialData,
             departmentId: initialData.departmentId || 0,
             closingDate: new Date(initialData.closingDate),
-            // Ensure arrays are initialized
-            jobRequirements: initialData.jobRequirements?.map(r => ({ value: r })) || [],
-            jobResponsibilities: initialData.jobResponsibilities?.map(r => ({ value: r })) || [],
+            jobRequirements: initialData.jobRequirements?.map(r => ({ value: r })) || [{ value: "" }],
+            jobResponsibilities: initialData.jobResponsibilities?.map(r => ({ value: r })) || [{ value: "" }],
         }
         : {
-            // advertisementNumber: "",
             title: "",
             description: "",
-
             departmentId: 0,
             jobGroupId: 0,
             openPositions: 1,
@@ -91,10 +85,6 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
         defaultValues,
     })
 
-    // Watch ministryId to filter departments
-    const { data: departmentsData, isLoading: isLoadingDepartments } = useDepartments()
-
-    // Field arrays for dynamic lists
     const { fields: reqFields, append: appendReq, remove: removeReq } = useFieldArray({
         control: form.control,
         name: "jobRequirements",
@@ -124,24 +114,23 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <div className="grid gap-6 md:grid-cols-2">
-
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-5xl mx-auto">
+                <div className="grid gap-6">
                     {/* Basic Information */}
-                    <Card className="col-span-2">
+                    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
                         <CardHeader>
-                            <CardTitle>Basic Information</CardTitle>
+                            <CardTitle className="text-lg">Basic Information</CardTitle>
+                            <FormDescription>General details about the position</FormDescription>
                         </CardHeader>
-                        <CardContent className="grid gap-4 md:grid-cols-2">
-                            {/* Advertisement Number is auto-generated */}
+                        <CardContent className="grid gap-6 md:grid-cols-2">
                             <FormField
                                 control={form.control}
                                 name="title"
                                 render={({ field }) => (
-                                    <FormItem>
+                                    <FormItem className="col-span-2 md:col-span-1">
                                         <FormLabel>Job Title</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g. Senior Accountant" {...field} />
+                                            <Input placeholder="e.g. Senior Accountant" {...field} className="h-11" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -154,7 +143,7 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                                     <FormItem>
                                         <FormLabel>Open Positions</FormLabel>
                                         <FormControl>
-                                            <Input type="number" min={1} {...field} onChange={(e) => field.onChange(e.target.valueAsNumber)} />
+                                            <Input type="number" min={1} {...field} onChange={(e) => field.onChange(e.target.valueAsNumber)} className="h-11" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -165,11 +154,11 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                                 name="closingDate"
                                 render={({ field }) => (
                                     <FormItem className="flex flex-col">
-                                        <FormLabel>Closing Date</FormLabel>
+                                        <FormLabel className="mb-2">Closing Date</FormLabel>
                                         <DatePicker
                                             date={field.value}
                                             onChange={field.onChange}
-                                            disabled={(date) => date < new Date() && date.toDateString() !== new Date().toDateString()}
+                                            disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
                                         />
                                         <FormMessage />
                                     </FormItem>
@@ -183,7 +172,7 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                                         <FormLabel>Status</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
-                                                <SelectTrigger>
+                                                <SelectTrigger className="h-11">
                                                     <SelectValue placeholder="Select status" />
                                                 </SelectTrigger>
                                             </FormControl>
@@ -199,13 +188,13 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                         </CardContent>
                     </Card>
 
-                    {/* Department & Ministry */}
-                    <Card className="col-span-2">
+                    {/* Organization */}
+                    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
                         <CardHeader>
-                            <CardTitle>Organization</CardTitle>
+                            <CardTitle className="text-lg">Organization & Grading</CardTitle>
+                            <FormDescription>Assign the vacancy to a department and job group</FormDescription>
                         </CardHeader>
-                        <CardContent className="grid gap-4 md:grid-cols-2">
-
+                        <CardContent className="grid gap-6 md:grid-cols-2">
                             <FormField
                                 control={form.control}
                                 name="departmentId"
@@ -217,7 +206,7 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                                             value={field.value?.toString()}
                                         >
                                             <FormControl>
-                                                <SelectTrigger>
+                                                <SelectTrigger className="h-11">
                                                     <SelectValue placeholder={isLoadingDepartments ? "Loading..." : "Select Department"} />
                                                 </SelectTrigger>
                                             </FormControl>
@@ -241,7 +230,7 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                                         <FormLabel>Job Group</FormLabel>
                                         <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value?.toString()}>
                                             <FormControl>
-                                                <SelectTrigger>
+                                                <SelectTrigger className="h-11">
                                                     <SelectValue placeholder={isLoadingJobGroups ? "Loading..." : "Select Job Group"} />
                                                 </SelectTrigger>
                                             </FormControl>
@@ -261,11 +250,12 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                     </Card>
 
                     {/* Details */}
-                    <Card className="col-span-2">
+                    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
                         <CardHeader>
-                            <CardTitle>Job Details</CardTitle>
+                            <CardTitle className="text-lg">Job Details</CardTitle>
+                            <FormDescription>Describe the role and list expectations</FormDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-8">
                             <FormField
                                 control={form.control}
                                 name="description"
@@ -273,85 +263,117 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                                     <FormItem>
                                         <FormLabel>Description</FormLabel>
                                         <FormControl>
-                                            <Textarea className="min-h-[100px]" placeholder="Brief job description..." {...field} />
+                                            <Textarea 
+                                                className="min-h-[150px] resize-y" 
+                                                placeholder="Provide a detailed job description..." 
+                                                {...field} 
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
 
+                            <Separator />
+
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-medium">Requirements</h4>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => appendReq({ value: "" })}>
-                                        <Plus className="mr-2 h-4 w-4" /> Add Requirement
+                                    <div>
+                                        <h4 className="text-sm font-semibold">Requirements</h4>
+                                        <p className="text-xs text-muted-foreground">Qualifications and skills needed</p>
+                                    </div>
+                                    <Button type="button" variant="outline" size="sm" onClick={() => appendReq({ value: "" })} className="rounded-lg h-9">
+                                        <Plus className="mr-2 h-4 w-4" /> Add
                                     </Button>
                                 </div>
-                                {reqFields.map((field, index) => (
-                                    <div key={field.id} className="flex gap-2">
-                                        <FormField
-                                            control={form.control}
-                                            name={`jobRequirements.${index}.value`}
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormControl>
-                                                        <Input placeholder={`Requirement ${index + 1}`} {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeReq(index)} disabled={reqFields.length === 1}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                ))}
+                                <div className="grid gap-3">
+                                    {reqFields.map((field, index) => (
+                                        <div key={field.id} className="flex gap-2 group">
+                                            <FormField
+                                                control={form.control}
+                                                name={`jobRequirements.${index}.value`}
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormControl>
+                                                            <div className="relative">
+                                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-300 dark:text-slate-700 w-4">
+                                                                    {index + 1}.
+                                                                </span>
+                                                                <Input placeholder={`Requirement ${index + 1}`} {...field} className="pl-8 h-10 border-slate-200 focus-visible:ring-primary/20" />
+                                                            </div>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeReq(index)} disabled={reqFields.length === 1} className="h-10 w-10 text-slate-400 hover:text-destructive transition-colors">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
                                 {form.formState.errors.jobRequirements && (
                                     <p className="text-sm font-medium text-destructive">{form.formState.errors.jobRequirements.message}</p>
                                 )}
                             </div>
 
+                            <Separator />
+
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-medium">Responsibilities</h4>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => appendResp({ value: "" })}>
-                                        <Plus className="mr-2 h-4 w-4" /> Add Responsibility
+                                    <div>
+                                        <h4 className="text-sm font-semibold">Responsibilities</h4>
+                                        <p className="text-xs text-muted-foreground">Key duties for this role</p>
+                                    </div>
+                                    <Button type="button" variant="outline" size="sm" onClick={() => appendResp({ value: "" })} className="rounded-lg h-9">
+                                        <Plus className="mr-2 h-4 w-4" /> Add
                                     </Button>
                                 </div>
-                                {respFields.map((field, index) => (
-                                    <div key={field.id} className="flex gap-2">
-                                        <FormField
-                                            control={form.control}
-                                            name={`jobResponsibilities.${index}.value`}
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormControl>
-                                                        <Input placeholder={`Responsibility ${index + 1}`} {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeResp(index)} disabled={respFields.length === 1}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                ))}
+                                <div className="grid gap-3">
+                                    {respFields.map((field, index) => (
+                                        <div key={field.id} className="flex gap-2 group">
+                                            <FormField
+                                                control={form.control}
+                                                name={`jobResponsibilities.${index}.value`}
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormControl>
+                                                            <div className="relative">
+                                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-300 dark:text-slate-700 w-4">
+                                                                    {index + 1}.
+                                                                </span>
+                                                                <Input placeholder={`Responsibility ${index + 1}`} {...field} className="pl-8 h-10 border-slate-200 focus-visible:ring-primary/20" />
+                                                            </div>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeResp(index)} disabled={respFields.length === 1} className="h-10 w-10 text-slate-400 hover:text-destructive transition-colors">
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
                                 {form.formState.errors.jobResponsibilities && (
                                     <p className="text-sm font-medium text-destructive">{form.formState.errors.jobResponsibilities.message}</p>
                                 )}
                             </div>
-
                         </CardContent>
                     </Card>
                 </div >
 
-                <div className="flex justify-end gap-4">
-                    <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {mode === "create" ? "Create Vacancy" : "Save Changes"}
+                <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-900">
+                    <Button type="button" variant="ghost" onClick={() => router.back()} className="text-slate-500 hover:text-slate-900">
+                        Discard changes
                     </Button>
+                    <div className="flex gap-3">
+                        <Button type="button" variant="outline" onClick={() => router.back()} className="rounded-xl px-6">Cancel</Button>
+                        <Button type="submit" disabled={isSubmitting} className="rounded-xl px-8 shadow-md">
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {mode === "create" ? "Create Vacancy" : "Save Changes"}
+                        </Button>
+                    </div>
                 </div>
             </form >
         </Form >

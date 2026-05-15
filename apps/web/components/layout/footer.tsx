@@ -86,24 +86,24 @@ export function Footer() {
                                 </a>
                             </li>
                             <li>
-                                <a href="#" className="text-foreground/80 hover:text-foreground transition-colors">
+                                <Link href="/support" className="text-foreground/80 hover:text-foreground transition-colors">
                                     FAQs
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a href="#" className="text-foreground/80 hover:text-foreground transition-colors">
+                                <Link href="/support" className="text-foreground/80 hover:text-foreground transition-colors">
                                     Application Guide
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a href="#" className="text-foreground/80 hover:text-foreground transition-colors">
+                                <Link href="/terms" className="text-foreground/80 hover:text-foreground transition-colors">
                                     Terms of Service
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a href="#" className="text-foreground/80 hover:text-foreground transition-colors">
+                                <Link href="/privacy" className="text-foreground/80 hover:text-foreground transition-colors">
                                     Privacy Policy
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -117,20 +117,20 @@ export function Footer() {
                             <li className="flex items-start gap-3">
                                 <MapPinIcon className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
                                 <span className="text-foreground/80">
-                                    County Public Service Board<br />
-                                    Meru Town, Kenya
+                                    Meru County HQ<br />
+                                    P.O. BOX 109-60200, Meru
                                 </span>
                             </li>
                             <li className="flex items-center gap-3">
                                 <PhoneIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                <a href="tel:+254700000000" className="text-foreground/80 hover:text-foreground transition-colors">
+                                <a href="tel:+254776733322" className="text-foreground/80 hover:text-foreground transition-colors">
                                     +254 776 733 322
                                 </a>
                             </li>
                             <li className="flex items-center gap-3">
                                 <MailIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                <a href="mailto:recruitment@meru.go.ke" className="text-foreground/80 hover:text-foreground transition-colors">
-                                    recruitment@meru.go.ke
+                                <a href="mailto:adminmerucpsb@meru.go.ke" className="text-foreground/80 hover:text-foreground transition-colors">
+                                    adminmerucpsb@meru.go.ke
                                 </a>
                             </li>
                         </ul>

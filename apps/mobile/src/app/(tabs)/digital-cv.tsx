@@ -9,28 +9,93 @@ import {
     FileUp,
     GraduationCap,
     MapPin,
-    Plus,
     ShieldCheck,
     User,
     Users
 } from 'lucide-react-native';
 import React from 'react';
-import { useColorScheme } from 'nativewind';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '@/components/ui/header';
-import { useAuth } from '@/context/auth-context';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
+import { calculateProfileCompletion, type ProfileCompletionSummary, type ProfileSectionId } from '@meru/shared';
+
+type SectionMeta = {
+    title: string;
+    subtitle: string;
+    icon: React.ReactNode;
+    path: string;
+}
+
+const SECTION_META: Record<ProfileSectionId, SectionMeta> = {
+    personal: {
+        title: 'Bio Data',
+        subtitle: 'Name, ID and birth details',
+        icon: <User size={20} color="#004aad" />,
+        path: '/profile/personal-details',
+    },
+    contact: {
+        title: 'Contact Details',
+        subtitle: 'Phone number and email',
+        icon: <FileText size={20} color="#004aad" />,
+        path: '/profile/personal-details',
+    },
+    location: {
+        title: 'Residence & Origin',
+        subtitle: 'County, sub-county and ward',
+        icon: <MapPin size={20} color="#004aad" />,
+        path: '/profile/location-details',
+    },
+    education: {
+        title: 'Education History',
+        subtitle: 'Degrees, diplomas and certificates',
+        icon: <GraduationCap size={20} color="#004aad" />,
+        path: '/profile/qualifications',
+    },
+    experience: {
+        title: 'Employment History',
+        subtitle: 'Past and present work records',
+        icon: <Briefcase size={20} color="#004aad" />,
+        path: '/profile/employment-history',
+    },
+    professional: {
+        title: 'Professional Details',
+        subtitle: 'Licenses and registrations',
+        icon: <Award size={20} color="#004aad" />,
+        path: '/profile/professional-details',
+    },
+    training: {
+        title: 'Training & Short Courses',
+        subtitle: 'Workshops and CPDs',
+        icon: <BookOpen size={20} color="#004aad" />,
+        path: '/profile/training',
+    },
+    memberships: {
+        title: 'Memberships',
+        subtitle: 'Bodies and associations',
+        icon: <ShieldCheck size={20} color="#004aad" />,
+        path: '/profile/memberships',
+    },
+    referees: {
+        title: 'Referees',
+        subtitle: 'Professional and academic contacts',
+        icon: <Users size={20} color="#004aad" />,
+        path: '/profile/referees',
+    },
+    documents: {
+        title: 'Uploaded Documents',
+        subtitle: 'ID, CV and other supporting documents',
+        icon: <FileUp size={20} color="#004aad" />,
+        path: '/profile/documents',
+    },
+}
 
 export default function DigitalCVScreen() {
     const router = useRouter();
-    const { user } = useAuth();
-    const { colorScheme } = useColorScheme();
-    const isDarkMode = colorScheme === 'dark';
     const insets = useSafeAreaInsets();
 
-    const { data: profile, isLoading } = useQuery({
+    const { data: profile } = useQuery({
         queryKey: ['profile-completion'],
         queryFn: async () => {
             const response = await apiClient.get('/applicant-profiles/me');
@@ -38,98 +103,22 @@ export default function DigitalCVScreen() {
         },
     });
 
+    if (profile === undefined) {
+        return (
+            <View className="flex-1 items-center justify-center bg-white dark:bg-gray-950">
+                <ActivityIndicator size="large" color="#004aad" />
+            </View>
+        );
+    }
+
+    const completion: ProfileCompletionSummary = profile?.profileCompletion || calculateProfileCompletion(profile);
+
     const handlePress = (path: string) => {
         router.push(path as any);
     };
 
-    const completion = profile?.profileCompletion || {
-        overallPercentage: 0,
-        sections: {
-            personal: 0,
-            location: 0,
-            education: 0,
-            experience: 0,
-            professional: 0,
-            referees: 0
-        }
-    };
-
-    const sections = [
-        {
-            id: 'personal',
-            title: 'Bio Data & Contact',
-            subtitle: 'Name, ID, Phone & Email',
-            icon: <User size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
-            completed: (completion.sections?.personal || 0) === 100,
-            percentage: completion.sections?.personal || 0,
-            path: '/profile/personal-details'
-        },
-        {
-            id: 'location',
-            title: 'Residence & Origin',
-            subtitle: 'County, Sub-County & Ward',
-            icon: <MapPin size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
-            completed: (completion.sections?.location || 0) === 100,
-            percentage: completion.sections?.location || 0,
-            path: '/profile/location-details'
-        },
-        {
-            id: 'education',
-            title: 'Education History',
-            subtitle: 'Degrees, Diplomas & Certificates',
-            icon: <GraduationCap size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
-            completed: (completion.sections?.education || 0) === 100,
-            percentage: completion.sections?.education || 0,
-            path: '/profile/qualifications'
-        },
-        {
-            id: 'experience',
-            title: 'Employment History',
-            subtitle: 'Past & Present Work Records',
-            icon: <Briefcase size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
-            completed: (completion.sections?.experience || 0) === 100,
-            percentage: completion.sections?.experience || 0,
-            path: '/profile/employment-history'
-        },
-        {
-            id: 'professional',
-            title: 'Professional Certifications',
-            subtitle: 'Licenses & Practice Certificates',
-            icon: <Award size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
-            completed: (completion.sections?.professional || 0) === 100,
-            percentage: completion.sections?.professional || 0,
-            path: '/profile/professional-details'
-        },
-        {
-            id: 'memberships',
-            title: 'Professional Memberships',
-            subtitle: 'Institutional & Body Affiliations',
-            icon: <ShieldCheck size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
-            completed: (completion.sections?.professional || 0) === 100,
-            percentage: completion.sections?.professional || 0,
-            path: '/profile/memberships'
-        },
-        {
-            id: 'training',
-            title: 'Training & Short Courses',
-            subtitle: 'Workshops, Seminars & CPDs',
-            icon: <BookOpen size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
-            completed: (completion.sections?.professional || 0) === 100,
-            percentage: completion.sections?.professional || 0,
-            path: '/profile/training'
-        },
-        {
-            id: 'referees',
-            title: 'Referees',
-            subtitle: 'Professional & Academic Contacts',
-            icon: <Users size={20} color={isDarkMode ? '#3b82f6' : '#004aad'} />,
-            completed: (completion.sections?.referees || 0) === 100,
-            percentage: completion.sections?.referees || 0,
-            path: '/profile/referees'
-        }
-    ];
-
-    const overallCompleteness = completion.overallPercentage || 0;
+    const requiredSections = completion?.groups?.required || [];
+    const optionalSections = completion?.groups?.optional || [];
 
     return (
         <View className="flex-1 bg-white dark:bg-gray-950">
@@ -142,103 +131,59 @@ export default function DigitalCVScreen() {
                 rightAction={
                     <View className="flex-row items-center justify-between">
                         <TouchableOpacity className="bg-gray-50 dark:bg-gray-900 p-2 flex-row items-center rounded-xl border border-gray-100 dark:border-gray-800">
-                            <FileText size={18} color={isDarkMode ? '#3b82f6' : '#004aad'} />
+                            <FileText size={18} color="#004aad" />
                             <Text className="text-gray-900 dark:text-gray-200 font-bold text-[10px] ml-2">Download CV</Text>
                         </TouchableOpacity>
                     </View>
                 }
             />
 
-            <ScrollView 
-                className="flex-1" 
+            <ScrollView
+                className="flex-1"
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
             >
                 <View className="px-4 pb-10">
-                    {/* Minimalist Status Section */}
                     <View className="bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-[24px] mb-4 mt-4">
                         <View className="flex-row justify-between items-end mb-3">
                             <View>
-                                <Text className="text-gray-400 dark:text-gray-500 text-[9px] font-black uppercase tracking-widest mb-0.5">Profile Strength</Text>
+                                <Text className="text-gray-400 dark:text-gray-500 text-[9px] font-black uppercase tracking-widest mb-0.5">Required to Apply</Text>
                                 <Text className="text-gray-900 dark:text-white text-lg font-black">
-                                    {overallCompleteness}% Complete
+                                    {completion.requiredPercentage}% Complete
                                 </Text>
                             </View>
                             <Text className="text-gray-400 dark:text-gray-500 text-[10px] font-bold">
-                                {overallCompleteness === 100 ? 'Verified' : 'Action Required'}
+                                {completion.canApply ? 'Ready' : 'Action Required'}
                             </Text>
                         </View>
 
-                        <View className="h-1 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <View className="h-full bg-[#004aad] dark:bg-blue-500 rounded-full" style={{ width: `${overallCompleteness}%` }} />
-                        </View>
-                    </View>
-
-                    {/* Section Buttons */}
-                    <View className="mt-4">
-                        <Text className="text-lg font-black text-gray-900 dark:text-white mb-3 px-1">Profile Sections</Text>
-
-                        <View className="space-y-3">
-                            {sections.map((section, index) => (
-                                <TouchableOpacity
-                                    key={section.id}
-                                    onPress={() => handlePress(section.path)}
-                                    className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl shadow-sm flex-row items-center mb-3"
-                                >
-                                    <View className="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-xl mr-3">
-                                        {section.icon}
-                                    </View>
-
-                                    <View className="flex-1">
-                                        <Text className="text-gray-900 dark:text-white font-bold text-sm">{section.title}</Text>
-                                        <Text className="text-gray-400 dark:text-gray-500 text-[9px] mt-0.5" numberOfLines={1}>{section.subtitle}</Text>
-                                    </View>
-
-                                    <View className="items-end">
-                                        {section.completed ? (
-                                            <View className="bg-green-50 dark:bg-green-900/20 p-0.5 rounded-full">
-                                                <CheckCircle2 size={16} color="#16a34a" />
-                                            </View>
-                                        ) : (
-                                            <View className="bg-gray-50 dark:bg-gray-800 p-0.5 rounded-full">
-                                                <ChevronRight size={16} color="#94a3b8" />
-                                            </View>
-                                        )}
-                                        <Text className={`text-[8px] mt-0.5 font-bold ${section.completed ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                                            {section.percentage}%
-                                        </Text>
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-
-                    {/* Optional Uploads Section */}
-                    <View className="mt-6">
-                        <View className="flex-row justify-between items-center mb-4 px-1">
-                            <Text className="text-lg font-black text-gray-900 dark:text-white">Optional Uploads</Text>
-                            <TouchableOpacity className="bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-lg">
-                                <Text className="text-[#004aad] dark:text-blue-400 font-bold text-[9px]">Manage</Text>
-                            </TouchableOpacity>
+                        <View className="h-1 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden mb-3">
+                            <View className="h-full bg-[#004aad] dark:bg-blue-500 rounded-full" style={{ width: `${completion.requiredPercentage}%` }} />
                         </View>
 
-                        <View className="bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-5 rounded-[24px] border-dashed items-center">
-                            <View className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-sm mb-3">
-                                <FileUp size={22} color="#64748b" />
-                            </View>
-                            <Text className="text-gray-900 dark:text-white font-bold text-sm text-center">Add Supporting Documents</Text>
-                            <Text className="text-gray-400 dark:text-gray-500 text-[10px] text-center mt-1 px-6 leading-4">
-                                Optionally upload your physical CV or certs for additional proof.
+                        <View className="flex-row justify-between items-center">
+                            <Text className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">
+                                {completion.requiredCompleteCount}/{completion.requiredTotalCount} required sections complete
                             </Text>
-
-                            <TouchableOpacity className="mt-5 flex-row items-center bg-gray-900 px-5 py-3 rounded-xl">
-                                <Plus size={16} color="white" />
-                                <Text className="text-white font-bold text-xs ml-2">Upload Files</Text>
-                            </TouchableOpacity>
+                            <Text className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">
+                                Optional: {completion.optionalPercentage}%
+                            </Text>
                         </View>
                     </View>
 
-                    {/* Verification Notice */}
+                    <SectionGroup
+                        title="Required to Apply"
+                        sections={requiredSections}
+                        onPressSection={handlePress}
+                    />
+
+                    <SectionGroup
+                        title="Optional Enhancements"
+                        sections={optionalSections}
+                        onPressSection={handlePress}
+                    />
+
+
                     <View className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 p-4 rounded-2xl flex-row items-start mt-8 mb-5">
                         <ShieldCheck size={18} color="#004aad" className="mt-0.5" />
                         <View className="ml-3 flex-1">
@@ -250,6 +195,61 @@ export default function DigitalCVScreen() {
                     </View>
                 </View>
             </ScrollView>
+        </View>
+    );
+}
+
+function SectionGroup({
+    title,
+    sections,
+    onPressSection,
+}: {
+    title: string;
+    sections: ProfileCompletionSummary['groups']['required'];
+    onPressSection: (path: string) => void;
+}) {
+    if (sections.length === 0) return null;
+
+    return (
+        <View className="mt-4">
+            <Text className="text-lg font-black text-gray-900 dark:text-white mb-3 px-1">{title}</Text>
+            <View className="space-y-3">
+                {sections.map((section) => {
+                    const meta = SECTION_META[section.id];
+
+                    return (
+                        <TouchableOpacity
+                            key={section.id}
+                            onPress={() => onPressSection(meta.path)}
+                            className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl shadow-sm flex-row items-center mb-3"
+                        >
+                            <View className="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-xl mr-3">
+                                {meta.icon}
+                            </View>
+
+                            <View className="flex-1">
+                                <Text className="text-gray-900 dark:text-white font-bold text-sm">{meta.title}</Text>
+                                <Text className="text-gray-400 dark:text-gray-500 text-[9px] mt-0.5" numberOfLines={1}>{meta.subtitle}</Text>
+                            </View>
+
+                            <View className="items-end">
+                                {section.completed ? (
+                                    <View className="bg-green-50 dark:bg-green-900/20 p-0.5 rounded-full">
+                                        <CheckCircle2 size={16} color="#16a34a" />
+                                    </View>
+                                ) : (
+                                    <View className="bg-gray-50 dark:bg-gray-800 p-0.5 rounded-full">
+                                        <ChevronRight size={16} color="#94a3b8" />
+                                    </View>
+                                )}
+                                <Text className={`text-[8px] mt-0.5 font-bold ${section.completed ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                                    {section.percentage}%
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
         </View>
     );
 }

@@ -28,12 +28,12 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
             {/* Personal Info */}
             <TabsContent value="personal" className="space-y-4 pt-4">
                 <div className="grid grid-cols-2 gap-4">
-                    <InfoItem label="Full Name" value={profile.applicantName} />
+                    <InfoItem label="Full Name" value={profile.applicantName || (profile as any).fullName} />
                     <InfoItem label="ID Number" value={profile.idNumber} />
                     <InfoItem label="Email" value={profile.email} />
                     <InfoItem label="Phone" value={profile.phone} />
                     <InfoItem label="Gender" value={profile.gender} />
-                    <InfoItem label="Birth Year" value={profile.birthYear.toString()} />
+                    <InfoItem label="Birth Year" value={profile.birthYear?.toString() || 'Not specified'} />
                     <InfoItem label="Ethnicity" value={profile.ethnicity || 'Not specified'} />
                     <InfoItem label="Home County" value={profile.homeCounty || 'Not specified'} />
                     <InfoItem

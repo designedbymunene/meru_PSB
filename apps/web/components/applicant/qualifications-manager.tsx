@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -48,7 +49,15 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { createQualificationSchema, type Qualification, type QualificationInput } from '@meru/shared'
+import { 
+    createQualificationSchema, 
+    type Qualification, 
+    type QualificationInput,
+    KCSE_GRADES,
+    TVET_GRADES,
+    UNIVERSITY_GRADES,
+    LEGACY_LEVEL_MAP
+} from '@meru/shared'
 import {
     useMyQualifications,
     useAddMyQualification,
@@ -105,9 +114,29 @@ export function QualificationsManager() {
     const { data: gradesResponse } = useEducationGrades(selectedLevelId)
     const grades = gradesResponse?.data || []
 
-    // Default grades if none found in DB
-    const defaultGrades = ['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'E', 'Pass', 'Credit', 'Distinction']
-    const displayGrades = grades.length > 0 ? grades.map((g: any) => g.grade) : defaultGrades
+    // Helper to get fallback grades based on the selected level
+    const getFallbackGrades = (levelCode: string) => {
+        const normalizedLevel = (LEGACY_LEVEL_MAP as any)[levelCode] || levelCode;
+        
+        if (normalizedLevel.includes('Level 3') || levelCode === 'KCSE' || levelCode === 'KCPE') {
+            return [...KCSE_GRADES]
+        }
+        if (normalizedLevel.match(/Level [456]/) || ['DIPLOMA', 'CERTIFICATE'].includes(levelCode)) {
+            // For TVET, we prioritize the Class (Distinction, Credit, Pass)
+            return [...TVET_GRADES]
+        }
+        if (normalizedLevel.match(/Level (7|8|9|10)/) || ['BACHELORS', 'MASTERS', 'DOCTORATE'].includes(levelCode)) {
+            return [...UNIVERSITY_GRADES]
+        }
+        return ['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'E', 'Pass', 'Credit', 'Distinction']
+    }
+
+    // Ensure displayGrades are unique to prevent React key errors
+    const displayGrades = Array.from(new Set(
+        grades.length > 0 
+            ? grades.map((g: any) => g.grade) 
+            : getFallbackGrades(selectedLevelCode)
+    )) as string[]
 
     const onSubmit = async (data: QualificationInput) => {
         try {
@@ -152,39 +181,54 @@ export function QualificationsManager() {
     }
 
     return (
-        <Card className="border-none shadow-none bg-transparent">
-            <CardHeader className="px-0 pt-0">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <CardTitle className="text-xl font-bold">Academic Qualifications</CardTitle>
-                        <CardDescription>Your educational background and certificates</CardDescription>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between bg-muted/20 p-4 rounded-xl border border-dashed border-muted-foreground/20">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                        <GraduationCap className="h-5 w-5" />
                     </div>
-                    <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                        setIsDialogOpen(open)
-                        if (!open) { 
-                            setEditingQualification(null)
-                            setShowOtherLevelInput(false)
-                            form.reset() 
-                        }
-                    }}>
-                        <DialogTrigger asChild>
-                            <Button size="sm" className="bg-primary">
-                                <Plus className="mr-2 h-4 w-4" /> Add Qualification
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                                <DialogTitle>{editingQualification ? 'Edit Qualification' : 'Add Qualification'}</DialogTitle>
-                            </DialogHeader>
-                            <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-0.5">
+                        <p className="text-sm font-bold">Academic Records</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                            {qualifications.length} {qualifications.length === 1 ? 'Qualification' : 'Qualifications'} Added
+                        </p>
+                    </div>
+                </div>
+                <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                    setIsDialogOpen(open)
+                    if (!open) { 
+                        setEditingQualification(null)
+                        setShowOtherLevelInput(false)
+                        form.reset() 
+                    }
+                }}>
+                    <DialogTrigger asChild>
+                        <Button size="sm" className="bg-primary shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                            <Plus className="mr-2 h-4 w-4" /> Add Qualification
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl">
+                        <DialogHeader className="pb-4 border-b">
+                            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                                <GraduationCap className="h-6 w-6 text-primary" />
+                                {editingQualification ? 'Edit Qualification' : 'Add New Qualification'}
+                            </DialogTitle>
+                            <DialogDescription>
+                                Enter your academic details below. All information is handled securely.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-6">
+                                {/* Level & Course Section */}
+                                <div className="space-y-4">
+                                    <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-l-2 border-primary/30 pl-2">Level & Course</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <FormField
                                             control={form.control}
                                             name="level"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Qualification Level *</FormLabel>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Qualification Level *</FormLabel>
                                                     <Select 
                                                         onValueChange={(val) => { 
                                                             if (val === 'OTHER') {
@@ -193,7 +237,6 @@ export function QualificationsManager() {
                                                             } else {
                                                                 setShowOtherLevelInput(false)
                                                                 field.onChange(val)
-                                                                // Reset course if school level
                                                                 if (val === 'KCPE') form.setValue('course', 'Primary Education')
                                                                 if (val === 'KCSE') form.setValue('course', 'Secondary Education')
                                                             }
@@ -201,21 +244,23 @@ export function QualificationsManager() {
                                                         }} 
                                                         value={levels.some(l => l.code === field.value) ? field.value : (showOtherLevelInput ? 'OTHER' : field.value)}
                                                     >
-                                                        <FormControl><SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger></FormControl>
-                                                        <SelectContent>
+                                                        <FormControl><SelectTrigger className="h-11 rounded-lg"><SelectValue placeholder="Select level" /></SelectTrigger></FormControl>
+                                                        <SelectContent className="rounded-xl">
                                                             {levels.map((level) => <SelectItem key={level.id} value={level.code}>{level.name}</SelectItem>)}
-                                                            <SelectItem value="OTHER">Other</SelectItem>
+                                                            <SelectItem value="OTHER">Other / Custom Level</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     {showOtherLevelInput && (
-                                                        <div className="mt-2">
+                                                        <div className="mt-3 animate-in fade-in slide-in-from-top-2">
                                                             <Input 
-                                                                placeholder="Enter qualification level (e.g. Postgraduate)" 
+                                                                placeholder="Enter custom level (e.g. Higher Diploma)" 
+                                                                className="h-11 rounded-lg"
                                                                 value={field.value} 
                                                                 onChange={field.onChange}
                                                             />
                                                         </div>
                                                     )}
+                                                    <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
@@ -224,8 +269,8 @@ export function QualificationsManager() {
                                             control={form.control}
                                             name="courseId"
                                             render={({ field }) => (
-                                                <FormItem className="flex flex-col justify-end">
-                                                    <FormLabel className="mb-2">Course/Field of Study *</FormLabel>
+                                                <FormItem className="flex flex-col">
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground mb-2">Course / Field of Study *</FormLabel>
                                                     <Popover open={courseSearchOpen} onOpenChange={setCourseSearchOpen}>
                                                         <PopoverTrigger asChild>
                                                             <FormControl>
@@ -233,34 +278,37 @@ export function QualificationsManager() {
                                                                     variant="outline"
                                                                     role="combobox"
                                                                     className={cn(
-                                                                        "w-full justify-between font-normal",
+                                                                        "w-full h-11 justify-between font-normal rounded-lg",
                                                                         !field.value && !form.watch('course') && "text-muted-foreground"
                                                                     )}
                                                                     disabled={isSchoolLevel}
                                                                 >
-                                                                    {field.value
-                                                                        ? courses.find((c) => c.id === field.value)?.name
-                                                                        : form.watch('course') || "Select course"}
+                                                                    <span className="truncate">
+                                                                        {field.value
+                                                                            ? courses.find((c) => c.id === field.value)?.name
+                                                                            : form.watch('course') || "Select course"}
+                                                                    </span>
                                                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                                 </Button>
                                                             </FormControl>
                                                         </PopoverTrigger>
-                                                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                                                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl overflow-hidden shadow-2xl border-none ring-1 ring-border">
                                                             <Command>
-                                                                <CommandInput placeholder="Search course..." />
+                                                                <CommandInput placeholder="Search course..." className="h-11" />
                                                                 <CommandList>
                                                                     <CommandEmpty>
-                                                                        <div className="p-2 text-sm">
-                                                                            No course found.
+                                                                        <div className="p-4 text-sm text-center">
+                                                                            <p className="mb-2 text-muted-foreground">No predefined course found.</p>
                                                                             <Button 
-                                                                                variant="link" 
-                                                                                className="h-auto p-0 px-1 text-primary"
+                                                                                variant="secondary" 
+                                                                                size="sm"
+                                                                                className="rounded-lg h-8"
                                                                                 onClick={() => {
                                                                                     field.onChange(undefined)
                                                                                     setCourseSearchOpen(false)
                                                                                 }}
                                                                             >
-                                                                                Enter manually
+                                                                                Enter Manually
                                                                             </Button>
                                                                         </div>
                                                                     </CommandEmpty>
@@ -274,10 +322,11 @@ export function QualificationsManager() {
                                                                                     form.setValue('course', c.name)
                                                                                     setCourseSearchOpen(false)
                                                                                 }}
+                                                                                className="h-10 rounded-md"
                                                                             >
                                                                                 <Check
                                                                                     className={cn(
-                                                                                        "mr-2 h-4 w-4",
+                                                                                        "mr-2 h-4 w-4 text-primary",
                                                                                         c.id === field.value ? "opacity-100" : "opacity-0"
                                                                                     )}
                                                                                 />
@@ -289,6 +338,7 @@ export function QualificationsManager() {
                                                             </Command>
                                                         </PopoverContent>
                                                     </Popover>
+                                                    <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
@@ -299,24 +349,29 @@ export function QualificationsManager() {
                                             control={form.control}
                                             name="course"
                                             render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Manual Course Entry</FormLabel>
-                                                    <FormControl><Input placeholder="Enter course name" {...field} /></FormControl>
+                                                <FormItem className="animate-in fade-in slide-in-from-top-1">
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Manual Course Entry</FormLabel>
+                                                    <FormControl><Input placeholder="Enter your full course name" className="h-11 rounded-lg" {...field} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
                                     )}
+                                </div>
 
+                                {/* Institution Section */}
+                                <div className="space-y-4">
+                                    <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-l-2 border-primary/30 pl-2">Institution</h4>
                                     <FormField
                                         control={form.control}
                                         name="institutionId"
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col">
-                                                <FormLabel className="mb-2">Institution *</FormLabel>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground mb-2">School / University / College *</FormLabel>
                                                 {isSchoolLevel ? (
                                                     <FormControl>
                                                         <Input 
+                                                            className="h-11 rounded-lg"
                                                             placeholder={selectedLevelCode === 'KCPE' ? "Enter primary school name" : "Enter secondary school name"} 
                                                             value={form.watch('institution')}
                                                             onChange={(e) => {
@@ -333,33 +388,36 @@ export function QualificationsManager() {
                                                                     variant="outline"
                                                                     role="combobox"
                                                                     className={cn(
-                                                                        "w-full justify-between font-normal",
+                                                                        "w-full h-11 justify-between font-normal rounded-lg",
                                                                         !field.value && !form.watch('institution') && "text-muted-foreground"
                                                                     )}
                                                                 >
-                                                                    {field.value
-                                                                        ? institutions.find((i) => i.id === field.value)?.name
-                                                                        : form.watch('institution') || "Select institution"}
+                                                                    <span className="truncate">
+                                                                        {field.value
+                                                                            ? institutions.find((i) => i.id === field.value)?.name
+                                                                            : form.watch('institution') || "Select institution"}
+                                                                    </span>
                                                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                                 </Button>
                                                             </FormControl>
                                                         </PopoverTrigger>
-                                                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                                                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl overflow-hidden shadow-2xl border-none ring-1 ring-border">
                                                             <Command>
-                                                                <CommandInput placeholder="Search institution..." />
+                                                                <CommandInput placeholder="Search institution..." className="h-11" />
                                                                 <CommandList>
                                                                     <CommandEmpty>
-                                                                        <div className="p-2 text-sm">
-                                                                            No institution found.
+                                                                        <div className="p-4 text-sm text-center">
+                                                                            <p className="mb-2 text-muted-foreground">No institution found.</p>
                                                                             <Button 
-                                                                                variant="link" 
-                                                                                className="h-auto p-0 px-1 text-primary"
+                                                                                variant="secondary" 
+                                                                                size="sm"
+                                                                                className="rounded-lg h-8"
                                                                                 onClick={() => {
                                                                                     field.onChange(undefined)
                                                                                     setInstitutionSearchOpen(false)
                                                                                 }}
                                                                             >
-                                                                                Enter manually
+                                                                                Enter Manually
                                                                             </Button>
                                                                         </div>
                                                                     </CommandEmpty>
@@ -373,10 +431,11 @@ export function QualificationsManager() {
                                                                                     form.setValue('institution', i.name)
                                                                                     setInstitutionSearchOpen(false)
                                                                                 }}
+                                                                                className="h-10 rounded-md"
                                                                             >
                                                                                 <Check
                                                                                     className={cn(
-                                                                                        "mr-2 h-4 w-4",
+                                                                                        "mr-2 h-4 w-4 text-primary",
                                                                                         i.id === field.value ? "opacity-100" : "opacity-0"
                                                                                     )}
                                                                                 />
@@ -399,89 +458,149 @@ export function QualificationsManager() {
                                             control={form.control}
                                             name="institution"
                                             render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Manual Institution Entry</FormLabel>
-                                                    <FormControl><Input placeholder="Enter institution name" {...field} /></FormControl>
+                                                <FormItem className="animate-in fade-in slide-in-from-top-1">
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Manual Institution Entry</FormLabel>
+                                                    <FormControl><Input placeholder="Enter institution name" className="h-11 rounded-lg" {...field} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
                                     )}
+                                </div>
 
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="grade"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Grade *</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl><SelectTrigger><SelectValue placeholder="Grade" /></SelectTrigger></FormControl>
-                                                        <SelectContent>
-                                                            {displayGrades.map((g: string) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                                                            <SelectItem value="OTHER">Other</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField control={form.control} name="yearStart" render={({ field }) => <FormItem><FormLabel>Start Year</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} value={field.value || ''} /></FormControl></FormItem>} />
-                                        <FormField control={form.control} name="yearEnd" render={({ field }) => <FormItem><FormLabel>End Year</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} value={field.value || ''} /></FormControl></FormItem>} />
+                                {/* Grade & Years Section */}
+                                <div className="space-y-4">
+                                    <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-l-2 border-primary/30 pl-2">Performance & Duration</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                        <div className="md:col-span-2">
+                                            <FormField
+                                                control={form.control}
+                                                name="grade"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Grade / Score *</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl><SelectTrigger className="h-11 rounded-lg"><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                                                            <SelectContent className="rounded-xl">
+                                                                {displayGrades.map((g: string) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                                                                <SelectItem value="OTHER">Other / Custom</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <div className="md:col-span-1">
+                                            <FormField 
+                                                control={form.control} 
+                                                name="yearStart" 
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Start Year</FormLabel>
+                                                        <FormControl>
+                                                            <Input 
+                                                                type="number" 
+                                                                className="h-11 rounded-lg"
+                                                                placeholder="e.g. 2018"
+                                                                {...field} 
+                                                                onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} 
+                                                                value={field.value || ''} 
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} 
+                                            />
+                                        </div>
+                                        <div className="md:col-span-1">
+                                            <FormField 
+                                                control={form.control} 
+                                                name="yearEnd" 
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">End Year</FormLabel>
+                                                        <FormControl>
+                                                            <Input 
+                                                                type="number" 
+                                                                className="h-11 rounded-lg"
+                                                                placeholder="e.g. 2022"
+                                                                {...field} 
+                                                                onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} 
+                                                                value={field.value || ''} 
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} 
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="flex justify-end gap-2 pt-2">
-                                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                                        <Button type="submit" disabled={addMutation.isPending || updateMutation.isPending}>
-                                            {(addMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            {editingQualification ? 'Update' : 'Save'}
-                                        </Button>
-                                    </div>
-                                </form>
-                            </Form>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-            </CardHeader>
-            <CardContent className="px-0">
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-6 border-t mt-4">
+                                    <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                                    <Button type="submit" className="px-10 rounded-xl shadow-lg shadow-primary/20" disabled={addMutation.isPending || updateMutation.isPending}>
+                                        {(addMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {editingQualification ? 'Update Qualification' : 'Save Qualification'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </Form>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            <div className="space-y-4">
                 {isLoading ? (
-                    <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary/50" /></div>
+                    <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Loading records...</p>
+                    </div>
                 ) : qualifications.length === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/20">
-                        <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-                        <p className="text-muted-foreground">No qualifications added yet.</p>
+                    <div className="text-center py-16 border-2 border-dashed rounded-2xl bg-muted/5 flex flex-col items-center justify-center">
+                        <div className="p-4 bg-muted rounded-full mb-4">
+                            <GraduationCap className="h-8 w-8 text-muted-foreground/40" />
+                        </div>
+                        <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-1">No academic records yet</h4>
+                        <p className="text-sm text-muted-foreground max-w-[250px] mx-auto leading-relaxed">
+                            Add your educational background to complete your professional profile.
+                        </p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {qualifications.map((qual) => (
-                            <div key={qual.id} className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 hover:border-primary/30 hover:shadow-md transition-all duration-200">
+                            <div key={qual.id} className="group relative bg-card border rounded-2xl p-5 hover:border-primary/40 hover:shadow-md transition-all duration-300">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><GraduationCap className="h-5 w-5 text-primary" /></div>
-                                        <div>
-                                            <h3 className="font-bold text-slate-900 dark:text-slate-100">{qual.course}</h3>
-                                            <p className="text-xs font-black text-primary uppercase tracking-widest">{qual.level}</p>
+                                        <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><GraduationCap className="h-5 w-5" /></div>
+                                        <div className="min-w-0">
+                                            <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate pr-2">{qual.course}</h3>
+                                            <Badge variant="secondary" className="font-bold text-[10px] px-2 bg-primary/5 text-primary border-none uppercase tracking-wider h-5">
+                                                {qual.level}
+                                            </Badge>
                                         </div>
                                     </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => handleEdit(qual)}><Edit2 className="h-3.5 w-3.5" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-destructive" onClick={() => setDeletingId(qual.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 transition-colors" onClick={() => handleEdit(qual)}><Edit2 className="h-3.5 w-3.5" /></Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10 transition-colors" onClick={() => setDeletingId(qual.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                                     </div>
                                 </div>
                                 <div className="space-y-3">
-                                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                                        <School className="h-4 w-4 text-slate-400" />
-                                        <span>{qual.institution}</span>
+                                    <div className="flex items-center gap-2 text-[13px] text-muted-foreground font-medium">
+                                        <School className="h-3.5 w-3.5 opacity-60" />
+                                        <span className="truncate">{qual.institution}</span>
                                     </div>
-                                    <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
-                                            <Calendar className="h-3.5 w-3.5" />
+                                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-bold uppercase tracking-wider">
+                                            <Calendar className="h-3.5 w-3.5 opacity-60" />
                                             <span>{qual.yearStart} - {qual.yearEnd || 'Present'}</span>
                                         </div>
                                         {qual.grade && (
-                                            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
-                                                <Award className="h-3.5 w-3.5" />
-                                                <Badge variant="outline" className="text-[10px] py-0 h-4 border-slate-300 font-black uppercase">{qual.grade}</Badge>
-                                            </div>
+                                            <Badge variant="outline" className="text-[10px] py-0 h-5 border-slate-200 dark:border-slate-700 font-bold uppercase bg-slate-50 dark:bg-slate-900">
+                                                <Award className="h-3 w-3 mr-1 opacity-60" />
+                                                {qual.grade}
+                                            </Badge>
                                         )}
                                     </div>
                                 </div>
@@ -489,13 +608,20 @@ export function QualificationsManager() {
                         ))}
                     </div>
                 )}
-                <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>Delete Qualification</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete this qualification? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction></AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </CardContent>
-        </Card>
+            </div>
+
+            <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Qualification</AlertDialogTitle>
+                        <AlertDialogDescription>Are you sure you want to delete this qualification? This action cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
     )
 }

@@ -1,33 +1,37 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { AlertCircle, CheckCircle2, ChevronRight, Info } from 'lucide-react-native';
-
-interface Section {
-    id: string;
-    title: string;
-    percentage: number;
-    description: string;
-}
+import { AlertCircle, CheckCircle2, ChevronRight } from 'lucide-react-native';
+import type { ProfileCompletionSummary, ProfileSectionId } from '@meru/shared';
 
 interface CompletionGuardProps {
-    completion: {
-        overallPercentage: number;
-        sections: Record<string, number>;
-    };
+    completion: ProfileCompletionSummary;
     onJumpToStep: (stepId: string) => void;
 }
 
-export function CompletionGuard({ completion, onJumpToStep }: CompletionGuardProps) {
-    const isComplete = completion.overallPercentage === 100;
+type DisplaySection = {
+    id: ProfileSectionId;
+    stepId: string;
+}
 
-    const sections: Section[] = [
-        { id: 'personal', title: 'Personal Details', percentage: completion.sections.personal, description: 'Basic identification and contact info' },
-        { id: 'location', title: 'Location Details', percentage: completion.sections.location, description: 'Residency and demographic info' },
-        { id: 'academic', title: 'Academic History', percentage: completion.sections.education, description: 'At least one qualification required' },
-        { id: 'experience', title: 'Work Experience', percentage: completion.sections.experience, description: 'Professional history' },
-        { id: 'professional', title: 'Professional Details', percentage: completion.sections.professional, description: 'Certifications and memberships' },
-        { id: 'referees', title: 'Referees', percentage: completion.sections.referees, description: 'At least 2 referees required' },
-    ];
+const DISPLAY_SECTIONS: DisplaySection[] = [
+    { id: 'personal', stepId: 'personal' },
+    { id: 'contact', stepId: 'personal' },
+    { id: 'location', stepId: 'location' },
+    { id: 'education', stepId: 'academic' },
+    { id: 'experience', stepId: 'experience' },
+    { id: 'professional', stepId: 'professional' },
+    { id: 'referees', stepId: 'referees' },
+];
+
+export function CompletionGuard({ completion, onJumpToStep }: CompletionGuardProps) {
+    const visibleSections = [...(completion?.groups?.required || []), ...(completion?.groups?.optional || [])]
+        .filter((section) => DISPLAY_SECTIONS.some((visible) => visible.id === section.id))
+        .map((section) => ({
+            ...section,
+            stepId: DISPLAY_SECTIONS.find((visible) => visible.id === section.id)?.stepId || section.id,
+        }));
+
+    const isComplete = completion.canApply;
 
     return (
         <View className="space-y-6">
@@ -39,10 +43,10 @@ export function CompletionGuard({ completion, onJumpToStep }: CompletionGuardPro
                         </View>
                         <View className="ml-3">
                             <Text className={`font-black text-lg ${isComplete ? 'text-green-900 dark:text-green-300' : 'text-amber-900 dark:text-amber-300'}`}>
-                                {isComplete ? 'Profile Complete' : 'Profile Incomplete'}
+                                {isComplete ? 'Ready to Apply' : 'Complete Required Sections'}
                             </Text>
                             <Text className={`text-xs ${isComplete ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
-                                Overall Progress: {completion.overallPercentage}%
+                                Required Progress: {completion.requiredPercentage}%
                             </Text>
                         </View>
                     </View>
@@ -55,43 +59,82 @@ export function CompletionGuard({ completion, onJumpToStep }: CompletionGuardPro
 
                 {!isComplete && (
                     <Text className="text-amber-800 dark:text-amber-400 text-xs leading-5">
-                        Your Digital CV must be 100% complete before you can submit this application. Please address the missing sections below.
+                        Finish the required sections below before submitting the application. Optional sections can be completed later.
                     </Text>
                 )}
             </View>
 
-            <View className="space-y-3">
-                <Text className="text-gray-900 dark:text-white font-black text-lg ml-1">Section Checklist</Text>
-                {sections.map((section) => (
-                    <TouchableOpacity 
-                        key={section.id}
-                        onPress={() => onJumpToStep(section.id)}
-                        className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex-row items-center justify-between shadow-sm"
-                    >
-                        <View className="flex-row items-center flex-1">
-                            <View className={`w-8 h-8 rounded-full items-center justify-center ${section.percentage === 100 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-gray-50 dark:bg-gray-800'}`}>
-                                {section.percentage === 100 ? (
-                                    <CheckCircle2 size={16} color="#10b981" />
-                                ) : (
-                                    <View className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600" />
-                                )}
-                            </View>
-                            <View className="ml-3 flex-1">
-                                <Text className={`font-bold text-sm ${section.percentage === 100 ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
-                                    {section.title}
-                                </Text>
-                                <Text className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{section.description}</Text>
-                            </View>
-                        </View>
-                        <View className="flex-row items-center">
-                            <Text className={`text-[10px] font-bold mr-2 ${section.percentage === 100 ? 'text-green-600' : 'text-amber-600'}`}>
-                                {section.percentage}%
-                            </Text>
-                            <ChevronRight size={16} color="#cbd5e1" />
-                        </View>
-                    </TouchableOpacity>
-                ))}
+            {completion.requiredMissing.length > 0 && (
+                <View className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50">
+                    <Text className="text-amber-900 dark:text-amber-200 font-black text-sm mb-1">Missing Required Sections</Text>
+                    <Text className="text-amber-800 dark:text-amber-400 text-xs leading-5">
+                        {completion.requiredMissing.join(', ')}
+                    </Text>
+                </View>
+            )}
+
+            <View className="space-y-4">
+                <SectionGroup
+                    title="Required to Apply"
+                    items={visibleSections.filter((section) => section.required)}
+                    onJumpToStep={onJumpToStep}
+                />
+                <SectionGroup
+                    title="Optional Enhancements"
+                    items={visibleSections.filter((section) => !section.required)}
+                    onJumpToStep={onJumpToStep}
+                />
             </View>
+        </View>
+    );
+}
+
+function SectionGroup({
+    title,
+    items,
+    onJumpToStep,
+}: {
+    title: string;
+    items: (ProfileCompletionSummary['groups']['required'][number] & { stepId: string })[];
+    onJumpToStep: (stepId: string) => void;
+}) {
+    if (items.length === 0) return null;
+
+    return (
+        <View className="space-y-3">
+            <Text className="text-gray-900 dark:text-white font-black text-lg ml-1">{title}</Text>
+            {items.map((section) => (
+                <TouchableOpacity
+                    key={section.id}
+                    onPress={() => onJumpToStep(section.stepId)}
+                    className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex-row items-center justify-between shadow-sm"
+                >
+                    <View className="flex-row items-center flex-1">
+                        <View className={`w-8 h-8 rounded-full items-center justify-center ${section.completed ? 'bg-green-50 dark:bg-green-900/20' : 'bg-gray-50 dark:bg-gray-800'}`}>
+                            {section.completed ? (
+                                <CheckCircle2 size={16} color="#10b981" />
+                            ) : (
+                                <View className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600" />
+                            )}
+                        </View>
+                        <View className="ml-3 flex-1">
+                            <Text className={`font-bold text-sm ${section.completed ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                                {section.label}
+                            </Text>
+                            <Text className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{section.description}</Text>
+                        </View>
+                    </View>
+                    <View className="flex-row items-center">
+                        {!section.completed && section.required && (
+                            <Text className="text-[10px] font-bold mr-2 text-amber-600">Required</Text>
+                        )}
+                        <Text className={`text-[10px] font-bold mr-2 ${section.completed ? 'text-green-600' : 'text-amber-600'}`}>
+                            {section.percentage}%
+                        </Text>
+                        <ChevronRight size={16} color="#cbd5e1" />
+                    </View>
+                </TouchableOpacity>
+            ))}
         </View>
     );
 }

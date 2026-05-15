@@ -11,6 +11,11 @@ export type ApiErrorCategory = 'network' | 'auth' | 'server' | 'client' | 'unkno
 export interface ApiErrorResponseData {
     message?: string;
     code?: string;
+    error?: {
+        message?: string;
+        code?: string;
+        details?: unknown;
+    };
     [key: string]: unknown;
 }
 
@@ -51,8 +56,15 @@ export const normalizeApiError = (error: unknown): NormalizedApiError => {
         const axiosError = error as AxiosError<ApiErrorResponseData>;
         const status = axiosError.response?.status;
         const responseData = axiosError.response?.data;
-        const responseMessage = typeof responseData?.message === 'string' ? responseData.message : undefined;
-        const responseCode = typeof responseData?.code === 'string' ? responseData.code : undefined;
+        
+        // Try to get message from responseData or nested responseData.error
+        const responseMessage = typeof responseData?.message === 'string' 
+            ? responseData.message 
+            : (typeof responseData?.error?.message === 'string' ? responseData.error.message : undefined);
+            
+        const responseCode = typeof responseData?.code === 'string' 
+            ? responseData.code 
+            : (typeof responseData?.error?.code === 'string' ? responseData.error.code : undefined);
 
         if (!axiosError.response) {
             const isOffline = isProbablyOffline(axiosError);
@@ -219,16 +231,23 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
 
             // 1. Handle Auth Refresh
             const refreshAttempts = originalRequest._authRefreshAttempts ?? 0;
+            const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
+                                 originalRequest.url?.includes('/auth/register') ||
+                                 originalRequest.url?.includes('/auth/refresh') ||
+                                 originalRequest.url?.includes('/auth/otp/verify') ||
+                                 originalRequest.url?.includes('/auth/reset-password');
+
             if (
                 error.response?.status === 401 &&
                 refreshAttempts < AUTH_REFRESH_MAX_ATTEMPTS &&
-                !originalRequest.url?.includes('/auth/refresh')
+                !isAuthEndpoint
             ) {
                 originalRequest._authRefreshAttempts = refreshAttempts + 1;
 
                 try {
                     const refreshToken = await getRefreshToken();
                     if (refreshToken) {
+                        if (isDebug) console.log('[API] Attempting token refresh...');
                         const response = await axios.post(`${baseURL}/auth/refresh`, {
                             refreshToken,
                         });
@@ -236,25 +255,21 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
                         const { accessToken } = response.data.data;
                         await onTokenRefresh(accessToken);
 
+                        if (isDebug) console.log('[API] Refresh successful, retrying request...');
                         originalRequest.headers = originalRequest.headers ?? {};
                         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
                         return apiClient(originalRequest);
+                    } else {
+                        if (isDebug) console.log('[API] No refresh token found, logging out...');
+                        await onLogout();
                     }
-                } catch {
+                } catch (refreshError) {
+                    if (isDebug) console.error('[API] Refresh failed:', refreshError);
                     await onLogout();
                 }
-            } else if (error.response?.status === 401) {
+            } else if (error.response?.status === 401 && !isAuthEndpoint) {
+                if (isDebug) console.log('[API] 401 received and refresh not possible, logging out...');
                 await onLogout();
-            }
-
-            // 2. Handle General Retries
-            const retryCount = originalRequest._retryCount ?? 0;
-
-            if (isRetryableApiError(normalizedError) && hasRetryBudget(retryCount)) {
-                originalRequest._retryCount = retryCount + 1;
-                const delay = (retryCount + 1) * 1000 + Math.random() * 500;
-                await sleep(delay);
-                return apiClient(originalRequest);
             }
 
             return Promise.reject(attachNormalizedApiError(error));

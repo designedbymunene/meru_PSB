@@ -1,12 +1,17 @@
+"use client"
+
 import * as React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Briefcase,
   FileText,
-  Database,
-  Building2,
   Network,
   Users,
+  UserCircle,
+  LifeBuoy,
+  Settings,
 } from "lucide-react"
 import { Logo } from "@/components/shared/logo"
 
@@ -14,108 +19,141 @@ import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
+  SidebarFooter,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { UserNav } from "./user-nav"
 
 // Admin navigation data
-const data = {
-  navMain: [
+const navData = {
+  main: [
     {
       title: "Overview",
       url: "/admin",
       icon: LayoutDashboard,
-      isActive: true,
-      items: [],
     },
     {
       title: "Vacancies",
       url: "/admin/vacancies",
       icon: Briefcase,
-      items: [],
     },
     {
       title: "Applications",
       url: "/admin/applications",
       icon: FileText,
-      items: [],
     },
     {
-      title: "Reference Data",
-      url: "#",
-      icon: Database,
-      items: [
-
-        {
-          title: "Departments",
-          url: "/admin/departments",
-          icon: Network,
-        },
-        {
-          title: "Job Groups",
-          url: "/admin/job-groups",
-          icon: Users,
-        },
-      ],
+      title: "Applicant Profiles",
+      url: "/admin/profiles",
+      icon: UserCircle,
+    },
+  ],
+  configuration: [
+    {
+      title: "Departments",
+      url: "/admin/departments",
+      icon: Network,
+    },
+    {
+      title: "Job Groups",
+      url: "/admin/job-groups",
+      icon: Users,
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const pathname = usePathname()
+
   return (
-    <Sidebar {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/admin">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Logo size="sm" variant="icon" />
+              <Link href="/admin">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Logo size="sm" variant="icon" className="brightness-0 invert" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">Meru Portal</span>
-                  <span className="">Admin Panel</span>
+                  <span className="text-xs text-muted-foreground">Admin Panel</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel>Platform</SidebarGroupLabel>
           <SidebarMenu>
-            {data.navMain.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild tooltip={item.title} isActive={item.isActive}>
-                  <a href={item.url} className="font-medium">
-                    {item.icon && <item.icon />}
-                    <span>{item.title}</span>
-                  </a>
-                </SidebarMenuButton>
-                {item.items?.length ? (
-                  <SidebarMenuSub>
-                    {item.items.map((subItem) => (
-                      <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton asChild>
-                          <a href={subItem.url}>
-                            <span>{subItem.title}</span>
-                          </a>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                ) : null}
-              </SidebarMenuItem>
-            ))}
+            {navData.main.map((item) => {
+              const isActive = pathname === item.url || (item.url !== "/admin" && pathname.startsWith(item.url))
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
+                    <Link href={item.url}>
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            })}
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Configuration</SidebarGroupLabel>
+          <SidebarMenu>
+            {navData.configuration.map((item) => {
+              const isActive = pathname === item.url || pathname.startsWith(item.url)
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
+                    <Link href={item.url}>
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            })}
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup className="mt-auto">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Support">
+                <Link href="/support">
+                  <LifeBuoy />
+                  <span>Support</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Settings">
+                <Link href="/dashboard/settings">
+                  <Settings />
+                  <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <UserNav showDetails className="border-none hover:bg-transparent px-2" />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

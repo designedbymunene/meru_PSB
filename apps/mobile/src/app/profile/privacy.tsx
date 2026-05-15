@@ -24,9 +24,9 @@ export default function PrivacyScreen() {
                         />
                         <SettingRow
                             icon={ShieldCheck}
-                            title="How We Use Your Data"
-                            subtitle="Read our data usage policy"
-                            onPress={() => {}}
+                            title="Full Privacy Policy"
+                            subtitle="Read our compliance with Data Protection Act"
+                            onPress={() => router.push('/profile/privacy-policy')}
                             color="#10b981"
                         />
                         <SettingRow
@@ -65,7 +65,7 @@ export default function PrivacyScreen() {
                 <View className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 mb-12 shadow-sm">
                     <Text className="text-gray-900 dark:text-white font-black text-sm mb-2">Our Commitment</Text>
                     <Text className="text-gray-500 dark:text-gray-400 text-[10px] font-bold leading-5">
-                        Meru County Public Service Board is committed to protecting your privacy. We use industry-standard encryption and security practices to ensure your personal data remains safe and is only used for legitimate recruitment and public service purposes.
+                        The Meru County Public Service Board is committed to protecting your privacy in accordance with the Data Protection Act, 2019. We use industry-standard encryption and security practices to ensure your personal data remains safe and is only used for legitimate recruitment and public service purposes.
                     </Text>
                 </View>
             </View>

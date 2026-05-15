@@ -9,7 +9,9 @@ import {
     login2faSchema,
     forgotPasswordRequestSchema,
     refreshTokenSchema,
-    resetPasswordSchema
+    resetPasswordSchema,
+    otpLoginRequestSchema,
+    otpLoginVerifySchema
 } from '@meru/shared'
 import {
     hashPassword,
@@ -21,11 +23,12 @@ import {
     verifyRefreshToken,
     verifyPasswordResetOtp
 } from '../utils/auth'
-import { sendPasswordResetOtpEmail, sendTwoFactorOtpEmail } from '../utils/mailer'
+import { sendPasswordResetOtpEmail, sendTwoFactorOtpEmail, sendLoginOtpEmail } from '../utils/mailer'
 import { activeSessions } from '../db/schema'
 import {
     ConflictError,
     UnauthorizedError,
+    NotFoundError,
     successResponse
 } from '../utils/errors'
 
@@ -480,4 +483,144 @@ authRouter.post('/reset-password', authRateLimiter, validate(resetPasswordSchema
     })
 
     return successResponse(c, null, 'Password reset successful')
+})
+
+// POST /api/auth/otp/request - Request a login OTP (passwordless)
+authRouter.post('/otp/request', authRateLimiter, validate(otpLoginRequestSchema), async (c) => {
+    const data = c.get('validatedData' as never) as { email: string }
+    const email = data.email.toLowerCase()
+
+    // Find user
+    const user = await db.query.users.findFirst({
+        where: eq(users.email, email)
+    })
+
+    if (!user) {
+        // For security, we don't confirm if user exists, but for login it's often better to be clear
+        // However, let's follow the standard pattern
+        return successResponse(c, null, 'If the account exists, a verification code has been sent')
+    }
+
+    const otp = generatePasswordResetOtp()
+    const otpHash = await hashPasswordResetOtp(otp)
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+
+    // Delete existing sessions for this user
+    await db.delete(passwordResetSessions).where(eq(passwordResetSessions.userId, user.id))
+
+    await db.insert(passwordResetSessions).values({
+        userId: user.id,
+        otpHash,
+        expiresAt,
+        attemptCount: 0
+    })
+
+    try {
+        await sendLoginOtpEmail({
+            to: user.email,
+            fullName: user.fullName,
+            otp
+        })
+    } catch (error: any) {
+        console.error(`[Auth] Failed to send login OTP email: ${error.message}`)
+        // We don't throw here to keep the "silent" behavior if we want, 
+        // but since it's a login attempt, maybe we should.
+        // Let's throw in dev for visibility.
+        if (process.env.NODE_ENV !== 'production') throw error
+    }
+
+    return successResponse(c, null, 'Verification code sent to your email')
+})
+
+// POST /api/auth/otp/verify - Verify login OTP and login
+authRouter.post('/otp/verify', authRateLimiter, validate(otpLoginVerifySchema), async (c) => {
+    const data = c.get('validatedData' as never) as {
+        email: string
+        otp: string
+        deviceId?: string
+        deviceName?: string
+        os?: string
+    }
+
+    const email = data.email.toLowerCase()
+
+    const user = await db.query.users.findFirst({
+        where: eq(users.email, email)
+    })
+
+    if (!user) {
+        throw new UnauthorizedError('Invalid verification code')
+    }
+
+    const [session] = await db
+        .select()
+        .from(passwordResetSessions)
+        .where(
+            and(
+                eq(passwordResetSessions.userId, user.id),
+                isNull(passwordResetSessions.usedAt),
+                gt(passwordResetSessions.expiresAt, new Date())
+            )
+        )
+        .orderBy(desc(passwordResetSessions.createdAt))
+        .limit(1)
+
+    if (!session) {
+        throw new UnauthorizedError('Verification code expired or invalid')
+    }
+
+    const isValid = await verifyPasswordResetOtp(data.otp, session.otpHash)
+
+    if (!isValid) {
+        const nextAttemptCount = session.attemptCount + 1
+        await db
+            .update(passwordResetSessions)
+            .set({
+                attemptCount: nextAttemptCount,
+                usedAt: nextAttemptCount >= 5 ? new Date() : session.usedAt
+            })
+            .where(eq(passwordResetSessions.id, session.id))
+
+        throw new UnauthorizedError('Invalid verification code')
+    }
+
+    // Mark session as used
+    await db.update(passwordResetSessions)
+        .set({ usedAt: new Date() })
+        .where(eq(passwordResetSessions.id, session.id))
+
+    // Generate tokens
+    const tokenPayload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        tokenVersion: user.tokenVersion ?? 0
+    }
+
+    const accessToken = generateAccessToken(tokenPayload)
+    const refreshToken = generateRefreshToken(tokenPayload)
+
+    // Record session
+    await db.insert(activeSessions).values({
+        userId: user.id,
+        tokenVersion: user.tokenVersion ?? 0,
+        deviceId: data.deviceId,
+        deviceName: data.deviceName,
+        os: data.os,
+        ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
+        userAgent: c.req.header('user-agent'),
+        isCurrent: true
+    })
+
+    return successResponse(c, {
+        user: {
+            id: user.id,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            fullName: user.fullName,
+            role: user.role
+        },
+        accessToken,
+        refreshToken
+    }, 'Login successful')
 })

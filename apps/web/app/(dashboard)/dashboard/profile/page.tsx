@@ -1,115 +1,39 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, User } from 'lucide-react'
+import { Loader2, User, GraduationCap, Briefcase, ScrollText, BookOpen, Users, UserCheck, ArrowRight, FileUp } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select'
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-    FormDescription,
-} from '@/components/ui/form'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { createProfileSchema } from '@meru/shared'
-import { useMyProfile, useCreateOrUpdateProfile } from '@/hooks/use-applicant-profile'
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetTitle,
+    SheetTrigger,
+} from '@/components/ui/sheet'
+import { useMyProfile, useMyReferees } from '@/hooks/use-applicant-profile'
+import { useMyDocuments } from '@/hooks/use-documents'
 import { 
-    useCounties, 
-    useConstituencies, 
-    useWards, 
-    useEthnicities 
-} from '@/hooks/use-reference-data'
-import { QualificationsManager, EmploymentHistoryManager, ProfessionalDetailsManager, ProfessionalMembershipsManager, TrainingCoursesManager, ProfileCompletion, RefereesManager } from '@/components/applicant'
+    PersonalInfoManager,
+    QualificationsManager, 
+    EmploymentHistoryManager, 
+    ProfessionalDetailsManager, 
+    ProfessionalMembershipsManager, 
+    TrainingCoursesManager, 
+    ProfileCompletion, 
+    RefereesManager,
+    DocumentsManager
+} from '@/components/applicant'
 
 export default function ProfilePage() {
     const { data: profileResponse, isLoading } = useMyProfile()
-    const profile = profileResponse?.data
-    const updateProfile = useCreateOrUpdateProfile()
-
-    // Location & Reference Queries
-    const { data: countiesResponse } = useCounties()
-    const counties = countiesResponse?.data || []
+    const { data: refereesResponse } = useMyReferees()
+    const { data: documentsResponse } = useMyDocuments()
     
-    const { data: ethnicitiesResponse } = useEthnicities()
-    const ethnicities = ethnicitiesResponse?.data || []
-
-    const form = useForm({
-        resolver: zodResolver(createProfileSchema),
-        values: profile ? {
-            fullName: profile.fullName || '',
-            idNumber: profile.idNumber,
-            gender: profile.gender as 'Male' | 'Female' | 'Other',
-            dateOfBirth: profile.dateOfBirth || new Date().toISOString().split('T')[0],
-            ethnicityId: profile.ethnicityId || undefined,
-            phoneNumber: profile.phoneNumber || '',
-            email: profile.email,
-            homeCountyId: profile.homeCountyId || undefined,
-            homeSubCountyId: profile.homeSubCountyId || undefined,
-            wardId: profile.wardId || undefined,
-            impairment: profile.impairment,
-            impairmentDetails: profile.impairmentDetails || '',
-            publicServiceInfo: profile.publicServiceInfo || '',
-            personalNumber: profile.personalNumber || '',
-        } : {
-            fullName: '',
-            idNumber: '',
-            gender: 'Male' as const,
-            dateOfBirth: new Date().toISOString().split('T')[0],
-            ethnicityId: undefined,
-            phoneNumber: '',
-            email: '',
-            homeCountyId: undefined,
-            homeSubCountyId: undefined,
-            wardId: undefined,
-            impairment: false,
-            impairmentDetails: '',
-            publicServiceInfo: '',
-            personalNumber: '',
-        },
-    })
-
-    const selectedCountyId = form.watch('homeCountyId') as number | undefined
-    const selectedSubCountyId = form.watch('homeSubCountyId') as number | undefined
-
-    const { data: subCountiesResponse } = useConstituencies(selectedCountyId)
-    const subCounties = subCountiesResponse?.data || []
-
-    const { data: wardsResponse } = useWards(selectedSubCountyId)
-    const wards = wardsResponse?.data || []
-
-    const watchImpairment = form.watch('impairment')
-
-    const onSubmit = async (data: any) => {
-        await updateProfile.mutateAsync(data)
-    }
-
-    // Warn user about unsaved changes before leaving
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (form.formState.isDirty) {
-                e.preventDefault()
-                e.returnValue = ''
-            }
-        }
-        window.addEventListener('beforeunload', handleBeforeUnload)
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-    }, [form.formState.isDirty])
+    const profile = profileResponse?.data
+    const refereesCount = refereesResponse?.data?.length || 0
+    const documentsCount = documentsResponse?.data?.length || 0
 
     if (isLoading) {
         return (
@@ -119,392 +43,154 @@ export default function ProfilePage() {
         )
     }
 
-    // if (!profile) check removed to allow creation
-
+    const sections = [
+        {
+            id: 'personal',
+            title: 'Personal Information',
+            description: 'Identity, contact and demographic details',
+            icon: User,
+            component: <PersonalInfoManager />,
+            summary: profile ? `${profile.fullName || 'No name set'}` : 'Not started',
+            status: profile ? 'completed' : 'pending',
+            required: true
+        },
+        {
+            id: 'qualifications',
+            title: 'Qualifications',
+            description: 'Academic and professional certifications',
+            icon: GraduationCap,
+            component: <QualificationsManager />,
+            summary: profile ? `${profile.qualifications?.length || 0} qualifications added` : 'Complete personal info first',
+            disabled: !profile,
+            required: true
+        },
+        {
+            id: 'employment',
+            title: 'Employment History',
+            description: 'Work experience and responsibilities',
+            icon: Briefcase,
+            component: <EmploymentHistoryManager />,
+            summary: profile ? `${profile.employmentHistory?.length || 0} records added` : 'Complete personal info first',
+            disabled: !profile,
+            required: true
+        },
+        {
+            id: 'training',
+            title: 'Training Courses',
+            description: 'Short courses and workshops',
+            icon: BookOpen,
+            component: <TrainingCoursesManager />,
+            summary: profile ? `${profile.trainingCourses?.length || 0} courses added` : 'Complete personal info first',
+            disabled: !profile,
+            required: true
+        },
+        {
+            id: 'professional',
+            title: 'Professional Details',
+            description: 'Licenses and registrations',
+            icon: ScrollText,
+            component: <ProfessionalDetailsManager />,
+            summary: profile ? `${profile.professionalDetails?.length || 0} details added` : 'Complete personal info first',
+            disabled: !profile,
+            required: false
+        },
+        {
+            id: 'memberships',
+            title: 'Memberships',
+            description: 'Professional bodies and associations',
+            icon: Users,
+            component: <ProfessionalMembershipsManager />,
+            summary: profile ? `${profile.professionalMemberships?.length || 0} memberships added` : 'Complete personal info first',
+            disabled: !profile,
+            required: false
+        },
+        {
+            id: 'referees',
+            title: 'Referees',
+            description: 'Professional and personal references',
+            icon: UserCheck,
+            component: <RefereesManager />,
+            summary: profile ? `${refereesCount} referees added` : 'Complete personal info first',
+            disabled: !profile,
+            required: false
+        },
+        {
+            id: 'uploads',
+            title: 'Uploads',
+            description: 'ID, CV and other supporting documents',
+            icon: FileUp,
+            component: <DocumentsManager />,
+            summary: profile ? `${documentsCount} documents uploaded` : 'Complete personal info first',
+            disabled: !profile,
+            required: false
+        }
+    ]
 
     return (
         <div className="container mx-auto py-8 space-y-8">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold">My Profile</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
                     <p className="text-muted-foreground">Manage your applicant profile and credentials</p>
                 </div>
                 <div className="w-full md:w-80">
-                    <ProfileCompletion profile={profileResponse?.data} />
+                    <ProfileCompletion profile={profile} />
                 </div>
             </div>
 
-            <Tabs defaultValue="personal" className="space-y-6">
-                <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 w-full lg:w-auto h-auto gap-1">
-                    <TabsTrigger value="personal">
-                        <User className="h-4 w-4 mr-2" />
-                        Personal
-                    </TabsTrigger>
-                    <TabsTrigger value="qualifications" disabled={!profile}>Qualifications</TabsTrigger>
-                    <TabsTrigger value="professional" disabled={!profile}>Professional</TabsTrigger>
-                    <TabsTrigger value="training" disabled={!profile}>Training</TabsTrigger>
-                    <TabsTrigger value="memberships" disabled={!profile}>Memberships</TabsTrigger>
-                    <TabsTrigger value="employment" disabled={!profile}>Employment</TabsTrigger>
-                    <TabsTrigger value="referees" disabled={!profile}>Referees</TabsTrigger>
-                </TabsList>
-
-                {/* Personal Information Tab */}
-                <TabsContent value="personal">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Personal Information</CardTitle>
-                            <CardDescription>Update your personal details</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                    {/* Basic Info */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="fullName"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Full Name *</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="John Doe" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="idNumber"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>ID Number *</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="12345678" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="gender"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Gender *</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select gender" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            <SelectItem value="Male">Male</SelectItem>
-                                                            <SelectItem value="Female">Female</SelectItem>
-                                                            <SelectItem value="Other">Other</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="dateOfBirth"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Date of Birth *</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="date"
-                                                            placeholder="1995-01-01"
-                                                            {...field}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="ethnicityId"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Ethnicity</FormLabel>
-                                                    <Select
-                                                        onValueChange={field.onChange}
-                                                        value={field.value?.toString()}
-                                                    >
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select ethnicity" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {ethnicities.map((ethnicity: any) => (
-                                                                <SelectItem key={ethnicity.id} value={ethnicity.id.toString()}>
-                                                                    {ethnicity.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sections.map((section) => (
+                    <Sheet key={section.id}>
+                        <SheetTrigger asChild>
+                            <Card className={`group cursor-pointer hover:border-primary/50 transition-all duration-300 hover:shadow-md ${section.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                                        <section.icon className="h-5 w-5" />
                                     </div>
-
-                                    {/* Location */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="homeCountyId"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Home County</FormLabel>
-                                                    <Select
-                                                        onValueChange={(val) => {
-                                                            field.onChange(parseInt(val))
-                                                            form.setValue('homeSubCountyId', undefined)
-                                                            form.setValue('wardId', undefined)
-                                                        }}
-                                                        value={field.value?.toString()}
-                                                    >
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select county" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {counties.map((county: any) => (
-                                                                <SelectItem key={county.id} value={county.id.toString()}>
-                                                                    {county.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="homeSubCountyId"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Home Sub-County</FormLabel>
-                                                    <Select
-                                                        onValueChange={(val) => {
-                                                            field.onChange(parseInt(val))
-                                                            form.setValue('wardId', undefined)
-                                                        }}
-                                                        value={field.value?.toString()}
-                                                        disabled={!selectedCountyId}
-                                                    >
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select sub-county" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {subCounties.map((sc: any) => (
-                                                                <SelectItem key={sc.id} value={sc.id.toString()}>
-                                                                    {sc.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="wardId"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Ward</FormLabel>
-                                                    <Select
-                                                        onValueChange={(val) => field.onChange(parseInt(val))}
-                                                        value={field.value?.toString()}
-                                                        disabled={!selectedSubCountyId}
-                                                    >
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select ward" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {wards.map((ward: any) => (
-                                                                <SelectItem key={ward.id} value={ward.id.toString()}>
-                                                                    {ward.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-
-                                    {/* Contact */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="phoneNumber"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Phone Number *</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="+254712345678" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="email"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Email Address *</FormLabel>
-                                                    <FormControl>
-                                                        <Input type="email" placeholder="john@example.com" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-
-                                    {/* Additional Information */}
-                                    <div className="space-y-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="impairment"
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                                    <FormControl>
-                                                        <Checkbox
-                                                            checked={field.value}
-                                                            onCheckedChange={field.onChange}
-                                                        />
-                                                    </FormControl>
-                                                    <div className="space-y-1 leading-none">
-                                                        <FormLabel>I have a disability/impairment</FormLabel>
-                                                    </div>
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        {watchImpairment && (
-                                            <FormField
-                                                control={form.control}
-                                                name="impairmentDetails"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Impairment Details</FormLabel>
-                                                        <FormControl>
-                                                            <Textarea placeholder="Please describe..." {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        )}
-
-                                        <FormField
-                                            control={form.control}
-                                            name="publicServiceInfo"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Public Service Information</FormLabel>
-                                                    <FormControl>
-                                                        <Textarea
-                                                            placeholder="Details about current or previous public service employment..."
-                                                            rows={3}
-                                                            {...field}
-                                                        />
-                                                    </FormControl>
-                                                    <FormDescription>
-                                                        If you are or were a public servant, please provide details
-                                                    </FormDescription>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="personalNumber"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Personal Number</FormLabel>
-                                                    <FormControl>
-                                                        <Input placeholder="Personal/Staff number if applicable" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-
-                                    <div className="flex justify-end">
-                                        <Button type="submit" disabled={updateProfile.isPending}>
-                                            {updateProfile.isPending ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    Saving...
-                                                </>
-                                            ) : (
-                                                'Save Changes'
-                                            )}
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={section.required ? "default" : "outline"} className={section.required ? "text-[10px] uppercase tracking-wider px-2 py-0" : "text-[10px] uppercase tracking-wider px-2 py-0 text-blue-600 border-blue-200 bg-blue-50/50"}>
+                                            {section.required ? "Required" : "Optional"}
+                                        </Badge>
+                                        <Button variant="ghost" size="icon" className="group-hover:text-primary transition-colors h-8 w-8" disabled={section.disabled}>
+                                            <ArrowRight className="h-4 w-4" />
                                         </Button>
                                     </div>
-                                </form>
-                            </Form>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Qualifications Tab */}
-                <TabsContent value="qualifications">
-                    {profile && <QualificationsManager />}
-                </TabsContent>
-
-                {/* Professional Details Tab */}
-                <TabsContent value="professional">
-                    {profile && <ProfessionalDetailsManager />}
-                </TabsContent>
-
-                {/* Training Courses Tab */}
-                <TabsContent value="training">
-                    {profile && <TrainingCoursesManager />}
-                </TabsContent>
-
-                {/* Professional Memberships Tab */}
-                <TabsContent value="memberships">
-                    {profile && <ProfessionalMembershipsManager />}
-                </TabsContent>
-
-                {/* Employment History Tab */}
-                <TabsContent value="employment">
-                    {profile && <EmploymentHistoryManager />}
-                </TabsContent>
-
-                {/* Referees Tab */}
-                <TabsContent value="referees">
-                    {profile && <RefereesManager />}
-                </TabsContent>
-            </Tabs>
+                                </CardHeader>
+                                <CardContent>
+                                    <CardTitle className="text-lg mb-1">{section.title}</CardTitle>
+                                    <CardDescription className="line-clamp-1 mb-4">{section.description}</CardDescription>
+                                    <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                        <div className={`h-1.5 w-1.5 rounded-full ${section.disabled ? 'bg-slate-300' : 'bg-green-500'}`} />
+                                        {section.summary}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </SheetTrigger>
+                        {!section.disabled && (
+                            <SheetContent className="w-full sm:max-w-[750px] p-0 flex flex-col h-full border-l shadow-2xl overflow-hidden">
+                                <div className="bg-muted/30 border-b p-6 pt-10">
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <div className="p-3 rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+                                            <section.icon className="h-6 w-6" />
+                                        </div>
+                                        <div>
+                                            <SheetTitle className="text-2xl font-bold tracking-tight">
+                                                {section.title}
+                                            </SheetTitle>
+                                            <SheetDescription className="text-sm font-medium opacity-80">
+                                                {section.description}
+                                            </SheetDescription>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex-1 overflow-y-auto px-6 py-8">
+                                    {section.component}
+                                </div>
+                            </SheetContent>
+                        )}
+                    </Sheet>
+                ))}
+            </div>
         </div>
     )
 }

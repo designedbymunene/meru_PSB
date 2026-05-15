@@ -1,4 +1,4 @@
-import { pgTable, integer, text, timestamp, varchar, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, integer, text, timestamp, varchar, jsonb, uniqueIndex } from 'drizzle-orm/pg-core'
 import { users } from './users'
 import { vacancies } from './vacancies'
 import { timestamps } from './common'
@@ -21,6 +21,10 @@ export const applications = pgTable('applications', {
     profileSnapshot: jsonb('profile_snapshot'), // Full JSON snapshot of the profile at submission
     appliedAt: timestamp('applied_at', { withTimezone: true }).defaultNow().notNull(),
     ...timestamps
+}, (table) => {
+    return {
+        applicantVacancyIdx: uniqueIndex('applicant_vacancy_idx').on(table.applicantId, table.vacancyId)
+    }
 })
 
 // TypeScript types

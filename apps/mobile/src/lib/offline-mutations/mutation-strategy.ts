@@ -1,4 +1,4 @@
-import { getNormalizedApiError } from '@/lib/api/client';
+import { getNormalizedApiError } from '@meru/shared';
 import { isRetryableApiError } from '@/lib/retry-policy';
 import { enqueueOfflineMutation } from './outbox';
 import type { EnqueueOfflineMutationInput } from './types';

@@ -50,6 +50,13 @@
       "when": 1778525822056,
       "tag": "0006_hesitant_thing",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778686877187,
+      "tag": "0007_military_vin_gonzales",
+      "breakpoints": true
     }
   ]
 }

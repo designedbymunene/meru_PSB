@@ -51,6 +51,20 @@ export const changePasswordSchema = z.object({
     newPassword: z.string().min(8).max(100)
 })
 
+// OTP login request schema
+export const otpLoginRequestSchema = z.object({
+    email: z.string().email()
+})
+
+// OTP login verification schema
+export const otpLoginVerifySchema = z.object({
+    email: z.string().email(),
+    otp: z.string().length(6),
+    deviceId: z.string().optional(),
+    deviceName: z.string().optional(),
+    os: z.string().optional()
+})
+
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type Login2faInput = z.infer<typeof login2faSchema>
@@ -58,3 +72,5 @@ export type ForgotPasswordRequestInput = z.infer<typeof forgotPasswordRequestSch
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
+export type OtpLoginRequestInput = z.infer<typeof otpLoginRequestSchema>
+export type OtpLoginVerifyInput = z.infer<typeof otpLoginVerifySchema>

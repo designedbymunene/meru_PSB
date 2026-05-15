@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
-import { db, applications, vacancies } from '../db'
-import { eq, and, desc, asc, inArray, SQL } from 'drizzle-orm'
+import { db, applications, vacancies, users } from '../db'
+import { eq, and, desc, asc, inArray, SQL, or, ilike, exists, count } from 'drizzle-orm'
 import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
@@ -12,7 +12,7 @@ import {
     type BulkApplicationStatusInput,
     type ApplicationReviewInput
 } from '@meru/shared'
-import { NotFoundError, ForbiddenError, successResponse } from '../utils/errors'
+import { NotFoundError, ForbiddenError, successResponse, ConflictError } from '../utils/errors'
 import { ApplicationService } from '../services/application-service'
 import { AuditService } from '../services/audit-service'
 import { auditLog } from '../middleware/audit-logger'
@@ -147,7 +147,8 @@ applicationsRouter.get('/:id', authenticate, async (c) => {
                             professionalDetails: true,
                             trainingCourses: true,
                             professionalMemberships: true,
-                            referees: true
+                            referees: true,
+                            documents: true
                         }
                     }
                 } : undefined
@@ -212,6 +213,12 @@ applicationsRouter.post('/', authenticate, async (c) => {
             'Application submitted successfully'
         )
     } catch (error: any) {
+        // Handle database unique constraint violation
+        const dbError = error.cause || error
+        if (dbError.code === '23505') {
+            throw new ConflictError('You have already applied for this vacancy.')
+        }
+
         console.error('Application submission error:', error)
         const status = error.statusCode || 500
         const code = error.name || 'SERVER_ERROR'
@@ -265,14 +272,34 @@ applicationsRouter.get('/admin/search', authenticate, requireAdmin, async (c) =>
         throw new Error(`Invalid filter parameters: ${filters.error.message}`)
     }
 
-    const { status, vacancyId, applicantId, sortBy, order, limit, offset } = filters.data
+    const { status, vacancyId, applicantId, searchTerm, sortBy, order, limit, offset } = filters.data
     const limitNum = Math.min(parseInt(limit), 100)
     const offsetNum = parseInt(offset)
 
+    // Using core API for complex filters with joins
     const whereConditions: (SQL | undefined)[] = []
     if (status) whereConditions.push(eq(applications.status, status))
     if (vacancyId) whereConditions.push(eq(applications.vacancyId, parseInt(vacancyId)))
     if (applicantId) whereConditions.push(eq(applications.applicantId, parseInt(applicantId)))
+    
+    // Search term in applicant name or email
+    if (searchTerm) {
+        whereConditions.push(
+            exists(
+                db.select()
+                    .from(users)
+                    .where(
+                        and(
+                            eq(users.id, applications.applicantId),
+                            or(
+                                ilike(users.fullName, `%${searchTerm}%`),
+                                ilike(users.email, `%${searchTerm}%`)
+                            )
+                        )
+                    )
+            )
+        )
+    }
 
     const filteredConditions = whereConditions.filter((c): c is SQL => !!c)
     let whereClause = filteredConditions.length > 0 ? and(...filteredConditions) : undefined
@@ -310,15 +337,20 @@ applicationsRouter.get('/admin/search', authenticate, requireAdmin, async (c) =>
         offset: offsetNum
     })
 
-    const total = await db.query.applications.findMany({ where: whereClause })
+    // Optimize total count
+    const totalCountResult = await db.select({ count: count() })
+        .from(applications)
+        .where(whereClause)
+    
+    const totalCount = totalCountResult[0].count
 
     return successResponse(c, {
         data: result,
         pagination: {
-            total: total.length,
+            total: totalCount,
             limit: limitNum,
             offset: offsetNum,
-            hasMore: offsetNum + limitNum < total.length
+            hasMore: offsetNum + limitNum < totalCount
         }
     })
 })

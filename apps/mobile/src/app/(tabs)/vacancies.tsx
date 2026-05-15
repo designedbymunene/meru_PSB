@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useVacancies } from '@/hooks/use-vacancies';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import { Briefcase, Calendar, ChevronRight, Filter, MapPin, Search, Users } from 'lucide-react-native';
@@ -6,7 +6,7 @@ import { useColorScheme } from 'nativewind';
 import React, { useState } from 'react';
 import { FlatList, RefreshControl, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { apiClient, getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
+import { getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
 import { VacanciesListLoadingState } from '@/components/ui/loading-skeletons';
 
 export default function VacanciesScreen() {
@@ -23,13 +23,7 @@ export default function VacanciesScreen() {
         isError,
         refetch,
         isRefetching
-    } = useQuery({
-        queryKey: ['vacancies'],
-        queryFn: async () => {
-            const response = await apiClient.get('/vacancies');
-            return response.data.data;
-        },
-    });
+    } = useVacancies();
     const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
     const normalizedError = error ? getNormalizedApiError(error) : null;
     const showOfflineBanner = isOffline || normalizedError?.isOffline;

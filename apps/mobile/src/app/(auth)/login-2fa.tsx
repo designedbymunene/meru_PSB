@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { useAuth } from '@/context/auth-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ShieldCheck, ArrowLeft } from 'lucide-react-native';
+import { ShieldCheck } from 'lucide-react-native';
 import { getApiErrorMessage } from '@/lib/api/client';
+import { FormLayout } from '@/components/ui/form-layout';
+import { FormField } from '@/components/ui/form-field';
 
 export default function Login2faScreen() {
     const { email } = useLocalSearchParams<{ email: string }>();
@@ -29,69 +30,71 @@ export default function Login2faScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-white dark:bg-gray-950">
-            <View className="px-6 flex-1">
-                <TouchableOpacity 
-                    onPress={() => router.back()}
-                    className="mt-4 w-10 h-10 items-center justify-center rounded-full bg-slate-50 dark:bg-gray-900"
-                >
-                    <ArrowLeft size={20} color="#64748b" />
-                </TouchableOpacity>
+        <FormLayout
+            title="Verification"
+            onBack={() => router.back()}
+            isLoading={isLoading}
+            submitLabel="Verify & Login"
+            onSubmit={handleVerify}
+        >
+            <View className="py-2">
+                <View className="mb-6">
+                    <Text className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Verify Identity</Text>
+                    <Text className="text-slate-500 dark:text-gray-400 mt-2 text-base leading-6">
+                        Enter the secure 6-digit verification code sent to <Text className="font-bold text-[#004aad] dark:text-blue-400">{email}</Text>.
+                    </Text>
+                </View>
 
-                <View className="flex-1 justify-center -mt-20">
-                    <View className="items-center mb-10">
-                        <View className="h-20 w-20 rounded-3xl bg-green-50 dark:bg-green-900/10 items-center justify-center mb-6">
-                            <ShieldCheck size={40} color="#10b981" />
-                        </View>
-                        <Text className="text-3xl font-bold text-slate-900 dark:text-white">Verify Identity</Text>
-                        <Text className="mt-2 text-slate-500 dark:text-gray-400 text-center text-base px-10">
-                            Enter the 6-digit code sent to {email}
-                        </Text>
+                {error && (
+                    <View className="mb-6 bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/20 flex-row items-center">
+                        <Text className="text-red-600 dark:text-red-400 text-sm font-semibold flex-1 text-center">{error}</Text>
                     </View>
+                )}
 
-                    <View className="space-y-4">
-                        {error && (
-                            <View className="rounded-2xl bg-red-50 dark:bg-red-900/10 p-4 border border-red-100 dark:border-red-900/20 mb-4">
-                                <Text className="text-sm text-red-600 dark:text-red-400 text-center font-medium">{error}</Text>
-                            </View>
-                        )}
-
+                <View>
+                    <Text className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-4 ml-1">
+                        Verification Code
+                    </Text>
+                    <View>
+                        <View className="flex-row justify-between">
+                            {[0, 1, 2, 3, 4, 5].map((index) => (
+                                <View 
+                                    key={index} 
+                                    className={`w-[15%] aspect-square rounded-xl border-2 items-center justify-center bg-white dark:bg-gray-900 ${
+                                        otp && otp[index] 
+                                            ? 'border-[#004aad] dark:border-blue-500' 
+                                            : 'border-slate-100 dark:border-gray-800'
+                                    }`}
+                                >
+                                    <Text className="text-xl font-bold text-slate-900 dark:text-white">
+                                        {otp ? otp[index] : ""}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>
                         <TextInput
-                            className="h-16 bg-slate-50 dark:bg-gray-900 rounded-2xl px-6 text-2xl font-bold text-center tracking-[10px] text-slate-900 dark:text-white border border-slate-100 dark:border-gray-800"
-                            placeholder="000000"
-                            placeholderTextColor="#94a3b8"
-                            keyboardType="number-pad"
-                            maxLength={6}
                             value={otp}
                             onChangeText={(text) => {
                                 setOtp(text);
                                 if (text.length === 6) handleVerify();
                             }}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                            className="absolute w-full h-full opacity-0"
                             autoFocus
                         />
-
-                        <TouchableOpacity
-                            className={`mt-6 h-14 rounded-2xl items-center justify-center shadow-lg shadow-green-200 dark:shadow-none ${
-                                isLoading || otp.length !== 6 ? 'bg-green-500/50' : 'bg-green-600'
-                            }`}
-                            onPress={handleVerify}
-                            disabled={isLoading || otp.length !== 6}
-                        >
-                            {isLoading ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <Text className="text-white text-lg font-bold">Verify & Login</Text>
-                            )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity className="mt-6 items-center">
-                            <Text className="text-slate-500 dark:text-gray-400 font-medium">
-                                Didn't receive a code? <Text className="text-[#004aad] dark:text-blue-400 font-bold">Resend</Text>
-                            </Text>
-                        </TouchableOpacity>
                     </View>
                 </View>
+
+                <View className="mt-8 items-center">
+                    <Text className="text-slate-500 dark:text-gray-400 text-sm">
+                        Didn't receive the code?
+                    </Text>
+                    <TouchableOpacity className="mt-1">
+                        <Text className="text-[#004aad] dark:text-blue-400 font-bold text-sm">Resend Code</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
-        </SafeAreaView>
+        </FormLayout>
     );
 }

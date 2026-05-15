@@ -38,9 +38,9 @@ export function FormLayout({
         <View className="flex-1 bg-gray-50 dark:bg-gray-950">
             <Header title={title} onBack={onBack} />
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 className="flex-1"
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <ScrollView
@@ -51,8 +51,9 @@ export function FormLayout({
                         }}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
+                        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
                     >
-                        <View className="p-6 pt-10">
+                        <View className="p-6 pt-4">
                             {children}
                         </View>
                     </ScrollView>

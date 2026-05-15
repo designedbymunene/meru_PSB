@@ -48,6 +48,17 @@ export async function getApplications(
     return data
 }
 
+// Admin: Advanced search applications
+export async function getAdminApplications(
+    filters?: ApplicationFilters
+): Promise<ApiResponse<{ data: ApplicationWithRelations[], pagination: any }>> {
+    const { data } = await apiClient.get<ApiResponse<{ data: ApplicationWithRelations[], pagination: any }>>(
+        '/applications/admin/search',
+        { params: filters }
+    )
+    return data
+}
+
 // Get user's own applications
 export async function getMyApplications(filters?: ApplicationFilters): Promise<ApiResponse<ApplicationWithRelations[]>> {
     const { data } = await apiClient.get<ApiResponse<ApplicationWithRelations[]>>(

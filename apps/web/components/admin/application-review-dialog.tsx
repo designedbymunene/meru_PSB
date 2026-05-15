@@ -34,8 +34,8 @@ import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
 
 const reviewSchema = z.object({
-    status: z.enum(["accepted", "rejected"]),
-    notes: z.string().min(1, "Review notes are required").max(500, "Notes are too long"),
+    status: z.enum(["reviewed", "shortlisted", "interviewed", "accepted", "rejected"]),
+    notes: z.string().min(1, "Review notes are required").max(1000, "Notes are too long"),
 })
 
 type ReviewFormValues = z.infer<typeof reviewSchema>
@@ -65,7 +65,7 @@ export function ApplicationReviewDialog({
     const form = useForm<ReviewFormValues>({
         resolver: zodResolver(reviewSchema),
         defaultValues: {
-            status: "accepted", // Default to accepted or potentially undefined
+            status: (currentStatus as any) || "reviewed",
             notes: "",
         },
     })
@@ -114,7 +114,10 @@ export function ApplicationReviewDialog({
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="accepted">Accept</SelectItem>
+                                            <SelectItem value="reviewed">Mark as Reviewed</SelectItem>
+                                            <SelectItem value="shortlisted">Shortlist</SelectItem>
+                                            <SelectItem value="interviewed">Mark as Interviewed</SelectItem>
+                                            <SelectItem value="accepted">Accept / Approve</SelectItem>
                                             <SelectItem value="rejected">Reject</SelectItem>
                                         </SelectContent>
                                     </Select>

@@ -27,7 +27,7 @@ export const SettingRow: React.FC<SettingRowProps> = ({
 }) => {
     return (
         <TouchableOpacity
-            className={`flex-row items-center py-5 ${!isLast ? 'border-b border-gray-50 dark:border-gray-800' : ''} active:opacity-60`}
+            className={`flex-row items-center py-6 ${!isLast ? 'border-b border-gray-50 dark:border-gray-800' : ''} active:opacity-60`}
             onPress={onPress}
             disabled={!onPress && !rightElement}
         >

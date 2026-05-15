@@ -16,6 +16,17 @@ export async function seedReferenceData() {
 
         // 2. Education Levels
         const levels = [
+            { name: 'Level 10 (Doctorate / PhD)', code: 'KNQF_LEVEL_10' },
+            { name: 'Level 9 (Master\'s Degree)', code: 'KNQF_LEVEL_9' },
+            { name: 'Level 8 (Postgrad Diploma / Professional Bachelor\'s)', code: 'KNQF_LEVEL_8' },
+            { name: 'Level 7 (Bachelor\'s Degree / Professional Diploma)', code: 'KNQF_LEVEL_7' },
+            { name: 'Level 6 (National Diploma / NSC V / HND)', code: 'KNQF_LEVEL_6' },
+            { name: 'Level 5 (Craft Certificate / NSC IV)', code: 'KNQF_LEVEL_5' },
+            { name: 'Level 4 (Artisan Certificate / NSC III / GTT I)', code: 'KNQF_LEVEL_4' },
+            { name: 'Level 3 (Senior Secondary / KCSE / NSC II / GTT II)', code: 'KNQF_LEVEL_3' },
+            { name: 'Level 2 (Junior Secondary / NSC I / GTT III)', code: 'KNQF_LEVEL_2' },
+            { name: 'Level 1 (Primary Certificate / Basic Skills)', code: 'KNQF_LEVEL_1' },
+            // Legacy levels for backward compatibility
             { name: 'Kenya Certificate of Primary Education', code: 'KCPE' },
             { name: 'Kenya Certificate of Secondary Education', code: 'KCSE' },
             { name: 'Certificate', code: 'CERTIFICATE' },
@@ -33,43 +44,43 @@ export async function seedReferenceData() {
 
         // 3. Education Grades
         if (seededLevels.length > 0) {
-            const kcseId = seededLevels.find(l => l.code === 'KCSE')?.id
-            const kcpeId = seededLevels.find(l => l.code === 'KCPE')?.id
-            
             const letterGrades = ['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'E']
-            
-            if (kcseId) {
-                const kcseGrades = letterGrades.map(grade => ({
-                    levelId: kcseId,
-                    grade
-                }))
-                await db.insert(educationGrades).values(kcseGrades).onConflictDoNothing()
+            const tvetGrades = ['Distinction', 'Credit', 'Pass', 'Fail', 'Refer']
+            const universityGrades = [
+                'First Class Honours', 
+                'Second Class Honours (Upper Division)', 
+                'Second Class Honours (Lower Division)', 
+                'Pass',
+                'Fail'
+            ]
+
+            const gradeValues: { levelId: number, grade: string }[] = []
+
+            for (const level of seededLevels) {
+                if (level.code.includes('LEVEL_3') || level.code === 'KCSE' || level.code === 'KCPE') {
+                    gradeValues.push(...letterGrades.map(g => ({ levelId: level.id, grade: g })))
+                } else if (level.code.match(/LEVEL_[456]/) || ['CERTIFICATE', 'DIPLOMA', 'HIGHER_DIPLOMA'].includes(level.code)) {
+                    gradeValues.push(...tvetGrades.map(g => ({ levelId: level.id, grade: g })))
+                    // Also add 1-7 numeric grades for TVET
+                    gradeValues.push(...['1', '2', '3', '4', '5', '6', '7'].map(g => ({ levelId: level.id, grade: g })))
+                } else if (level.code.match(/LEVEL_(7|8|9|10)/) || ['BACHELORS', 'POSTGRAD_DIPLOMA', 'MASTERS', 'DOCTORATE'].includes(level.code)) {
+                    gradeValues.push(...universityGrades.map(g => ({ levelId: level.id, grade: g })))
+                }
             }
 
-            if (kcpeId) {
-                const kcpeGrades = letterGrades.map(grade => ({
-                    levelId: kcpeId,
-                    grade
-                }))
-                await db.insert(educationGrades).values(kcpeGrades).onConflictDoNothing()
+            if (gradeValues.length > 0) {
+                // To avoid duplication without unique constraint, we can check existing or just use a batch insert and rely on manual cleanup if needed
+                // Better: Fetch existing grades and only insert new ones
+                const existingGrades = await db.select().from(educationGrades)
+                const existingSet = new Set(existingGrades.map(g => `${g.levelId}-${g.grade}`))
+                
+                const newGrades = gradeValues.filter(gv => !existingSet.has(`${gv.levelId}-${gv.grade}`))
+                
+                if (newGrades.length > 0) {
+                    await db.insert(educationGrades).values(newGrades)
+                }
             }
-
-            const universityId = seededLevels.find(l => l.code === 'BACHELORS')?.id
-            if (universityId) {
-                const uniGrades = [
-                    'First Class Honours', 
-                    'Second Class Upper Division', 
-                    'Second Class Lower Division', 
-                    'Pass',
-                    'Distinction',
-                    'Credit'
-                ].map(grade => ({
-                    levelId: universityId,
-                    grade
-                }))
-                await db.insert(educationGrades).values(uniGrades).onConflictDoNothing()
-            }
-            console.log('✅ Seeded education grades for KCPE, KCSE and University')
+            console.log('✅ Seeded education grades')
         }
 
         // 4. Sample Institutions

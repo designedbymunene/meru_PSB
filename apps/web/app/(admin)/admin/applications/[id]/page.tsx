@@ -110,6 +110,14 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                             </div>
                         </div>
 
+                        <Separator />
+                        
+                        <Button variant="outline" className="w-full rounded-xl" asChild>
+                            <Link href={`/admin/profiles/${application.applicantId}`}>
+                                View Full Profile
+                            </Link>
+                        </Button>
+
 
                     </CardContent>
                 </Card>

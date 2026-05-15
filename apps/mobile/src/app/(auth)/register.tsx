@@ -159,34 +159,30 @@ export default function RegisterScreen() {
                                 )}
                             />
 
-                            {/* Password */}
-                            <View className="relative">
-                                <Controller
-                                    control={control}
-                                    name="password"
-                                    render={({ field: { onChange, onBlur, value } }) => (
-                                        <FormField
-                                            ref={passwordRef}
-                                            label="Password"
-                                            placeholder="••••••••"
-                                            icon={Lock}
-                                            onBlur={onBlur}
-                                            onChangeText={onChange}
-                                            value={value}
-                                            error={errors.password?.message}
-                                            secureTextEntry={!showPassword}
-                                            returnKeyType="done"
-                                            onSubmitEditing={handleSubmit(onSubmit)}
-                                        />
-                                    )}
-                                />
-                                <TouchableOpacity 
-                                    onPress={() => setShowPassword(!showPassword)} 
-                                    className="absolute right-4 top-[50px]"
-                                >
-                                    {showPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
-                                </TouchableOpacity>
-                            </View>
+                            <Controller
+                                control={control}
+                                name="password"
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <FormField
+                                        ref={passwordRef}
+                                        label="Password"
+                                        placeholder="••••••••"
+                                        icon={Lock}
+                                        onBlur={onBlur}
+                                        onChangeText={onChange}
+                                        value={value}
+                                        error={errors.password?.message}
+                                        secureTextEntry={!showPassword}
+                                        returnKeyType="done"
+                                        onSubmitEditing={handleSubmit(onSubmit)}
+                                        rightElement={
+                                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                                {showPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
+                                            </TouchableOpacity>
+                                        }
+                                    />
+                                )}
+                            />
 
                             {/* Sign Up Button */}
                             <TouchableOpacity 

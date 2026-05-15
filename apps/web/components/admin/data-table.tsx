@@ -22,14 +22,18 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useState } from "react"
+import { ReactNode, useState, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
     searchKey?: string
     searchPlaceholder?: string
+    toolbar?: ReactNode
+    onRowSelectionChange?: (selectedRows: TData[]) => void
+    className?: string
 }
 
 export function DataTable<TData, TValue>({
@@ -37,9 +41,13 @@ export function DataTable<TData, TValue>({
     data,
     searchKey,
     searchPlaceholder = "Filter...",
+    toolbar,
+    onRowSelectionChange,
+    className
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+    const [rowSelection, setRowSelection] = useState({})
 
     const table = useReactTable({
         data,
@@ -50,26 +58,39 @@ export function DataTable<TData, TValue>({
         getSortedRowModel: getSortedRowModel(),
         onColumnFiltersChange: setColumnFilters,
         getFilteredRowModel: getFilteredRowModel(),
+        onRowSelectionChange: setRowSelection,
         state: {
             sorting,
             columnFilters,
+            rowSelection,
         },
     })
 
+    const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original)
+    
+    useEffect(() => {
+        if (onRowSelectionChange) {
+            onRowSelectionChange(selectedRows)
+        }
+    }, [rowSelection, onRowSelectionChange]) // eslint-disable-line react-hooks/exhaustive-deps
+
     return (
-        <div className="space-y-4">
-            {searchKey && (
-                <div className="flex items-center py-4">
-                    <Input
-                        placeholder={searchPlaceholder}
-                        value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
-                        onChange={(event) =>
-                            table.getColumn(searchKey)?.setFilterValue(event.target.value)
-                        }
-                        className="max-w-sm"
-                    />
-                </div>
-            )}
+        <div className={cn("space-y-4", className)}>
+            <div className="flex items-center justify-between gap-4">
+                {searchKey ? (
+                    <div className="flex flex-1 items-center">
+                        <Input
+                            placeholder={searchPlaceholder}
+                            value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
+                            onChange={(event) =>
+                                table.getColumn(searchKey)?.setFilterValue(event.target.value)
+                            }
+                            className="max-w-sm"
+                        />
+                    </div>
+                ) : <div className="flex-1" />}
+                {toolbar && <div className="flex items-center gap-2">{toolbar}</div>}
+            </div>
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>
@@ -122,26 +143,33 @@ export function DataTable<TData, TValue>({
                     </TableBody>
                 </Table>
             </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                </Button>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                </Button>
+            <div className="flex items-center justify-between space-x-2 py-4">
+                <div className="flex-1 text-sm text-muted-foreground">
+                    {table.getFilteredSelectedRowModel().rows.length} of{" "}
+                    {table.getFilteredRowModel().rows.length} row(s) selected.
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                        Previous
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                    >
+                        Next
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
         </div>
     )
 }
+

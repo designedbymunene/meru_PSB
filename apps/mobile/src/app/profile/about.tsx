@@ -1,14 +1,31 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Linking } from 'react-native';
-import { Info, ExternalLink, Mail, Github, Twitter, Globe, Facebook } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, Image, Linking } from 'react-native';
+import { Globe, Globe2, Info } from 'lucide-react-native';
+import Svg, { Path } from 'react-native-svg';
 import { FormLayout } from '@/components/ui/form-layout';
 import { router } from 'expo-router';
+import Constants from 'expo-constants';
+
+const XIcon = ({ size = 20, color = "#64748b" }: { size?: number, color?: string }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        <Path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932L18.901 1.153zM17.61 20.644h2.039L6.486 3.24H4.298L17.61 20.644z" />
+    </Svg>
+);
+
+const FacebookIcon = ({ size = 20, color = "#64748b" }: { size?: number, color?: string }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </Svg>
+);
 
 export default function AboutScreen() {
+    const appVersion = Constants.expoConfig?.version || '1.0.0';
+    const buildNumber = Constants.expoConfig?.extra?.buildNumber || '1';
+    
     const socialLinks = [
-        { icon: Globe, url: 'https://meru.go.ke' },
-        { icon: Twitter, url: 'https://twitter.com/merucounty' },
-        { icon: Facebook, url: 'https://facebook.com/merucounty' },
+        { icon: Globe2 || Globe || Info, url: 'https://meru.go.ke' },
+        { icon: XIcon, url: 'https://twitter.com/merucounty' },
+        { icon: FacebookIcon, url: 'https://facebook.com/merucounty' },
     ];
 
     return (
@@ -24,7 +41,7 @@ export default function AboutScreen() {
                     />
                 </View>
                 <Text className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Meru County PSB</Text>
-                <Text className="text-gray-500 dark:text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">Version 2.4.0 (Stable)</Text>
+                <Text className="text-gray-500 dark:text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">Version {appVersion} (Build {buildNumber})</Text>
             </View>
 
             <View className="space-y-8">
@@ -61,14 +78,14 @@ export default function AboutScreen() {
                             onPress={() => Linking.openURL(social.url)}
                             className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 items-center justify-center active:opacity-70"
                         >
-                            <social.icon size={20} color="#64748b" strokeWidth={2} />
+                            <social.icon size={20} color="#64748b" />
                         </TouchableOpacity>
                     ))}
                 </View>
 
                 <View className="items-center pb-10">
                     <Text className="text-gray-400 dark:text-gray-600 text-[10px] font-bold uppercase tracking-widest text-center">
-                        © 2026 Meru County Public Service Board{"\n"}All Rights Reserved
+                        © {new Date().getFullYear()} Meru County Public Service Board{"\n"}All Rights Reserved
                     </Text>
                 </View>
             </View>

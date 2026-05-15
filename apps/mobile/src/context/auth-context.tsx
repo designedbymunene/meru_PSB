@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { User, LoginInput, RegisterInput, AuthResponse } from '@meru/shared';
 import { authStorage } from '../lib/auth/storage';
 import { apiClient } from '../lib/api/client';
-import { router } from 'expo-router';
+import { router, useNavigationContainerRef } from 'expo-router';
 import { toast } from 'sonner-native';
 import { authEvents } from '../lib/auth/events';
 
@@ -12,6 +12,8 @@ interface AuthContextType {
     login: (credentials: LoginInput) => Promise<{ twoFactorRequired?: boolean }>;
     verify2fa: (data: { email: string; otp: string }) => Promise<void>;
     register: (data: RegisterInput) => Promise<void>;
+    requestLoginOtp: (email: string) => Promise<void>;
+    loginWithOtp: (data: { email: string; otp: string }) => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -20,6 +22,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const navigationRef = useNavigationContainerRef();
+    const [isNavigationReady, setIsNavigationReady] = useState(false);
+
+    useEffect(() => {
+        const checkReady = () => {
+            if (navigationRef.isReady()) {
+                setIsNavigationReady(true);
+            } else {
+                setTimeout(checkReady, 100);
+            }
+        };
+        checkReady();
+    }, [navigationRef]);
 
     const loadUser = useCallback(async () => {
         try {
@@ -48,13 +63,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         const unsubscribe = authEvents.subscribe(() => {
-            if (user) {
-                setUser(null);
+            if (__DEV__) console.log('[Auth] Logout event received');
+            setUser(null);
+            if (isNavigationReady) {
                 router.replace('/login');
             }
         });
         return unsubscribe;
-    }, [user]);
+    }, [isNavigationReady]);
 
     const login = async (credentials: LoginInput) => {
         try {
@@ -147,6 +163,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const requestLoginOtp = async (email: string) => {
+        try {
+            await apiClient.post('/auth/otp/request', { email });
+            toast.success('Code Sent', {
+                description: 'Please check your inbox for the 6-digit code.'
+            });
+        } catch (error) {
+            throw error;
+        }
+    };
+
+    const loginWithOtp = async (data: { email: string; otp: string }) => {
+        try {
+            const { getDeviceInfo } = await import('../lib/device');
+            const deviceInfo = await getDeviceInfo();
+
+            const response = await apiClient.post<any>('/auth/otp/verify', {
+                ...data,
+                ...deviceInfo
+            });
+
+            const { user, accessToken, refreshToken } = response.data.data;
+            
+            await authStorage.setAccessToken(accessToken);
+            await authStorage.setRefreshToken(refreshToken);
+            await authStorage.setUser(user);
+            
+            setUser(user);
+            toast.success('Login Successful');
+            router.replace('/');
+        } catch (error) {
+            throw error;
+        }
+    };
+
     const logout = async () => {
         try {
             await authStorage.clearAll();
@@ -159,7 +210,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, verify2fa, register, logout }}>
+        <AuthContext.Provider value={{ 
+            user, 
+            isLoading: isLoading || !isNavigationReady, 
+            login, 
+            verify2fa, 
+            register, 
+            requestLoginOtp,
+            loginWithOtp,
+            logout 
+        }}>
             {children}
         </AuthContext.Provider>
     );

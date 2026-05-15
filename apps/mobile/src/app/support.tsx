@@ -23,9 +23,9 @@ export default function SupportScreen() {
             icon: Mail,
             title: 'Email Us',
             subtitle: 'Response within 24 hours',
-            value: 'support@meru.go.ke',
+            value: 'adminmerucpsb@meru.go.ke',
             color: '#10b981',
-            action: () => Linking.openURL('mailto:support@meru.go.ke')
+            action: () => Linking.openURL('mailto:adminmerucpsb@meru.go.ke')
         },
         {
             icon: MessageSquare,
@@ -111,8 +111,8 @@ export default function SupportScreen() {
                 <View>
                     <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-4 ml-2">Legal & Resources</Text>
                     <SectionCard variant="flat" title="Official Documents" icon={<FileText size={20} color="#64748b" />}>
-                        <SettingRow icon={Shield} title="Privacy Policy" onPress={() => {}} />
-                        <SettingRow icon={FileText} title="Terms of Service" onPress={() => {}} />
+                        <SettingRow icon={Shield} title="Privacy Policy" onPress={() => router.push('/profile/privacy-policy')} />
+                        <SettingRow icon={FileText} title="Terms of Service" onPress={() => router.push('/profile/terms')} />
                         <SettingRow icon={ExternalLink} title="Meru County Website" onPress={() => Linking.openURL('https://meru.go.ke')} isLast={true} />
                     </SectionCard>
                 </View>

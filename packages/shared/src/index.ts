@@ -5,6 +5,7 @@ export * from './schemas/auth'
 export * from './schemas/vacancies'
 export * from './schemas/applications'
 export * from './schemas/applicant-profile'
+export * from './utils/profile-completion'
 
 import type { RegisterInput, LoginInput, ForgotPasswordRequestInput, RefreshTokenInput, ResetPasswordInput } from './schemas/auth'
 import type { 
@@ -178,6 +179,7 @@ export interface VacancyWithRelations extends Vacancy {
     department?: Department | null
     jobGroup?: JobGroup
     documents?: VacancyDocument[]
+    applicationsCount?: number
 }
 
 export interface Application {
@@ -273,6 +275,37 @@ export interface EmploymentHistory {
     updatedAt: string
 }
 
+export interface ApplicantDocument {
+    id: number
+    userId: number
+    documentType: string
+    originalName: string
+    filename: string
+    filePath: string
+    fileSize: number
+    mimeType: string
+    status: string
+    rejectionReason?: string | null
+    verifiedAt?: string | null
+    verifiedBy?: number | null
+    createdAt: string
+    updatedAt: string
+}
+
+export interface Referee {
+    id: number
+    applicantProfileId: number
+    fullName: string
+    organization: string
+    designation: string
+    phone: string
+    email: string
+    address: string | null
+    relationship: string | null
+    createdAt: string
+    updatedAt: string
+}
+
 export interface ApplicantProfile {
     id: number
     applicantId: number
@@ -297,6 +330,11 @@ export interface ApplicantProfile {
     impairmentDetails: string | null
     publicServiceInfo: string | null
     personalNumber: string | null
+    hasNoExperience: boolean
+    hasNoCertificates: boolean
+    hasNoMemberships: boolean
+    hasNoTrainings: boolean
+    hasNoReferees: boolean
     createdAt: string
     updatedAt: string
 }
@@ -307,6 +345,8 @@ export interface ApplicantProfileWithRelations extends ApplicantProfile {
     trainingCourses: TrainingCourse[]
     professionalMemberships: ProfessionalMembership[]
     employmentHistory: EmploymentHistory[]
+    documents: ApplicantDocument[]
+    referees: Referee[]
 }
 
 export type VacancyFilters = {
