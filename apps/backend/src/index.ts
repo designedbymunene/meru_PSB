@@ -13,6 +13,10 @@ import { jobGroupsRouter } from './routes/job-groups'
 import { applicantProfilesRouter } from './routes/applicant-profiles'
 import { referenceRouter } from './routes/reference'
 import { accountRouter } from './routes/account'
+import { shortlistingRouter } from './routes/shortlisting'
+import { interviewsRouter } from './routes/interviews'
+import { boardRouter } from './routes/board'
+import { reportsRouter } from './routes/reports'
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler'
@@ -51,7 +55,7 @@ if (process.env.NODE_ENV !== 'production') {
         }
       }
     }
-    await next()
+    return await next()
   })
 }
 
@@ -62,7 +66,7 @@ app.use('*', async (c, next) => {
     const normalizedPath = path.replace(/\/+/g, '/')
     return c.redirect(normalizedPath, 307)
   }
-  await next()
+  return await next()
 })
 
 app.use(
@@ -108,6 +112,10 @@ app.route('/api/departments', departmentsRouter)
 app.route('/api/job-groups', jobGroupsRouter)
 app.route('/api/applicant-profiles', applicantProfilesRouter)
 app.route('/api/reference', referenceRouter)
+app.route('/api/shortlisting', shortlistingRouter)
+app.route('/api/interviews', interviewsRouter)
+app.route('/api/board', boardRouter)
+app.route('/api/reports', reportsRouter)
 
 // Error handler
 app.onError(errorHandler)

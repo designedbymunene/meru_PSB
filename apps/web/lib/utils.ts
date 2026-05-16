@@ -35,6 +35,13 @@ export function formatCurrency(amount: string | number, currency = 'KES') {
   }).format(num)
 }
 
+// Number formatting with thousand separators
+export function formatNumber(amount: string | number) {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount
+  if (isNaN(num)) return amount
+  return new Intl.NumberFormat('en-KE').format(num)
+}
+
 // Salary range formatting
 export function formatSalaryRange(min: string, max: string) {
   return `${formatCurrency(min)} - ${formatCurrency(max)}`

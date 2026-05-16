@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import createMiddleware from 'next-intl/middleware'
+import { routing } from './i18n/routing'
+
+const intlMiddleware = createMiddleware(routing)
 
 // Routes that require authentication
 const protectedRoutes = ['/dashboard']
@@ -13,51 +17,56 @@ const authRoutes = ['/login', '/register', '/forgot-password']
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
-    // Check for access token in cookies (can't access localStorage in middleware)
+    // Check if the pathname has a locale prefix
+    const pathnameHasLocale = routing.locales.some(
+        (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
+    )
+
+    // Get the pathname without locale for route matching
+    let pathnameWithoutLocale = pathname
+    if (pathnameHasLocale) {
+        const parts = pathname.split('/')
+        pathnameWithoutLocale = '/' + parts.slice(2).join('/')
+    }
+
+    // Check for access token in cookies
     const accessToken = request.cookies.get('accessToken')?.value
 
     // For auth routes, redirect to dashboard if already logged in
-    if (authRoutes.some((route) => pathname.startsWith(route))) {
+    if (authRoutes.some((route) => pathnameWithoutLocale.startsWith(route))) {
         if (accessToken) {
             return NextResponse.redirect(new URL('/dashboard', request.url))
         }
-        return NextResponse.next()
     }
 
     // For protected routes, redirect to login if not authenticated
-    if (protectedRoutes.some((route) => pathname.startsWith(route))) {
+    if (protectedRoutes.some((route) => pathnameWithoutLocale.startsWith(route))) {
         if (!accessToken) {
             const loginUrl = new URL('/login', request.url)
             loginUrl.searchParams.set('callbackUrl', pathname)
             return NextResponse.redirect(loginUrl)
         }
-        return NextResponse.next()
     }
 
-    // For admin routes, check both auth and role (role check happens client-side)
-    if (adminRoutes.some((route) => pathname.startsWith(route))) {
+    // For admin routes
+    if (adminRoutes.some((route) => pathnameWithoutLocale.startsWith(route))) {
         if (!accessToken) {
             const loginUrl = new URL('/login', request.url)
             loginUrl.searchParams.set('callbackUrl', pathname)
             return NextResponse.redirect(loginUrl)
         }
-        // Note: Role-based access is checked client-side since we can't decode JWT here
-        return NextResponse.next()
     }
 
-    return NextResponse.next()
+    return intlMiddleware(request)
 }
 
 export const config = {
     matcher: [
-        /*
-         * Match all request paths except:
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * - public folder
-         * - api routes
-         */
-        '/((?!_next/static|_next/image|favicon.ico|public|api).*)',
+        // Match all pathnames except for
+        // - /api (API routes)
+        // - /_next (Next.js internals)
+        // - /_static (inside /public)
+        // - all root files inside /public (e.g. /favicon.ico)
+        '/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
     ],
 }

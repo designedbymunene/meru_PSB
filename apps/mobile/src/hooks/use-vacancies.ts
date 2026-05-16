@@ -1,11 +1,31 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 
-export function useVacancies() {
+export interface VacancyFilters {
+    status?: 'open' | 'closed' | 'all';
+    departmentId?: number | string | null;
+    jobGroupId?: number | string | null;
+}
+
+export function useVacancies(filters?: VacancyFilters) {
     return useQuery({
-        queryKey: ['vacancies'],
+        queryKey: ['vacancies', filters],
         queryFn: async () => {
-            const response = await apiClient.get('/vacancies');
+            const params = new URLSearchParams();
+            if (filters?.status && filters.status !== 'all') {
+                params.append('status', filters.status);
+            }
+            if (filters?.departmentId) {
+                params.append('departmentId', filters.departmentId.toString());
+            }
+            if (filters?.jobGroupId) {
+                params.append('jobGroupId', filters.jobGroupId.toString());
+            }
+
+            const queryString = params.toString();
+            const url = `/vacancies${queryString ? `?${queryString}` : ''}`;
+            
+            const response = await apiClient.get(url);
             return response.data.data;
         },
     });

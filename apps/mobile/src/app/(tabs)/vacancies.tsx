@@ -1,21 +1,30 @@
-import { useVacancies } from '@/hooks/use-vacancies';
+import { useVacancies, VacancyFilters } from '@/hooks/use-vacancies';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
-import { Briefcase, Calendar, ChevronRight, Filter, MapPin, Search, Users } from 'lucide-react-native';
+import { Briefcase, Calendar, ChevronRight, Filter, MapPin, Search, Users, X } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { FlatList, RefreshControl, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
 import { VacanciesListLoadingState } from '@/components/ui/loading-skeletons';
+import { VacancyFilterSheet } from '@/components/vacancies/VacancyFilterSheet';
 
 export default function VacanciesScreen() {
     const router = useRouter();
     const { colorScheme } = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
     const [searchQuery, setSearchQuery] = useState('');
+    const [isFilterSheetVisible, setIsFilterSheetVisible] = useState(false);
+    const [filters, setFilters] = useState<VacancyFilters>({
+        status: 'open',
+        departmentId: null,
+        jobGroupId: null
+    });
+
     const netInfo = useNetInfo();
     const insets = useSafeAreaInsets();
+    
     const {
         data,
         isLoading,
@@ -23,7 +32,8 @@ export default function VacanciesScreen() {
         isError,
         refetch,
         isRefetching
-    } = useVacancies();
+    } = useVacancies(filters);
+
     const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
     const normalizedError = error ? getNormalizedApiError(error) : null;
     const showOfflineBanner = isOffline || normalizedError?.isOffline;
@@ -38,16 +48,34 @@ export default function VacanciesScreen() {
         return { label: 'Open', color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-100 dark:border-green-900/30' };
     };
 
-    const vacancies = data || [];
+    const activeFilterCount = useMemo(() => {
+        let count = 0;
+        if (filters.status && filters.status !== 'open') count++;
+        if (filters.departmentId) count++;
+        if (filters.jobGroupId) count++;
+        return count;
+    }, [filters]);
 
-    if (isLoading && vacancies.length === 0 && !isError) {
+    const filteredVacancies = useMemo(() => {
+        if (!data) return [];
+        if (!searchQuery) return data;
+        
+        const query = searchQuery.toLowerCase();
+        return data.filter((v: any) => 
+            v.title.toLowerCase().includes(query) || 
+            v.department?.name?.toLowerCase().includes(query) ||
+            v.advertisementNumber?.toLowerCase().includes(query)
+        );
+    }, [data, searchQuery]);
+
+    if (isLoading && !isRefetching && filteredVacancies.length === 0 && !isError) {
         return <VacanciesListLoadingState />;
     }
 
     return (
         <View className="flex-1 bg-white dark:bg-gray-950">
             <FlatList
-                data={vacancies}
+                data={filteredVacancies}
                 keyExtractor={(item) => item.id.toString()}
                 contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 20 }}
                 showsVerticalScrollIndicator={false}
@@ -71,8 +99,20 @@ export default function VacanciesScreen() {
                                     Find your next career opportunity in Meru County
                                 </Text>
                             </View>
-                            <TouchableOpacity className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-900 items-center justify-center border border-gray-100 dark:border-gray-800 mt-1">
-                                <Filter size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
+                            <TouchableOpacity 
+                                onPress={() => setIsFilterSheetVisible(true)}
+                                className={`w-10 h-10 rounded-full items-center justify-center border mt-1 ${
+                                    activeFilterCount > 0 
+                                        ? 'bg-[#004aad] border-[#004aad]' 
+                                        : 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-800'
+                                }`}
+                            >
+                                <Filter size={18} color={activeFilterCount > 0 ? '#ffffff' : (isDarkMode ? '#ffffff' : '#0f172a')} />
+                                {activeFilterCount > 0 && (
+                                    <View className="absolute -top-1 -right-1 bg-red-500 w-4 h-4 rounded-full items-center justify-center border border-white">
+                                        <Text className="text-white text-[8px] font-bold">{activeFilterCount}</Text>
+                                    </View>
+                                )}
                             </TouchableOpacity>
                         </View>
 
@@ -85,6 +125,11 @@ export default function VacanciesScreen() {
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
                             />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                    <X size={18} color="#94a3b8" />
+                                </TouchableOpacity>
+                            )}
                             <View className="bg-gray-200 dark:bg-gray-800 h-6 w-[1px] mx-2" />
                             <Users size={18} color="#64748b" />
                         </View>
@@ -155,18 +200,34 @@ export default function VacanciesScreen() {
                         <Text className="text-gray-500 dark:text-gray-400 text-sm text-center mt-2 leading-5">
                             {isError
                                 ? errorMessage
-                                : 'There are currently no job opportunities available. Please check back later.'}
+                                : 'There are currently no job opportunities available matching your filters.'}
                         </Text>
-                        {isError && (
+                        {(isError || activeFilterCount > 0 || searchQuery) && (
                             <TouchableOpacity
-                                onPress={() => refetch()}
+                                onPress={() => {
+                                    if (isError) refetch();
+                                    else {
+                                        setFilters({ status: 'open', departmentId: null, jobGroupId: null });
+                                        setSearchQuery('');
+                                    }
+                                }}
                                 className="mt-5 px-5 py-2.5 rounded-full bg-[#004aad] dark:bg-blue-600"
                             >
-                                <Text className="text-white font-semibold text-xs">Try Again</Text>
+                                <Text className="text-white font-semibold text-xs">
+                                    {isError ? 'Try Again' : 'Clear Filters'}
+                                </Text>
                             </TouchableOpacity>
                         )}
                     </View>
                 }
+            />
+
+            <VacancyFilterSheet 
+                isVisible={isFilterSheetVisible}
+                onClose={() => setIsFilterSheetVisible(false)}
+                filters={filters}
+                onApply={setFilters}
+                onReset={() => setFilters({ status: 'open', departmentId: null, jobGroupId: null })}
             />
         </View>
     );

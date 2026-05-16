@@ -215,3 +215,20 @@ accountRouter.delete('/documents/:id', authenticate, async (c) => {
     return successResponse(c, null, 'Document deleted')
 })
 
+// POST /api/account/push-token - Save push notification token
+accountRouter.post('/push-token', authenticate, async (c) => {
+    const user = c.get('user')
+    const { pushToken } = await c.req.json()
+
+    if (!pushToken) {
+        throw new ValidationError('Push token is required')
+    }
+
+    await db.update(users)
+        .set({ pushToken, updatedAt: new Date() })
+        .where(eq(users.id, user.userId))
+
+    return successResponse(c, null, 'Push token saved successfully')
+})
+
+

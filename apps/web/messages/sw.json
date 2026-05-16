@@ -1,0 +1,78 @@
+{
+  "Navigation": {
+    "home": "Nyumbani",
+    "vacancies": "Nafasi za Kazi",
+    "about": "Kuhusu Sisi",
+    "contact": "Mawasiliano",
+    "login": "Ingia",
+    "register": "Jisajili",
+    "dashboard": "Dashibodi"
+  },
+  "Home": {
+    "badge": "Tovuti Rasmi ya Serikali ya Kaunti",
+    "title": "Jenga Taaluma Yako katika {highlight}",
+    "publicService": "Utumishi wa Umma",
+    "subtitle": "Jiunge na Serikali ya Kaunti ya Meru na ulete mabadiliko yenye maana katika jamii yako. Gundua fursa katika afya, elimu, kilimo, na zaidi.",
+    "browseAll": "Angalia Nafasi Zote",
+    "loginToApply": "Ingia ili Utume Ombi",
+    "howToApply": "Jinsi ya Kutuma Ombi",
+    "howItWorks": {
+      "title": "Jinsi Inavyofanya Kazi",
+      "subtitle": "Kuanza ni rahisi. Fuata hatua hizi rahisi kutuma ombi la nafasi za kazi.",
+      "step1": {
+        "title": "Unda Wasifu Wako",
+        "description": "Jisajili kwa akaunti na ukamilishe wasifu wako na sifa zako, uzoefu, na nyaraka."
+      },
+      "step2": {
+        "title": "Tafuta Fursa",
+        "description": "Chunguza nafasi zinazopatikana katika idara mbalimbali na upate majukumu yanayolingana na ujuzi wako."
+      },
+      "step3": {
+        "title": "Tuma Ombi na Fuatilia",
+        "description": "Tuma ombi lako mtandaoni na ufuatilie hali yake kupitia dashibodi yako kwa wakati halisi."
+      }
+    },
+    "featured": {
+      "title": "Fursa Zilizoangaziwa",
+      "subtitle": "Nafasi zilizowekwa hivi karibuni ambazo ziko wazi kwa maombi",
+      "viewAll": "Angalia Nafasi Zote"
+    },
+    "equalOpportunity": {
+      "title": "Mwajiri wa Fursa Sawa",
+      "description": "Bodi ya Huduma ya Umma ya Kaunti ya Meru ni mwajiri wa fursa sawa. Hatubagui kwa msingi wa jinsia, ulemavu, kabila, au dini. Wagombea waliohitimu, ikiwa ni pamoja na watu wenye ulemavu na wale kutoka jamii zilizotengwa, wanahimizwa kutuma maombi.",
+      "noFees": "Hakuna ada inayotozwa kwa maombi ya kazi."
+    }
+  },
+  "Hero": {
+    "title": "Karibu kwenye Bodi ya Huduma ya Umma ya Kaunti ya Meru",
+    "subtitle": "Jiunge na timu yetu na utusaidie kujenga Meru bora pamoja. Chunguza nafasi za sasa za kazi na uanze taaluma yako katika huduma ya umma.",
+    "viewVacancies": "Angalia Nafasi",
+    "howToApply": "Jinsi ya Kutuma Ombi"
+  },
+  "Vacancies": {
+    "title": "Nafasi Zinazopatikana",
+    "subtitle": "Gundua fursa za kuwatumikia watu wa Kaunti ya Meru.",
+    "applyNow": "Omba Sasa",
+    "viewDetails": "Angalia Maelezo",
+    "closingDate": "Tarehe ya Kufunga",
+    "jobGroup": "Kikundi cha Kazi",
+    "searchPlaceholder": "Tafuta kwa jina la kazi, idara au kikundi cha kazi...",
+    "noResults": "Hakuna nafasi za kazi zilizopatikana zinazolingana na vigezo vyako.",
+    "posted": "Iliwekwa",
+    "deadline": "Mwisho",
+    "position": "Nafasi",
+    "department": "Idara",
+    "positions": "Nafasi",
+    "action": "Hatua",
+    "view": "Angalia",
+    "grid": "Gridi",
+    "table": "Jedwali",
+    "expired": "Imeisha Muda",
+    "open": "Wazi",
+    "closed": "Imefungwa",
+    "noVacancies": "Hakuna nafasi zilizopatikana",
+    "noVacanciesDesc": "Angalia baadaye kwa fursa mpya za kazi.",
+    "errorLoading": "Imeshindwa kupakia nafasi za kazi. Tafadhali jaribu tena baadaye.",
+    "count": "Nafasi Zinazopatikana ({count})"
+  }
+}

@@ -23,12 +23,18 @@ import {
     verifyRefreshToken,
     verifyPasswordResetOtp
 } from '../utils/auth'
-import { sendPasswordResetOtpEmail, sendTwoFactorOtpEmail, sendLoginOtpEmail } from '../utils/mailer'
+import {
+    sendPasswordResetOtpEmail,
+    sendTwoFactorOtpEmail,
+    sendLoginOtpEmail,
+    sendUnlockAccountEmail
+} from '../utils/mailer'
 import { activeSessions } from '../db/schema'
 import {
     ConflictError,
     UnauthorizedError,
     NotFoundError,
+    ForbiddenError,
     successResponse
 } from '../utils/errors'
 
@@ -152,20 +158,70 @@ authRouter.post('/login', authRateLimiter, validate(loginSchema), async (c) => {
     }
 
     // Find user
-    const user = await db.query.users.findFirst({
-        where: eq(users.email, data.email.toLowerCase())
-    })
+    const [user] = await db.select().from(users).where(eq(users.email, data.email.toLowerCase())).limit(1)
 
     if (!user) {
         throw new UnauthorizedError('Invalid email or password')
+    }
+
+    // Check if account is locked
+    if (user.isLocked) {
+        if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+            throw new ForbiddenError('Account is locked. Please check your email to unlock or try again later.')
+        } else if (user.lockoutUntil && user.lockoutUntil <= new Date()) {
+            // Auto-unlock if lockout period has passed
+            await db.update(users)
+                .set({ isLocked: false, failedLoginAttempts: 0, lockoutUntil: null })
+                .where(eq(users.id, user.id))
+        }
     }
 
     // Verify password
     const isValidPassword = await verifyPassword(data.password, user.password)
 
     if (!isValidPassword) {
+        const nextFailedAttempts = (user.failedLoginAttempts ?? 0) + 1
+        const isNowLocked = nextFailedAttempts >= 5
+        const lockoutUntil = isNowLocked ? new Date(Date.now() + 30 * 60 * 1000) : null // 30 mins
+
+        await db.update(users)
+            .set({ 
+                failedLoginAttempts: nextFailedAttempts,
+                isLocked: isNowLocked,
+                lockoutUntil
+            })
+            .where(eq(users.id, user.id))
+
+        if (isNowLocked) {
+            // Generate unlock token/session
+            const otp = generatePasswordResetOtp() // We'll use this as a token
+            const otpHash = await hashPasswordResetOtp(otp)
+            
+            await db.delete(passwordResetSessions).where(eq(passwordResetSessions.userId, user.id))
+            await db.insert(passwordResetSessions).values({
+                userId: user.id,
+                otpHash,
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+            })
+
+            const unlockUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/unlock?email=${encodeURIComponent(user.email)}&token=${otp}`
+            
+            await sendUnlockAccountEmail({
+                to: user.email,
+                fullName: user.fullName,
+                unlockUrl
+            })
+
+            throw new ForbiddenError('Account locked due to too many failed attempts. An unlock link has been sent to your email.')
+        }
+
         throw new UnauthorizedError('Invalid email or password')
     }
+
+    // Reset failed attempts on successful login
+    await db.update(users)
+        .set({ failedLoginAttempts: 0, isLocked: false, lockoutUntil: null })
+        .where(eq(users.id, user.id))
 
     // Check for 2FA
     if (user.twoFactorEnabled) {
@@ -373,9 +429,7 @@ authRouter.post('/forgot-password/request', authRateLimiter, validate(forgotPass
     }
 
     // Find user
-    const user = await db.query.users.findFirst({
-        where: eq(users.email, data.email.toLowerCase())
-    })
+    const [user] = await db.select().from(users).where(eq(users.email, data.email.toLowerCase())).limit(1)
 
     if (user) {
         console.log(`[Auth] User found for password reset: ${user.email}`)
@@ -624,3 +678,61 @@ authRouter.post('/otp/verify', authRateLimiter, validate(otpLoginVerifySchema), 
         refreshToken
     }, 'Login successful')
 })
+
+// POST /api/auth/unlock - Unlock account with token
+authRouter.post('/unlock', authRateLimiter, async (c) => {
+    const { email, token } = await c.req.json()
+
+    if (!email || !token) {
+        throw new ValidationError('Email and token are required')
+    }
+
+    const user = await db.query.users.findFirst({
+        where: eq(users.email, email.toLowerCase())
+    })
+
+    if (!user) {
+        throw new NotFoundError('User')
+    }
+
+    const [session] = await db
+        .select()
+        .from(passwordResetSessions)
+        .where(
+            and(
+                eq(passwordResetSessions.userId, user.id),
+                isNull(passwordResetSessions.usedAt),
+                gt(passwordResetSessions.expiresAt, new Date())
+            )
+        )
+        .orderBy(desc(passwordResetSessions.createdAt))
+        .limit(1)
+
+    if (!session) {
+        throw new UnauthorizedError('Invalid or expired unlock link')
+    }
+
+    const isValid = await verifyPasswordResetOtp(token, session.otpHash)
+
+    if (!isValid) {
+        throw new UnauthorizedError('Invalid or expired unlock link')
+    }
+
+    // Unlock account
+    await db.transaction(async (tx) => {
+        await tx.update(users)
+            .set({ 
+                isLocked: false, 
+                failedLoginAttempts: 0, 
+                lockoutUntil: null 
+            })
+            .where(eq(users.id, user.id))
+
+        await tx.update(passwordResetSessions)
+            .set({ usedAt: new Date() })
+            .where(eq(passwordResetSessions.id, session.id))
+    })
+
+    return successResponse(c, null, 'Account unlocked successfully. You can now log in.')
+})
+

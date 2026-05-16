@@ -9,6 +9,7 @@ import Link from "next/link"
 import { ColumnDef } from "@tanstack/react-table"
 import { JobGroup } from "@/types"
 import { Badge } from "@/components/ui/badge"
+import { formatNumber } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
     AlertDialog,
@@ -35,10 +36,12 @@ export default function JobGroupsPage() {
         {
             accessorKey: "salaryMin",
             header: "Min Salary",
+            cell: ({ row }) => formatNumber(row.original.salaryMin)
         },
         {
             accessorKey: "salaryMax",
             header: "Max Salary",
+            cell: ({ row }) => formatNumber(row.original.salaryMax)
         },
         {
             accessorKey: "status",

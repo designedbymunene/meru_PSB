@@ -69,4 +69,48 @@ export class ApplicationService {
             return newApplication
         })
     }
+
+    /**
+     * Saves a draft application with partial data.
+     */
+    static async autoSaveApplication(userId: number, vacancyId: number, lastStep?: number, partialData?: any) {
+        // Check if application already exists
+        const existing = await db.query.applications.findFirst({
+            where: and(
+                eq(applications.applicantId, userId),
+                eq(applications.vacancyId, vacancyId)
+            )
+        })
+
+        if (existing) {
+            if (existing.status !== 'draft' && existing.status !== 'pending') {
+                throw new ConflictError('Cannot auto-save a completed application')
+            }
+
+            const [updated] = await db
+                .update(applications)
+                .set({
+                    lastStep,
+                    partialData,
+                    updatedAt: new Date()
+                })
+                .where(eq(applications.id, existing.id))
+                .returning()
+
+            return updated
+        } else {
+            const [inserted] = await db
+                .insert(applications)
+                .values({
+                    applicantId: userId,
+                    vacancyId,
+                    status: 'draft',
+                    lastStep,
+                    partialData
+                })
+                .returning()
+
+            return inserted
+        }
+    }
 }

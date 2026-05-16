@@ -17,6 +17,7 @@ import { useVacancies } from "@/hooks/use-vacancies"
 import { useQueryState } from "nuqs"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { formatNumber } from "@/lib/utils"
 import { 
     DropdownMenu, 
     DropdownMenuContent, 
@@ -290,7 +291,7 @@ export default function ApplicationsPage() {
                         toolbar={
                             selectedRows.length > 0 && (
                                 <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
-                                    <span className="text-sm font-medium mr-2">{selectedRows.length} selected</span>
+                                    <span className="text-sm font-medium mr-2">{formatNumber(selectedRows.length)} selected</span>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button size="sm" variant="outline" className="h-8" disabled={isBulkUpdating}>

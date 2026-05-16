@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { db, applications, vacancies, users } from '../db'
+import { db, applications, users } from '../db'
 import { eq, and, desc, asc, inArray, SQL, or, ilike, exists, count } from 'drizzle-orm'
 import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
@@ -12,7 +12,7 @@ import {
     type BulkApplicationStatusInput,
     type ApplicationReviewInput
 } from '@meru/shared'
-import { NotFoundError, ForbiddenError, successResponse, ConflictError } from '../utils/errors'
+import { NotFoundError, ForbiddenError, successResponse, ConflictError, ValidationError } from '../utils/errors'
 import { ApplicationService } from '../services/application-service'
 import { AuditService } from '../services/audit-service'
 import { auditLog } from '../middleware/audit-logger'
@@ -228,6 +228,62 @@ applicationsRouter.post('/', authenticate, async (c) => {
         )
     }
 })
+
+// POST /api/applications/auto-save - Auto-save application progress
+applicationsRouter.post('/auto-save', authenticate, async (c) => {
+    const user = c.get('user')
+    const { vacancyId, lastStep, partialData } = await c.req.json()
+
+    if (!vacancyId) {
+        throw new ValidationError('Vacancy ID is required')
+    }
+
+    // Check if application already exists
+    const [existing] = await db
+        .select()
+        .from(applications)
+        .where(
+            and(
+                eq(applications.applicantId, user.userId),
+                eq(applications.vacancyId, vacancyId)
+            )
+        )
+
+    if (existing) {
+        // If it's already submitted (not a draft), we might not want to overwrite it with partial data
+        // but for now let's assume auto-save only happens for drafts or we check status
+        if (existing.status !== 'draft' && existing.status !== 'pending') {
+            throw new ConflictError('Cannot auto-save a completed application')
+        }
+
+        const [updated] = await db
+            .update(applications)
+            .set({
+                lastStep,
+                partialData,
+                updatedAt: new Date()
+            })
+            .where(eq(applications.id, existing.id))
+            .returning()
+
+        return successResponse(c, updated, 'Progress saved')
+    } else {
+        // Create new draft application
+        const [inserted] = await db
+            .insert(applications)
+            .values({
+                applicantId: user.userId,
+                vacancyId,
+                status: 'draft',
+                lastStep,
+                partialData
+            })
+            .returning()
+
+        return successResponse(c, inserted, 'Progress saved')
+    }
+})
+
 
 // DELETE /api/applications/:id - Delete own application
 applicationsRouter.delete('/:id', authenticate, async (c) => {

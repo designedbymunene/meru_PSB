@@ -128,15 +128,12 @@ export default function ProfilePage() {
 
     return (
         <div className="container mx-auto py-8 space-y-8">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
-                    <p className="text-muted-foreground">Manage your applicant profile and credentials</p>
-                </div>
-                <div className="w-full md:w-80">
-                    <ProfileCompletion profile={profile} />
-                </div>
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+                <p className="text-muted-foreground">Manage your applicant profile and credentials</p>
             </div>
+
+            <ProfileCompletion profile={profile} />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sections.map((section) => (

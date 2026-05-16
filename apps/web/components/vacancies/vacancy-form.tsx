@@ -31,6 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { VacancyWithRelations, CreateVacancyData } from "@/types"
 import { Loader2, Plus, Trash2 } from "lucide-react"
+import { formatNumber } from "@/lib/utils"
 
 const vacancySchema = z.object({
     title: z.string().min(1, "Title is required"),
@@ -237,7 +238,7 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                                             <SelectContent>
                                                 {jobGroupsData?.data.map((jg) => (
                                                     <SelectItem key={jg.id} value={jg.id.toString()}>
-                                                        {jg.name} ({jg.salaryMin} - {jg.salaryMax})
+                                                        {jg.name} ({formatNumber(jg.salaryMin)} - {formatNumber(jg.salaryMax)})
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>

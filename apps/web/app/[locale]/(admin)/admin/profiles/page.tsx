@@ -40,6 +40,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAllApplicantProfiles, useExportProfiles } from '@/hooks/use-applicant-profile'
 import type { ApplicantProfileWithRelations } from '@/types'
 import { ProfileDetailView } from '@/components/admin/profile-detail-view'
+import { formatNumber } from '@/lib/utils'
 
 export default function AdminProfilesPage() {
     const { data: response, isLoading } = useAllApplicantProfiles()
@@ -104,14 +105,14 @@ export default function AdminProfilesPage() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>Total Profiles</CardDescription>
-                        <CardTitle className="text-3xl">{profiles.length}</CardTitle>
+                        <CardTitle className="text-3xl">{formatNumber(profiles.length)}</CardTitle>
                     </CardHeader>
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
                         <CardDescription>With Qualifications</CardDescription>
                         <CardTitle className="text-3xl">
-                            {profiles.filter((p) => p.qualifications.length > 0).length}
+                            {formatNumber(profiles.filter((p) => p.qualifications.length > 0).length)}
                         </CardTitle>
                     </CardHeader>
                 </Card>
@@ -119,7 +120,7 @@ export default function AdminProfilesPage() {
                     <CardHeader className="pb-2">
                         <CardDescription>With Employment</CardDescription>
                         <CardTitle className="text-3xl">
-                            {profiles.filter((p) => p.employmentHistory.length > 0).length}
+                            {formatNumber(profiles.filter((p) => p.employmentHistory.length > 0).length)}
                         </CardTitle>
                     </CardHeader>
                 </Card>
@@ -127,7 +128,7 @@ export default function AdminProfilesPage() {
                     <CardHeader className="pb-2">
                         <CardDescription>With Disability</CardDescription>
                         <CardTitle className="text-3xl">
-                            {profiles.filter((p) => p.impairment).length}
+                            {formatNumber(profiles.filter((p) => p.impairment).length)}
                         </CardTitle>
                     </CardHeader>
                 </Card>
@@ -171,7 +172,7 @@ export default function AdminProfilesPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>
-                        All Profiles ({filteredProfiles.length})
+                        All Profiles ({formatNumber(filteredProfiles.length)})
                     </CardTitle>
                 </CardHeader>
                 <CardContent>

@@ -14,6 +14,10 @@ export const users = pgTable('users', {
     role: varchar('role', { length: 20 }).notNull().default('applicant'), // 'applicant' or 'admin'
     tokenVersion: integer('token_version').notNull().default(0),
     twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
+    failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
+    isLocked: boolean('is_locked').notNull().default(false),
+    lockoutUntil: timestamp('lockout_until', { withTimezone: true }),
+    pushToken: text('push_token'),
     ...timestamps
 })
 

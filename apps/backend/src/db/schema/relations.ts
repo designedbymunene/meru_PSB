@@ -14,6 +14,8 @@ import { professionalMemberships } from './professional-memberships'
 import { employmentHistory } from './employment-history'
 import { referees } from './referees'
 import { applicantDocuments } from './applicant-documents'
+import { interviews, interviewScores } from './interviews'
+import { boardResolutions } from './board'
 
 import { counties, constituencies, wards } from './locations'
 import { 
@@ -34,7 +36,9 @@ export const usersRelations = relations(users, ({ many, one }) => ({
         fields: [users.id],
         references: [applicantProfiles.userId]
     }),
-    documents: many(applicantDocuments)
+    documents: many(applicantDocuments),
+    interviewScores: many(interviewScores),
+    approvedResolutions: many(boardResolutions)
 }))
 
 // Relations for password reset sessions
@@ -63,11 +67,13 @@ export const vacanciesRelations = relations(vacancies, ({ one, many }) => ({
         references: [jobGroups.id]
     }),
     applications: many(applications),
-    documents: many(vacancyDocuments)
+    documents: many(vacancyDocuments),
+    interviews: many(interviews),
+    resolutions: many(boardResolutions)
 }))
 
 // Relations for applications
-export const applicationsRelations = relations(applications, ({ one }) => ({
+export const applicationsRelations = relations(applications, ({ one, many }) => ({
     applicant: one(users, {
         fields: [applications.applicantId],
         references: [users.id]
@@ -78,6 +84,36 @@ export const applicationsRelations = relations(applications, ({ one }) => ({
     }),
     reviewer: one(users, {
         fields: [applications.reviewedBy],
+        references: [users.id]
+    }),
+    interviews: many(interviews),
+    applicantProfile: one(applicantProfiles, {
+        fields: [applications.applicantId],
+        references: [applicantProfiles.userId]
+    })
+}))
+
+// Relations for interviews
+export const interviewsRelations = relations(interviews, ({ one, many }) => ({
+    vacancy: one(vacancies, {
+        fields: [interviews.vacancyId],
+        references: [vacancies.id]
+    }),
+    application: one(applications, {
+        fields: [interviews.applicationId],
+        references: [applications.id]
+    }),
+    scores: many(interviewScores)
+}))
+
+// Relations for interview scores
+export const interviewScoresRelations = relations(interviewScores, ({ one }) => ({
+    interview: one(interviews, {
+        fields: [interviewScores.interviewId],
+        references: [interviews.id]
+    }),
+    panelMember: one(users, {
+        fields: [interviewScores.panelMemberId],
         references: [users.id]
     })
 }))
@@ -219,6 +255,18 @@ export const applicantDocumentsRelations = relations(applicantDocuments, ({ one 
     }),
     verifier: one(users, {
         fields: [applicantDocuments.verifiedBy],
+        references: [users.id]
+    })
+}))
+
+// Relations for board resolutions
+export const boardResolutionsRelations = relations(boardResolutions, ({ one }) => ({
+    vacancy: one(vacancies, {
+        fields: [boardResolutions.vacancyId],
+        references: [vacancies.id]
+    }),
+    approver: one(users, {
+        fields: [boardResolutions.approvedBy],
         references: [users.id]
     })
 }))

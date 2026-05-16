@@ -11,7 +11,7 @@ export const applications = pgTable('applications', {
     }),
     applicantId: integer('applicant_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     vacancyId: integer('vacancy_id').notNull().references(() => vacancies.id, { onDelete: 'cascade' }),
-    status: varchar('status', { length: 20 }).notNull().default('pending'), // 'pending', 'reviewed', 'accepted', 'rejected'
+    status: varchar('status', { length: 20 }).notNull().default('pending'), // 'pending', 'reviewed', 'shortlisted', 'interviewing', 'accepted', 'rejected'
     notes: text('notes'), // admin-only internal notes
     rating: integer('rating'), // 1-5 rating from reviewer
     reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
@@ -19,6 +19,8 @@ export const applications = pgTable('applications', {
     rejectionReason: text('rejection_reason'),
     feedbackToApplicant: text('feedback_to_applicant'), // feedback visible to applicant
     profileSnapshot: jsonb('profile_snapshot'), // Full JSON snapshot of the profile at submission
+    lastStep: integer('last_step'),
+    partialData: jsonb('partial_data'),
     appliedAt: timestamp('applied_at', { withTimezone: true }).defaultNow().notNull(),
     ...timestamps
 }, (table) => {

@@ -1,0 +1,77 @@
+{
+  "Navigation": {
+    "home": "Home",
+    "vacancies": "Vacancies",
+    "about": "About Us",
+    "contact": "Contact",
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard"
+  },
+  "Home": {
+    "badge": "Official County Government Portal",
+    "title": "Build Your Career in {highlight}",
+    "publicService": "Public Service",
+    "subtitle": "Join Meru County Government and make a meaningful impact in your community. Discover opportunities across health, education, agriculture, and more.",
+    "browseAll": "Browse All Positions",
+    "loginToApply": "Login to Apply",
+    "howItWorks": {
+      "title": "How It Works",
+      "subtitle": "Getting started is easy. Follow these simple steps to apply for positions.",
+      "step1": {
+        "title": "Create Your Profile",
+        "description": "Register for an account and complete your profile with your qualifications, experience, and documents."
+      },
+      "step2": {
+        "title": "Browse Opportunities",
+        "description": "Explore available positions across various departments and find roles that match your skills."
+      },
+      "step3": {
+        "title": "Apply & Track",
+        "description": "Submit your application online and track its status through your dashboard in real-time."
+      }
+    },
+    "featured": {
+      "title": "Featured Opportunities",
+      "subtitle": "Recently posted positions open for application",
+      "viewAll": "View All Positions"
+    },
+    "equalOpportunity": {
+      "title": "Equal Opportunity Employer",
+      "description": "Meru County Public Service Board is an equal opportunity employer. We do not discriminate on the basis of gender, disability, ethnicity, or religion. Qualified candidates, including persons with disabilities and those from marginalized communities, are encouraged to apply.",
+      "noFees": "No fees are charged for job applications."
+    }
+  },
+  "Hero": {
+    "title": "Welcome to Meru County Public Service Board",
+    "subtitle": "Join our team and help us build a better Meru together. Explore current job openings and start your career in public service.",
+    "viewVacancies": "View Vacancies",
+    "howToApply": "How to Apply"
+  },
+  "Vacancies": {
+    "title": "Available Vacancies",
+    "subtitle": "Discover opportunities to serve the people of Meru County.",
+    "applyNow": "Apply Now",
+    "viewDetails": "View Details",
+    "closingDate": "Closing Date",
+    "jobGroup": "Job Group",
+    "searchPlaceholder": "Search by job title, department or job group...",
+    "noResults": "No vacancies found matching your criteria.",
+    "posted": "Posted",
+    "deadline": "Deadline",
+    "position": "Position",
+    "department": "Department",
+    "positions": "Positions",
+    "action": "Action",
+    "view": "View",
+    "grid": "Grid",
+    "table": "Table",
+    "expired": "Expired",
+    "open": "Open",
+    "closed": "Closed",
+    "noVacancies": "No vacancies found",
+    "noVacanciesDesc": "Check back later for new job opportunities.",
+    "errorLoading": "Failed to load vacancies. Please try again later.",
+    "count": "Available Vacancies ({count})"
+  }
+}

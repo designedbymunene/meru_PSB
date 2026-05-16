@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { Edit, Eye, CheckCircle, ArrowLeft, Users, Calendar, Building, Briefcase } from "lucide-react"
 import { format } from "date-fns"
+import { formatNumber } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { DataTable } from "@/components/admin/data-table"
 import { ColumnDef } from "@tanstack/react-table"
@@ -198,7 +199,7 @@ export default function VacancyDetailPage({ params }: { params: Promise<{ id: st
                             <div>
                                 <CardTitle>Applications</CardTitle>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    Total of {applications.length} candidates applied
+                                    Total of {formatNumber(applications.length)} candidates applied
                                 </p>
                             </div>
                             <Users className="h-5 w-5 text-muted-foreground" />
@@ -258,7 +259,7 @@ export default function VacancyDetailPage({ params }: { params: Promise<{ id: st
                                 </div>
                                 <div>
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Open Positions</p>
-                                    <p className="text-sm font-medium">{vacancy.openPositions} Position(s)</p>
+                                    <p className="text-sm font-medium">{formatNumber(vacancy.openPositions)} Position(s)</p>
                                 </div>
                             </div>
                             
@@ -287,12 +288,12 @@ export default function VacancyDetailPage({ params }: { params: Promise<{ id: st
                         <CardContent className="space-y-2">
                             <div className="flex justify-between items-center">
                                 <span className="text-xs text-slate-500">Applications</span>
-                                <span className="text-sm font-bold">{applications.length}</span>
+                                <span className="text-sm font-bold">{formatNumber(applications.length)}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-xs text-slate-500">Pending Review</span>
                                 <span className="text-sm font-bold text-orange-500">
-                                    {applications.filter(a => a.status === 'pending').length}
+                                    {formatNumber(applications.filter(a => a.status === 'pending').length)}
                                 </span>
                             </div>
                         </CardContent>

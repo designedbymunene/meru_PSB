@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,8 +17,11 @@ import { HomeSearch } from "@/components/shared/home-search";
 import { Logo } from "@/components/shared/logo";
 import { Footer } from "@/components/layout/footer";
 import { ShortlistNoticeBoard } from "@/components/shared/shortlist-notice-board";
+import { useTranslations } from "next-intl";
 
 export default function Home() {
+  const t = useTranslations("Home");
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -35,7 +40,7 @@ export default function Home() {
               {/* Government Badge */}
               <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 text-sm font-medium">
                 <ShieldCheckIcon className="h-4 w-4" />
-                Official County Government Portal
+                {t("badge")}
               </div>
 
               <div className="flex flex-col items-center lg:items-start gap-6">
@@ -45,13 +50,14 @@ export default function Home() {
                   className="drop-shadow-2xl"
                 />
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]">
-                  Build Your Career in <span className="text-white/80">Public Service</span>
+                  {t("title", {
+                    highlight: t("publicService")
+                  })}
                 </h1>
               </div>
 
               <p className="text-lg md:text-xl text-primary-foreground/90 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Join Meru County Government and make a meaningful impact in your community.
-                Discover opportunities across health, education, agriculture, and more.
+                {t("subtitle")}
               </p>
 
               {/* Search Bar */}
@@ -63,7 +69,7 @@ export default function Home() {
               <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-4">
                 <Button size="lg" variant="secondary" className="shadow-lg" asChild>
                   <Link href="/vacancies">
-                    Browse All Positions <ArrowRightIcon className="ml-2 h-4 w-4" />
+                    {t("browseAll")} <ArrowRightIcon className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
                 <Button
@@ -73,7 +79,7 @@ export default function Home() {
                   asChild
                 >
                   <Link href="/login">
-                    Login to Apply <LogInIcon className="ml-2 h-4 w-4" />
+                    {t("loginToApply")} <LogInIcon className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </div>
@@ -93,9 +99,9 @@ export default function Home() {
       <section className="py-16 md:py-24 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("howItWorks.title")}</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Getting started is easy. Follow these simple steps to apply for positions.
+              {t("howItWorks.subtitle")}
             </p>
           </div>
 
@@ -108,9 +114,9 @@ export default function Home() {
               <div className="p-4 bg-primary/10 rounded-full mb-4 mt-2">
                 <UserPlusIcon className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Create Your Profile</h3>
+              <h3 className="text-xl font-semibold mb-2">{t("howItWorks.step1.title")}</h3>
               <p className="text-muted-foreground">
-                Register for an account and complete your profile with your qualifications, experience, and documents.
+                {t("howItWorks.step1.description")}
               </p>
             </div>
 
@@ -122,9 +128,9 @@ export default function Home() {
               <div className="p-4 bg-primary/10 rounded-full mb-4 mt-2">
                 <SearchIcon className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Browse Opportunities</h3>
+              <h3 className="text-xl font-semibold mb-2">{t("howItWorks.step2.title")}</h3>
               <p className="text-muted-foreground">
-                Explore available positions across various departments and find roles that match your skills.
+                {t("howItWorks.step2.description")}
               </p>
             </div>
 
@@ -136,9 +142,9 @@ export default function Home() {
               <div className="p-4 bg-primary/10 rounded-full mb-4 mt-2">
                 <ClipboardListIcon className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Apply & Track</h3>
+              <h3 className="text-xl font-semibold mb-2">{t("howItWorks.step3.title")}</h3>
               <p className="text-muted-foreground">
-                Submit your application online and track its status through your dashboard in real-time.
+                {t("howItWorks.step3.description")}
               </p>
             </div>
           </div>
@@ -152,12 +158,12 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold">Featured Opportunities</h2>
-              <p className="text-muted-foreground mt-2">Recently posted positions open for application</p>
+              <h2 className="text-3xl md:text-4xl font-bold">{t("featured.title")}</h2>
+              <p className="text-muted-foreground mt-2">{t("featured.subtitle")}</p>
             </div>
             <Button variant="outline" size="lg" asChild>
               <Link href="/vacancies">
-                View All Positions <ArrowRightIcon className="ml-2 h-4 w-4" />
+                {t("featured.viewAll")} <ArrowRightIcon className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -176,12 +182,10 @@ export default function Home() {
                   <CheckCircle2Icon className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Equal Opportunity Employer</h3>
+                  <h3 className="text-lg font-semibold mb-2">{t("equalOpportunity.title")}</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">
-                    Meru County Public Service Board is an equal opportunity employer. We do not discriminate
-                    on the basis of gender, disability, ethnicity, or religion. Qualified candidates, including
-                    persons with disabilities and those from marginalized communities, are encouraged to apply.
-                    <strong className="text-foreground"> No fees are charged for job applications.</strong>
+                    {t("equalOpportunity.description")}
+                    <strong className="text-foreground"> {t("equalOpportunity.noFees")}</strong>
                   </p>
                 </div>
               </div>

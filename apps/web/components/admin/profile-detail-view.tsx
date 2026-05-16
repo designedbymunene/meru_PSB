@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { ApplicantProfileWithRelations } from '@/types'
+import { formatNumber } from '@/lib/utils'
 
 // Profile Detail Component
 export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRelations }) {
@@ -12,16 +13,16 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
             <TabsList className="grid grid-cols-5 w-full">
                 <TabsTrigger value="personal">Personal</TabsTrigger>
                 <TabsTrigger value="qualifications">
-                    Qualifications ({profile.qualifications.length})
+                    Qualifications ({formatNumber(profile.qualifications.length)})
                 </TabsTrigger>
                 <TabsTrigger value="employment">
-                    Employment ({profile.employmentHistory.length})
+                    Employment ({formatNumber(profile.employmentHistory.length)})
                 </TabsTrigger>
                 <TabsTrigger value="professional">
-                    Professional ({profile.professionalDetails.length})
+                    Professional ({formatNumber(profile.professionalDetails.length)})
                 </TabsTrigger>
                 <TabsTrigger value="training">
-                    Training ({profile.trainingCourses.length})
+                    Training ({formatNumber(profile.trainingCourses.length)})
                 </TabsTrigger>
             </TabsList>
 

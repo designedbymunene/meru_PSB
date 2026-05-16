@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 import { useQueryState } from 'nuqs'
+import { useTranslations } from 'next-intl'
 
 interface VacancyListProps {
     filters?: VacancyFilters
@@ -20,6 +21,7 @@ interface VacancyListProps {
 }
 
 export function VacancyList({ filters: manualFilters, limit }: VacancyListProps) {
+    const t = useTranslations('Vacancies')
     const [search] = useQueryState('search')
     const [status] = useQueryState('status', { defaultValue: 'open' })
     const [departmentId] = useQueryState('departmentId')
@@ -73,7 +75,7 @@ export function VacancyList({ filters: manualFilters, limit }: VacancyListProps)
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>
-                    Failed to load vacancies. Please try again later.
+                    {t('errorLoading')}
                 </AlertDescription>
             </Alert>
         )
@@ -82,8 +84,8 @@ export function VacancyList({ filters: manualFilters, limit }: VacancyListProps)
     if (!data?.data || data.data.length === 0) {
         return (
             <EmptyState
-                title="No vacancies found"
-                description="Check back later for new job opportunities."
+                title={t('noVacancies')}
+                description={t('noVacanciesDesc')}
             />
         )
     }
@@ -94,7 +96,7 @@ export function VacancyList({ filters: manualFilters, limit }: VacancyListProps)
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                    Available Vacancies ({data.data.length})
+                    {t('count', { count: data.data.length })}
                 </h2>
                 <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                     <Button
@@ -109,7 +111,7 @@ export function VacancyList({ filters: manualFilters, limit }: VacancyListProps)
                         )}
                     >
                         <List className="h-4 w-4" />
-                        <span className="text-xs font-medium">Table</span>
+                        <span className="text-xs font-medium">{t('table')}</span>
                     </Button>
                     <Button
                         variant="ghost"
@@ -123,7 +125,7 @@ export function VacancyList({ filters: manualFilters, limit }: VacancyListProps)
                         )}
                     >
                         <LayoutGrid className="h-4 w-4" />
-                        <span className="text-xs font-medium">Grid</span>
+                        <span className="text-xs font-medium">{t('grid')}</span>
                     </Button>
                 </div>
             </div>

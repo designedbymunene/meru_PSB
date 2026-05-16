@@ -18,6 +18,9 @@ export * from './reference-data'
 export * from './audit-logs'
 export * from './active-sessions'
 export * from './applicant-documents'
+export * from './shortlisting'
+export * from './interviews'
+export * from './board'
 
 
 // Import tables and relations for schema object
@@ -47,6 +50,9 @@ import {
 } from './reference-data'
 import { auditLogs } from './audit-logs'
 import { applicantDocuments } from './applicant-documents'
+import { shortlistCriteria } from './shortlisting'
+import { interviews, interviewScores } from './interviews'
+import { boardResolutions } from './board'
 
 
 export * from './relations'
@@ -66,7 +72,10 @@ import {
     trainingCoursesRelations,
     professionalMembershipsRelations,
     refereesRelations,
-    applicantDocumentsRelations
+    applicantDocumentsRelations,
+    interviewsRelations,
+    interviewScoresRelations,
+    boardResolutionsRelations
 } from './relations'
 
 // Export schema object with relations for query API
@@ -98,6 +107,10 @@ export const schema = {
     educationGrades,
     auditLogs,
     applicantDocuments,
+    shortlistCriteria,
+    interviews,
+    interviewScores,
+    boardResolutions,
     // Relations
     usersRelations,
     vacanciesRelations,
@@ -113,5 +126,8 @@ export const schema = {
     trainingCoursesRelations,
     professionalMembershipsRelations,
     refereesRelations,
-    applicantDocumentsRelations
+    applicantDocumentsRelations,
+    interviewsRelations,
+    interviewScoresRelations,
+    boardResolutionsRelations
 }

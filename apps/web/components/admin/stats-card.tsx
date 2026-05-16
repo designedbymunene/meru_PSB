@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { LucideIcon } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { cn } from "@/lib/utils"
+import { cn, formatNumber } from "@/lib/utils"
 
 interface StatsCardProps {
     title: string
@@ -35,7 +35,7 @@ export function StatsCard({
                             {title}
                         </p>
                         <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                            {loading ? <Skeleton className="h-9 w-20 rounded-lg" /> : value}
+                            {loading ? <Skeleton className="h-9 w-20 rounded-lg" /> : formatNumber(value)}
                         </div>
                     </div>
                     <div className="p-3 bg-primary/10 rounded-2xl text-primary">

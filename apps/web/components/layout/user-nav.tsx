@@ -22,13 +22,14 @@ import { useRouter } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { ChevronRight, LogOut, Settings, User as UserIcon, ChevronsUpDown } from "lucide-react"
-import { useSidebar } from "@/components/ui/sidebar"
+import { SidebarContext } from "@/components/ui/sidebar"
+import * as React from "react"
 
 export function UserNav({ showDetails = false, className }: { showDetails?: boolean; className?: string }) {
     const { user, logout } = useAuthContext()
     const router = useRouter()
-    const { state } = useSidebar()
-    const isCollapsed = state === "collapsed"
+    const sidebarContext = React.useContext(SidebarContext)
+    const isCollapsed = sidebarContext?.state === "collapsed"
 
     if (!user) {
         return (

@@ -4,6 +4,7 @@ import { useAllApplications } from "@/hooks/use-applications"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { formatNumber } from "@/lib/utils"
 
 export function ApplicationStatusOverview() {
     const { data, isLoading } = useAllApplications()
@@ -60,7 +61,7 @@ export function ApplicationStatusOverview() {
                                     <span className="font-medium">{stat.label}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-muted-foreground">{stat.count}</span>
+                                    <span className="text-muted-foreground">{formatNumber(stat.count)}</span>
                                     <span className="font-bold">{Math.round(stat.percentage)}%</span>
                                 </div>
                             </div>
@@ -72,7 +73,7 @@ export function ApplicationStatusOverview() {
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-slate-500">Total Applications</span>
-                        <span className="text-xl font-bold">{total}</span>
+                        <span className="text-xl font-bold">{formatNumber(total)}</span>
                     </div>
                 </div>
             </CardContent>

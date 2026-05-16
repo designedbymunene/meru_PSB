@@ -10,6 +10,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { VacancyWithRelations } from "@/types"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
+import { formatNumber } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
     AlertDialog,
@@ -145,8 +146,8 @@ export default function VacanciesPage() {
             ),
             cell: ({ row }) => (
                 <div className="flex flex-col">
-                    <span className="font-bold">{row.original.applicationsCount || 0}</span>
-                    <span className="text-[10px] text-muted-foreground">{row.original.openPositions} positions</span>
+                    <span className="font-bold">{formatNumber(row.original.applicationsCount || 0)}</span>
+                    <span className="text-[10px] text-muted-foreground">{formatNumber(row.original.openPositions)} positions</span>
                 </div>
             )
         },
