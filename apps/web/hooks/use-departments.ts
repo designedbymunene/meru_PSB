@@ -5,7 +5,6 @@ import * as departmentApi from '@/lib/api/departments'
 import { QUERY_KEYS } from '@/lib/constants'
 import type { CreateDepartmentData } from '@/types'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
 
 export function useDepartments() {
     return useQuery({
@@ -24,14 +23,12 @@ export function useDepartmentsByMinistry(ministryId?: number) {
 
 export function useCreateDepartment() {
     const queryClient = useQueryClient()
-    const router = useRouter()
 
     return useMutation({
         mutationFn: (data: CreateDepartmentData) => departmentApi.createDepartment(data),
         onSuccess: () => {
             toast.success('Department created successfully')
             queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DEPARTMENTS })
-            router.push('/admin/departments')
         },
         onError: (error: Error) => {
             toast.error('Failed to create department', {
@@ -43,7 +40,6 @@ export function useCreateDepartment() {
 
 export function useUpdateDepartment() {
     const queryClient = useQueryClient()
-    const router = useRouter()
 
     return useMutation({
         mutationFn: ({ id, data }: { id: number; data: Partial<CreateDepartmentData> }) =>
@@ -51,7 +47,6 @@ export function useUpdateDepartment() {
         onSuccess: () => {
             toast.success('Department updated successfully')
             queryClient.invalidateQueries({ queryKey: QUERY_KEYS.DEPARTMENTS })
-            router.push('/admin/departments')
         },
         onError: (error: Error) => {
             toast.error('Failed to update department', {

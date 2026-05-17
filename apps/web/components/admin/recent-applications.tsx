@@ -17,7 +17,7 @@ interface RecentApplicationsProps {
 
 export function RecentApplications({ className }: RecentApplicationsProps) {
     const { data, isLoading, error } = useAllApplications()
-    const applications = data?.data || []
+    const applications = Array.isArray(data?.data) ? data.data : (data?.data as any)?.data || []
     const recentApplications = applications.slice(0, 5)
 
     if (isLoading) {

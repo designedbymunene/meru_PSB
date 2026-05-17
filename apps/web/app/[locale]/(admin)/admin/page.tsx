@@ -12,7 +12,10 @@ export default function AdminDashboardPage() {
     const { data: applicationsData, isLoading: isLoadingApplications } = useAllApplications()
 
     const vacancies = vacanciesData?.data || []
-    const applications = applicationsData?.data || []
+    // Handle both direct array and paginated response { data, pagination }
+    const applications = Array.isArray(applicationsData?.data) 
+        ? applicationsData.data 
+        : (applicationsData?.data as any)?.data || []
 
     // Calculate stats
     const totalVacancies = vacancies.length

@@ -154,6 +154,9 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
 
     apiClient.interceptors.request.use(
         async (config) => {
+            const reqId = Math.random().toString(36).substring(7);
+            (config as any).metadata = { startTime: Date.now(), reqId };
+
             const token = await getAccessToken();
             if (token) {
                 if (config.headers.set) {
@@ -165,7 +168,7 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
 
             if (isDebug) {
                 const hasAuth = !!(config.headers.Authorization || (config.headers.get && config.headers.get('Authorization')));
-                console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url} ${hasAuth ? '(Auth)' : '(No Auth)'}`);
+                console.log(`[API Request] [${reqId}] 🚀 START ${config.method?.toUpperCase()} ${config.url} ${hasAuth ? '(Auth)' : '(No Auth)'}`);
                 
                 if (config.data) {
                     // Sanitize sensitive data before logging
@@ -190,9 +193,9 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
                         sensitiveFields.forEach(field => {
                             if (sanitizedData[field]) sanitizedData[field] = '********';
                         });
-                        console.log(`[API Request Data]`, JSON.stringify(sanitizedData, null, 2));
+                        console.log(`[API Request Data] [${reqId}]`, JSON.stringify(sanitizedData, null, 2));
                     } else {
-                        console.log(`[API Request Data]`, dataToLog);
+                        console.log(`[API Request Data] [${reqId}]`, dataToLog);
                     }
                 }
             }
@@ -204,7 +207,9 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
     apiClient.interceptors.response.use(
         (response) => {
             if (isDebug) {
-                console.log(`\x1b[32m[API Success] ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}\x1b[0m`);
+                const { startTime, reqId } = (response.config as any).metadata || { startTime: Date.now(), reqId: 'unknown' };
+                const duration = Date.now() - startTime;
+                console.log(`\x1b[32m[API Success] [${reqId}] ✅ END ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url} - ${duration}ms\x1b[0m`);
             }
             return response;
         },
@@ -217,10 +222,13 @@ export const createApiClient = (options: ApiClientOptions): AxiosInstance => {
                 const url = error.config?.url;
                 const responseData = JSON.stringify(error.response?.data, null, 2);
                 
-                console.log(`\x1b[31m[API Error] ${status} ${method} ${url}\x1b[0m`);
-                console.log(`\x1b[31m[API Error Message] ${normalizedError.message}\x1b[0m`);
+                const { startTime, reqId } = (error.config as any)?.metadata || { startTime: Date.now(), reqId: 'unknown' };
+                const duration = Date.now() - startTime;
+                
+                console.log(`\x1b[31m[API Error] [${reqId}] ❌ END ${status} ${method} ${url} - ${duration}ms\x1b[0m`);
+                console.log(`\x1b[31m[API Error Message] [${reqId}] ${normalizedError.message}\x1b[0m`);
                 if (error.response?.data) {
-                    console.log(`\x1b[31m[API Error Data] ${responseData}\x1b[0m`);
+                    console.log(`\x1b[31m[API Error Data] [${reqId}] ${responseData}\x1b[0m`);
                 }
             }
 

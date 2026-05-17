@@ -4,14 +4,15 @@ import { useVacancies, useDeleteVacancy } from "@/hooks/use-vacancies"
 import { DataTable } from "@/components/admin/data-table"
 import { TableSkeleton } from "@/components/shared/table-skeleton"
 import { Button } from "@/components/ui/button"
-import { Plus, MoreHorizontal, Edit, Trash, FileText, Users } from "lucide-react"
+import { Plus, Eye, Users, Building2, Briefcase, Calendar, Edit, Trash } from "lucide-react"
 import Link from "next/link"
 import { ColumnDef } from "@tanstack/react-table"
-import { VacancyWithRelations } from "@/types"
+import { VacancyWithRelations, VacancyFilters as VacancyFiltersType } from "@/types"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import { formatNumber } from "@/lib/utils"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { formatNumber, formatSalaryRange } from "@/lib/utils"
+import { VacancyFilters } from "@/components/vacancies/vacancy-filters"
+import { useQueryState } from "nuqs"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -23,22 +24,32 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useState } from "react"
-import { VacancyFilters } from "@/components/vacancies/vacancy-filters"
-import { useQueryState } from "nuqs"
 
 const VacancyActions = ({ vacancy }: { vacancy: VacancyWithRelations }) => {
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
     const deleteVacancy = useDeleteVacancy()
 
     return (
-        <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" asChild title="View Details">
+        <div className="flex items-center justify-end gap-1">
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10" 
+                asChild 
+                title="View Details"
+            >
                 <Link href={`/admin/vacancies/${vacancy.id}`}>
-                    <FileText className="h-4 w-4" />
+                    <Eye className="h-4 w-4" />
                     <span className="sr-only">View</span>
                 </Link>
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" asChild title="Edit Vacancy">
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10" 
+                asChild 
+                title="Edit Vacancy"
+            >
                 <Link href={`/admin/vacancies/${vacancy.id}/edit`}>
                     <Edit className="h-4 w-4" />
                     <span className="sr-only">Edit</span>
@@ -81,13 +92,13 @@ const VacancyActions = ({ vacancy }: { vacancy: VacancyWithRelations }) => {
 
 export default function VacanciesPage() {
     const [search] = useQueryState('search')
-    const [status] = useQueryState('status')
     const [departmentId] = useQueryState('departmentId')
     const [jobGroupId] = useQueryState('jobGroupId')
+    const [status] = useQueryState('status', { defaultValue: 'all' })
 
-    const filters = {
+    const filters: VacancyFiltersType = {
         search: search || undefined,
-        status: (status as 'open' | 'closed') || undefined,
+        status: status === 'all' ? undefined : (status as 'open' | 'closed'),
         departmentId: departmentId || undefined,
         jobGroupId: jobGroupId || undefined,
     }
@@ -100,29 +111,53 @@ export default function VacanciesPage() {
             accessorKey: "advertisementNumber",
             header: "Ref No.",
             cell: ({ row }) => (
-                <span className="font-mono text-xs font-medium">{row.original.advertisementNumber}</span>
+                <span className="font-mono text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    {row.original.advertisementNumber}
+                </span>
             )
         },
         {
             accessorKey: "title",
-            header: "Title",
+            header: "Vacancy Details",
             cell: ({ row }) => (
-                <div className="flex flex-col">
-                    <span className="font-semibold">{row.original.title}</span>
-                    <span className="text-xs text-muted-foreground">{row.original.department?.name}</span>
+                <div className="flex flex-col gap-0.5 max-w-[300px]">
+                    <span className="font-semibold text-sm truncate">{row.original.title}</span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Building2 className="h-3 w-3" />
+                        <span className="truncate">{row.original.department?.name}</span>
+                    </div>
                 </div>
             )
         },
         {
+            accessorKey: "jobGroup",
+            header: "Group & Salary",
+            cell: ({ row }) => {
+                const jg = row.original.jobGroup
+                if (!jg) return <span className="text-muted-foreground text-xs">-</span>
+                return (
+                    <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5">
+                            <Briefcase className="h-3 w-3 text-primary/60" />
+                            <span className="text-xs font-medium">{jg.name}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">
+                            {formatSalaryRange(jg.salaryMin, jg.salaryMax)}
+                        </span>
+                    </div>
+                )
+            }
+        },
+        {
             accessorKey: "closingDate",
-            header: "Closing Date",
+            header: "Deadline",
             cell: ({ row }) => {
                 const date = new Date(row.original.closingDate)
                 const isExpired = date < new Date() && row.original.status === 'open'
                 return (
                     <div className="flex flex-col">
-                        <span>{format(date, "PP")}</span>
-                        {isExpired && <span className="text-[10px] text-destructive font-bold uppercase">Expired</span>}
+                        <span className="text-xs">{format(date, "PP")}</span>
+                        {isExpired && <span className="text-[10px] text-destructive font-bold uppercase tracking-tight">Expired</span>}
                     </div>
                 )
             },
@@ -131,7 +166,7 @@ export default function VacanciesPage() {
             accessorKey: "status",
             header: "Status",
             cell: ({ row }) => (
-                <Badge variant={row.original.status === 'open' ? 'default' : 'secondary'} className="capitalize">
+                <Badge variant={row.original.status === 'open' ? 'default' : 'secondary'} className="capitalize h-5 text-[10px] px-2">
                     {row.original.status}
                 </Badge>
             ),
@@ -146,13 +181,14 @@ export default function VacanciesPage() {
             ),
             cell: ({ row }) => (
                 <div className="flex flex-col">
-                    <span className="font-bold">{formatNumber(row.original.applicationsCount || 0)}</span>
-                    <span className="text-[10px] text-muted-foreground">{formatNumber(row.original.openPositions)} positions</span>
+                    <span className="font-bold text-sm">{formatNumber(row.original.applicationsCount || 0)}</span>
+                    <span className="text-[10px] text-muted-foreground">{formatNumber(row.original.openPositions)} pos.</span>
                 </div>
             )
         },
         {
             id: "actions",
+            header: () => <div className="text-right">Action</div>,
             cell: ({ row }) => <VacancyActions vacancy={row.original} />,
         },
     ]
@@ -177,7 +213,7 @@ export default function VacanciesPage() {
                 {isLoading ? (
                     <TableSkeleton columnCount={6} />
                 ) : (
-                    <DataTable columns={columns} data={vacancies} searchKey="title" />
+                    <DataTable columns={columns} data={vacancies} />
                 )}
             </div>
         </div>

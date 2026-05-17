@@ -168,7 +168,7 @@ export default function Home() {
             </Button>
           </div>
 
-          <VacancyList filters={{ search: '' }} limit={9} />
+          <VacancyList filters={{ search: '', status: 'open' }} limit={9} />
         </div>
       </section>
 

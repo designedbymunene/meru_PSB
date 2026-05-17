@@ -17,14 +17,18 @@ interface ApplicationListProps {
 }
 
 export function ApplicationList({ filters: manualFilters }: ApplicationListProps) {
-    const [search] = useQueryState('search')
-    const [status] = useQueryState('status')
+    const [search] = useQueryState('search', { defaultValue: '', throttleMs: 500 })
+    const [status] = useQueryState('status', { defaultValue: '' })
     const [view, setView] = useState<'grid' | 'table'>('table')
 
     const activeFilters: ApplicationFilters = manualFilters || {
-        searchTerm: search || undefined,
-        status: (status as any) || undefined,
-    } as any
+        searchTerm: search && search.trim() !== '' ? search : undefined,
+        status: status && status.trim() !== '' ? (status as any) : undefined,
+        sortBy: 'appliedAt' as const,
+        order: 'desc' as const,
+        limit: '100',
+        offset: '0'
+    }
 
     const { data, isLoading, error } = useMyApplications(activeFilters)
 

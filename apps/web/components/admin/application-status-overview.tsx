@@ -8,7 +8,7 @@ import { formatNumber } from "@/lib/utils"
 
 export function ApplicationStatusOverview() {
     const { data, isLoading } = useAllApplications()
-    const applications = data?.data || []
+    const applications = Array.isArray(data?.data) ? data.data : (data?.data as any)?.data || []
 
     const total = applications.length
     

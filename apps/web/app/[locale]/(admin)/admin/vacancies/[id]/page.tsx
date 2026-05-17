@@ -29,7 +29,7 @@ export default function VacancyDetailPage({ params }: { params: Promise<{ id: st
     })
 
     const vacancy = vacancyData?.data
-    const applications = applicationsData?.data || []
+    const applications = Array.isArray(applicationsData?.data) ? applicationsData.data : (applicationsData?.data as any)?.data || []
 
     const columns: ColumnDef<ApplicationWithRelations>[] = [
         {

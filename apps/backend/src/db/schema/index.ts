@@ -1,9 +1,14 @@
 // Export tables
 export * from './users'
+export * from './venues'
+export * from './venue-tags'
 export * from './vacancies'
+export * from './downloads'
+
 export * from './applications'
 export * from './departments'
 export * from './job-groups'
+export * from './venues'
 export * from './vacancy-documents'
 export * from './applicant-profiles'
 export * from './password-reset-sessions'
@@ -30,6 +35,8 @@ import { vacancies } from './vacancies'
 import { applications } from './applications'
 import { departments } from './departments'
 import { jobGroups } from './job-groups'
+import { venues } from './venues'
+import { venueTags } from './venue-tags'
 import { vacancyDocuments } from './vacancy-documents'
 import { applicantProfiles } from './applicant-profiles'
 import { passwordResetSessions } from './password-reset-sessions'
@@ -53,6 +60,7 @@ import { applicantDocuments } from './applicant-documents'
 import { shortlistCriteria } from './shortlisting'
 import { interviews, interviewScores } from './interviews'
 import { boardResolutions } from './board'
+import { downloadCategories, downloadFiles } from './downloads'
 
 
 export * from './relations'
@@ -75,7 +83,10 @@ import {
     applicantDocumentsRelations,
     interviewsRelations,
     interviewScoresRelations,
-    boardResolutionsRelations
+    boardResolutionsRelations,
+    auditLogsRelations,
+    downloadCategoriesRelations,
+    downloadFilesRelations
 } from './relations'
 
 // Export schema object with relations for query API
@@ -87,6 +98,8 @@ export const schema = {
     applications,
     departments,
     jobGroups,
+    venues,
+    venueTags,
     vacancyDocuments,
     applicantProfiles,
     passwordResetSessions,
@@ -111,6 +124,8 @@ export const schema = {
     interviews,
     interviewScores,
     boardResolutions,
+    downloadCategories,
+    downloadFiles,
     // Relations
     usersRelations,
     vacanciesRelations,
@@ -129,5 +144,8 @@ export const schema = {
     applicantDocumentsRelations,
     interviewsRelations,
     interviewScoresRelations,
-    boardResolutionsRelations
+    boardResolutionsRelations,
+    auditLogsRelations,
+    downloadCategoriesRelations,
+    downloadFilesRelations
 }

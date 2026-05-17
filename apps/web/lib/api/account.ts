@@ -46,3 +46,46 @@ export async function updatePassword(passwords: any): Promise<ApiResponse<null>>
     const { data } = await apiClient.put<ApiResponse<null>>('/account/password', passwords)
     return data
 }
+
+export interface AuditLog {
+    id: number
+    action: string
+    targetType: string
+    targetId: number
+    previousState: any
+    newState: any
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: string
+}
+
+export interface AuditLogsResponse {
+    logs: AuditLog[]
+    pagination: {
+        page: number
+        limit: number
+        total: number
+        totalPages: number
+        hasNext: boolean
+        hasPrev: boolean
+    }
+}
+
+export interface AuditLogsParams {
+    page?: number
+    limit?: number
+    action?: string
+}
+
+export async function getAuditLogs(params?: AuditLogsParams): Promise<ApiResponse<AuditLogsResponse>> {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', params.page.toString())
+    if (params?.limit) searchParams.set('limit', params.limit.toString())
+    if (params?.action) searchParams.set('action', params.action)
+
+    const queryString = searchParams.toString()
+    const url = `/account/audit-logs${queryString ? `?${queryString}` : ''}`
+
+    const { data } = await apiClient.get<ApiResponse<AuditLogsResponse>>(url)
+    return data
+}

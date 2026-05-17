@@ -191,7 +191,8 @@ export class InterviewService {
             results.push({
                 interviewId: interview.id,
                 applicationId: interview.applicationId,
-                applicantName: `${interview.application?.applicantProfile?.firstName} ${interview.application?.applicantProfile?.lastName}`,
+                applicantName: interview.application?.applicantProfile?.fullName || 'Anonymous',
+                tags: (interview.application as any).tags || [],
                 scores: scores,
                 averageScore: Math.round(averageScore * 100) / 100,
                 status: interview.status,

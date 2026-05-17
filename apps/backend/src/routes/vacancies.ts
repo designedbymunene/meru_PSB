@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { db, vacancies, vacancyDocuments, applications, departments, jobGroups, users } from '../db'
-import { eq, desc, and, inArray, sql } from 'drizzle-orm'
+import { eq, desc, and, inArray, sql, or, ilike } from 'drizzle-orm'
 import { authenticate, optionalAuthenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
@@ -17,9 +17,10 @@ vacanciesRouter.get('/', async (c) => {
     const status = c.req.query('status')
     const departmentId = c.req.query('departmentId')
     const jobGroupId = c.req.query('jobGroupId')
+    const search = c.req.query('search')
 
     const conditions = []
-    if (status && (status === 'open' || status === 'closed')) {
+    if (status === 'open' || status === 'closed') {
         conditions.push(eq(vacancies.status, status))
     }
     if (departmentId) {
@@ -27,6 +28,12 @@ vacanciesRouter.get('/', async (c) => {
     }
     if (jobGroupId) {
         conditions.push(eq(vacancies.jobGroupId, parseInt(jobGroupId)))
+    }
+    if (search) {
+        conditions.push(or(
+            ilike(vacancies.title, `%${search}%`),
+            ilike(vacancies.advertisementNumber, `%${search}%`)
+        ))
     }
 
     // Use a simpler query approach to avoid lateral join issues with Drizzle 0.45.1

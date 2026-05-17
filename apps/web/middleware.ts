@@ -29,22 +29,32 @@ export function middleware(request: NextRequest) {
         pathnameWithoutLocale = '/' + parts.slice(2).join('/')
     }
 
-    // Check for access token in cookies
+    // Check for access token and role in cookies
     const accessToken = request.cookies.get('accessToken')?.value
+    const userRole = request.cookies.get('userRole')?.value
+    const viewAsApplicant = request.cookies.get('viewAsApplicant')?.value
 
-    // For auth routes, redirect to dashboard if already logged in
+    // For auth routes, redirect based on role if already logged in
     if (authRoutes.some((route) => pathnameWithoutLocale.startsWith(route))) {
         if (accessToken) {
+            if (userRole === 'admin') {
+                return NextResponse.redirect(new URL('/admin', request.url))
+            }
             return NextResponse.redirect(new URL('/dashboard', request.url))
         }
     }
 
-    // For protected routes, redirect to login if not authenticated
+    // For protected routes (applicant side)
     if (protectedRoutes.some((route) => pathnameWithoutLocale.startsWith(route))) {
         if (!accessToken) {
             const loginUrl = new URL('/login', request.url)
             loginUrl.searchParams.set('callbackUrl', pathname)
             return NextResponse.redirect(loginUrl)
+        }
+
+        // If admin tries to access applicant side without "viewAsApplicant" flag, redirect to admin
+        if (userRole === 'admin' && !viewAsApplicant) {
+            return NextResponse.redirect(new URL('/admin', request.url))
         }
     }
 
@@ -54,6 +64,11 @@ export function middleware(request: NextRequest) {
             const loginUrl = new URL('/login', request.url)
             loginUrl.searchParams.set('callbackUrl', pathname)
             return NextResponse.redirect(loginUrl)
+        }
+
+        // Only admins can access admin routes
+        if (userRole !== 'admin') {
+            return NextResponse.redirect(new URL('/dashboard', request.url))
         }
     }
 

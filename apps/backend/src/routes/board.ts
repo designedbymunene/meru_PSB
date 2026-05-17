@@ -7,6 +7,16 @@ import { successResponse } from '../utils/errors'
 export const boardRouter = new Hono()
 
 /**
+ * GET /api/board/resolutions
+ * Fetches recent board resolutions.
+ * Restricted to admins.
+ */
+boardRouter.get('/resolutions', authenticate, requireAdmin, async (c) => {
+    const resolutions = await BoardService.getResolutions()
+    return successResponse(c, resolutions)
+})
+
+/**
  * GET /api/board/pack/:vacancyId
  * Generates and streams a PDF board pack for a vacancy.
  * Restricted to admins.

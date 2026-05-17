@@ -24,7 +24,7 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form'
-import { resetPasswordSchema, type ResetPasswordSchemaType } from '@meru/shared'
+import { resetPasswordSchema, forgotPasswordRequestSchema, type ResetPasswordSchemaType } from '@meru/shared'
 import { useResetPassword, useRequestPasswordReset } from '@/hooks/use-auth'
 import { Logo } from '@/components/shared/logo'
 
@@ -37,7 +37,7 @@ export function ForgotPasswordForm() {
     const { mutate: resetPassword, isPending: isResetting } = useResetPassword()
 
     const form = useForm<ResetPasswordSchemaType>({
-        resolver: zodResolver(resetPasswordSchema),
+        resolver: zodResolver(step === 1 ? forgotPasswordRequestSchema : resetPasswordSchema),
         defaultValues: {
             email: '',
             otp: '',

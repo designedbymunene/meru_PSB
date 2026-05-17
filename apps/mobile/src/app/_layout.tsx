@@ -27,11 +27,11 @@ const CustomDarkTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: '#60a5fa',
-    background: '#030712', // gray-950
-    card: '#030712',
-    border: '#1e293b',
-    text: '#ffffff',
+    primary: '#3b82f6',
+    background: '#0f172a',
+    card: '#1e293b',
+    border: '#334155',
+    text: '#f8fafc',
   },
 };
 
@@ -44,7 +44,7 @@ export default function RootLayout() {
 
   const bgStyle = useMemo(() => ({ 
     flex: 1, 
-    backgroundColor: colorScheme === 'dark' ? '#030712' : '#ffffff' 
+    backgroundColor: colorScheme === 'dark' ? '#0f172a' : '#ffffff' 
   }), [colorScheme]);
 
   return (

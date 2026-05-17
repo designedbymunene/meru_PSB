@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
-import { db, applications, users } from '../db'
-import { eq, and, desc, asc, inArray, SQL, or, ilike, exists, count } from 'drizzle-orm'
+import { db, applications, users, auditLogs } from '../db'
+import { eq, and, desc, asc, inArray, SQL, or, ilike, exists, count, sql } from 'drizzle-orm'
 import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
@@ -166,6 +166,16 @@ applicationsRouter.get('/:id', authenticate, async (c) => {
                     fullName: true,
                     email: true
                 }
+            },
+            auditLogs: {
+                with: {
+                    admin: {
+                        columns: {
+                            fullName: true
+                        }
+                    }
+                },
+                orderBy: desc(auditLogs.createdAt)
             }
         }
     })
@@ -372,6 +382,13 @@ applicationsRouter.get('/admin/search', authenticate, requireAdmin, async (c) =>
                     phoneNumber: true,
                     fullName: true,
                     email: true
+                },
+                with: {
+                    applicantProfile: {
+                        with: {
+                            homeCounty: true
+                        }
+                    }
                 }
             },
             vacancy: {
@@ -394,11 +411,11 @@ applicationsRouter.get('/admin/search', authenticate, requireAdmin, async (c) =>
     })
 
     // Optimize total count
-    const totalCountResult = await db.select({ count: count() })
+    const totalCountResult = await db.select({ count: sql`count(*)::int` })
         .from(applications)
         .where(whereClause)
     
-    const totalCount = totalCountResult[0].count
+    const totalCount = Number(totalCountResult[0].count)
 
     return successResponse(c, {
         data: result,
@@ -461,6 +478,7 @@ applicationsRouter.patch(
         }
 
         if (data.notes) updateData.notes = data.notes
+        if (data.tags) updateData.tags = data.tags
         if (data.status === 'rejected' && data.rejectionReason) updateData.rejectionReason = data.rejectionReason
 
         const [updatedApplication] = await db
@@ -511,6 +529,7 @@ applicationsRouter.post(
         const updateData: any = {
             status: data.status,
             notes: data.notes,
+            tags: data.tags,
             rating: data.rating,
             reviewedAt: new Date(),
             reviewedBy: user.userId

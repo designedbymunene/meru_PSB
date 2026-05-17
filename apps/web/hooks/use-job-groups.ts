@@ -5,7 +5,6 @@ import * as jobGroupApi from '@/lib/api/job-groups'
 import { QUERY_KEYS } from '@/lib/constants'
 import type { CreateJobGroupData } from '@/types'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
 
 export function useJobGroups() {
     return useQuery({
@@ -16,14 +15,12 @@ export function useJobGroups() {
 
 export function useCreateJobGroup() {
     const queryClient = useQueryClient()
-    const router = useRouter()
 
     return useMutation({
         mutationFn: (data: CreateJobGroupData) => jobGroupApi.createJobGroup(data),
         onSuccess: () => {
             toast.success('Job Group created successfully')
             queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOB_GROUPS })
-            router.push('/admin/job-groups')
         },
         onError: (error: Error) => {
             toast.error('Failed to create job group', {
@@ -35,7 +32,6 @@ export function useCreateJobGroup() {
 
 export function useUpdateJobGroup() {
     const queryClient = useQueryClient()
-    const router = useRouter()
 
     return useMutation({
         mutationFn: ({ id, data }: { id: number; data: Partial<CreateJobGroupData> }) =>
@@ -43,7 +39,6 @@ export function useUpdateJobGroup() {
         onSuccess: () => {
             toast.success('Job Group updated successfully')
             queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOB_GROUPS })
-            router.push('/admin/job-groups')
         },
         onError: (error: Error) => {
             toast.error('Failed to update job group', {

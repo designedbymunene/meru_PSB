@@ -16,6 +16,8 @@ import { referees } from './referees'
 import { applicantDocuments } from './applicant-documents'
 import { interviews, interviewScores } from './interviews'
 import { boardResolutions } from './board'
+import { auditLogs } from './audit-logs'
+import { downloadCategories, downloadFiles } from './downloads'
 
 import { counties, constituencies, wards } from './locations'
 import { 
@@ -90,6 +92,19 @@ export const applicationsRelations = relations(applications, ({ one, many }) => 
     applicantProfile: one(applicantProfiles, {
         fields: [applications.applicantId],
         references: [applicantProfiles.userId]
+    }),
+    auditLogs: many(auditLogs)
+}))
+
+// Relations for audit logs
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+    admin: one(users, {
+        fields: [auditLogs.adminId],
+        references: [users.id]
+    }),
+    application: one(applications, {
+        fields: [auditLogs.targetId],
+        references: [applications.id]
     })
 }))
 
@@ -268,5 +283,18 @@ export const boardResolutionsRelations = relations(boardResolutions, ({ one }) =
     approver: one(users, {
         fields: [boardResolutions.approvedBy],
         references: [users.id]
+    })
+}))
+
+// Relations for download categories
+export const downloadCategoriesRelations = relations(downloadCategories, ({ many }) => ({
+    files: many(downloadFiles)
+}))
+
+// Relations for download files
+export const downloadFilesRelations = relations(downloadFiles, ({ one }) => ({
+    category: one(downloadCategories, {
+        fields: [downloadFiles.categoryId],
+        references: [downloadCategories.id]
     })
 }))

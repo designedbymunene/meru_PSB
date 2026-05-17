@@ -9,6 +9,7 @@ interface AuthContextType {
     isAuthenticated: boolean
     setUser: (user: User | null) => void
     logout: () => void
+    switchView: (target: 'admin' | 'applicant') => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -36,17 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
                 const parsedUser = JSON.parse(storedUser)
                 setUserState(parsedUser)
-                // Sync token to cookie for middleware
+                // Sync token and role to cookie for middleware
                 setCookie('accessToken', accessToken)
+                setCookie('userRole', parsedUser.role)
             } catch {
                 localStorage.removeItem('user')
                 localStorage.removeItem('accessToken')
                 localStorage.removeItem('refreshToken')
                 deleteCookie('accessToken')
+                deleteCookie('userRole')
             }
         } else {
             // If we don't have both, ensure cookie is also cleared to prevent middleware loops
             deleteCookie('accessToken')
+            deleteCookie('userRole')
         }
         setIsLoading(false)
     }, [])
@@ -55,14 +59,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserState(newUser)
         if (newUser) {
             localStorage.setItem('user', JSON.stringify(newUser))
-            // Sync token to cookie
+            // Sync token and role to cookie
             const token = localStorage.getItem('accessToken')
             if (token) {
                 setCookie('accessToken', token)
+                setCookie('userRole', newUser.role)
+                // Clear view as applicant flag on new login
+                deleteCookie('viewAsApplicant')
             }
         } else {
             localStorage.removeItem('user')
             deleteCookie('accessToken')
+            deleteCookie('userRole')
         }
     }
 
@@ -71,8 +79,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('refreshToken')
         localStorage.removeItem('user')
         deleteCookie('accessToken')
+        deleteCookie('userRole')
+        deleteCookie('viewAsApplicant')
         setUserState(null)
         window.location.href = '/login'
+    }
+
+    const switchView = (target: 'admin' | 'applicant') => {
+        if (target === 'applicant') {
+            setCookie('viewAsApplicant', 'true')
+            window.location.href = '/dashboard'
+        } else {
+            deleteCookie('viewAsApplicant')
+            window.location.href = '/admin'
+        }
     }
 
     return (
@@ -83,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 isAuthenticated: !!user,
                 setUser,
                 logout,
+                switchView,
             }}
         >
             {children}

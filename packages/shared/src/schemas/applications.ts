@@ -9,6 +9,7 @@ export const createApplicationSchema = z.object({
 export const updateApplicationStatusSchema = z.object({
     status: z.enum(['pending', 'reviewed', 'shortlisted', 'interviewed', 'accepted', 'rejected']),
     notes: z.string().optional(),
+    tags: z.array(z.string()).optional(),
     rejectionReason: z.string().optional()
 })
 
@@ -35,6 +36,7 @@ export const bulkApplicationStatusSchema = z.object({
 export const applicationReviewSchema = z.object({
     status: z.enum(['reviewed', 'shortlisted', 'interviewed', 'accepted', 'rejected']),
     notes: z.string().min(1),
+    tags: z.array(z.string()).optional(),
     rating: z.number().int().min(1).max(5).optional(),
     rejectionReason: z.string().optional(),
     feedbackToApplicant: z.string().optional()

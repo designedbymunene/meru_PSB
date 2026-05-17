@@ -11,10 +11,10 @@ export interface LogoProps {
 }
 
 const sizeMap = {
-    sm: { width: 32, height: 32, textSize: 'text-sm' },
-    md: { width: 40, height: 40, textSize: 'text-base' },
-    lg: { width: 56, height: 56, textSize: 'text-lg' },
-    xl: { width: 80, height: 80, textSize: 'text-xl' },
+    sm: { width: 48, height: 48, textSize: 'text-sm' },
+    md: { width: 64, height: 64, textSize: 'text-base' },
+    lg: { width: 80, height: 80, textSize: 'text-lg' },
+    xl: { width: 120, height: 120, textSize: 'text-xl' },
 }
 
 const variantTextMap = {
@@ -34,14 +34,20 @@ export function Logo({
     const displayText = text ?? variantTextMap[variant]
 
     const logoImage = (
-        <Image
-            src="/logo/merucountylogo.png"
-            alt="Meru County Government"
-            width={width}
-            height={height}
-            className={cn("object-contain", className)}
-            priority
-        />
+        <div className="relative inline-block">
+            <Image
+                src="/logo/merucountylogo.png"
+                alt="Meru County Government"
+                width={width}
+                height={height}
+                className={cn(
+                    "object-contain drop-shadow-md",
+                    "dark:brightness-0 dark:invert",
+                    className
+                )}
+                priority
+            />
+        </div>
     )
 
     const content = displayText ? (

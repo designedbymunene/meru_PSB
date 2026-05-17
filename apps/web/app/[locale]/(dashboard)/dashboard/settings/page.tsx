@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { useAuthContext } from '@/providers'
-import { 
-    useSecuritySettings, 
-    useActiveSessions, 
-    useToggle2FA, 
-    useRevokeSession, 
-    useUpdatePassword 
+import {
+    useSecuritySettings,
+    useActiveSessions,
+    useToggle2FA,
+    useRevokeSession,
+    useUpdatePassword,
+    useAuditLogs
 } from '@/hooks/use-account'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,23 +16,30 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-    Lock, 
-    Shield, 
-    Smartphone, 
-    LogOut, 
-    Trash2, 
-    Key, 
-    ShieldAlert, 
-    Bell, 
-    User, 
+import {
+    Lock,
+    Shield,
+    Smartphone,
+    LogOut,
+    Trash2,
+    Key,
+    ShieldAlert,
+    Bell,
+    User,
     CheckCircle2,
     Monitor,
     ChevronRight,
     RefreshCw,
-    ShieldCheck
+    ShieldCheck,
+    Palette,
+    Sun,
+    Moon,
+    Monitor as MonitorIcon,
+    History,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { UserAuditLogs } from '@/components/settings/user-audit-logs'
+import { useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import {
@@ -46,6 +54,7 @@ import {
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTheme } from 'next-themes'
 
 const passwordSchema = z.object({
     currentPassword: z.string().min(1, 'Current password is required'),
@@ -63,6 +72,16 @@ export default function SettingsPage() {
     const toggle2fa = useToggle2FA()
     const revokeSession = useRevokeSession()
     const updatePassword = useUpdatePassword()
+    const { theme, setTheme } = useTheme()
+
+    // Audit logs state
+    const [auditPage, setAuditPage] = useState(1)
+    const [auditActionFilter, setAuditActionFilter] = useState<string | undefined>()
+    const { data: auditLogs, isLoading: isAuditLogsLoading } = useAuditLogs({
+        page: auditPage,
+        limit: 20,
+        action: auditActionFilter
+    })
 
     const form = useForm<z.infer<typeof passwordSchema>>({
         resolver: zodResolver(passwordSchema),
@@ -132,6 +151,14 @@ export default function SettingsPage() {
                     <TabsTrigger value="notifications" className="rounded-lg px-6 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">
                         <Bell className="h-4 w-4 mr-2" />
                         Notifications
+                    </TabsTrigger>
+                    <TabsTrigger value="appearance" className="rounded-lg px-6 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">
+                        <Palette className="h-4 w-4 mr-2" />
+                        Appearance
+                    </TabsTrigger>
+                    <TabsTrigger value="audit-logs" className="rounded-lg px-6 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">
+                        <History className="h-4 w-4 mr-2" />
+                        Activity Logs
                     </TabsTrigger>
                 </TabsList>
 
@@ -372,6 +399,79 @@ export default function SettingsPage() {
                             ))}
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                <TabsContent value="appearance" className="space-y-8 outline-none">
+                    <Card className="border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden bg-white dark:bg-slate-900/40">
+                        <CardHeader className="border-b border-slate-50 dark:border-slate-800/60 pb-6">
+                            <CardTitle className="text-xl">Theme</CardTitle>
+                            <CardDescription>Customize how the application looks on your device</CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-8">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {[
+                                    { value: 'light', icon: Sun, label: 'Light', description: 'Clean and bright interface' },
+                                    { value: 'dark', icon: Moon, label: 'Dark', description: 'Easy on the eyes' },
+                                    { value: 'system', icon: MonitorIcon, label: 'System', description: 'Matches your device preference' },
+                                ].map((option) => {
+                                    const Icon = option.icon
+                                    const isActive = theme === option.value
+                                    return (
+                                        <button
+                                            key={option.value}
+                                            onClick={() => setTheme(option.value as 'light' | 'dark' | 'system')}
+                                            className={cn(
+                                                "relative flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all text-left",
+                                                isActive
+                                                    ? "border-primary bg-primary/5 shadow-sm"
+                                                    : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "w-12 h-12 rounded-xl flex items-center justify-center transition-all",
+                                                isActive
+                                                    ? "bg-primary text-primary-foreground"
+                                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                                            )}>
+                                                <Icon className="h-6 w-6" />
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white">{option.label}</p>
+                                                <p className="text-xs text-slate-500 font-medium">{option.description}</p>
+                                            </div>
+                                            {isActive && (
+                                                <div className="absolute top-4 right-4">
+                                                    <div className="bg-primary text-primary-foreground rounded-full p-1">
+                                                        <CheckCircle2 className="h-3 w-3" />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="audit-logs" className="space-y-8 outline-none">
+                    <UserAuditLogs
+                        logs={auditLogs?.data?.logs || []}
+                        pagination={auditLogs?.data?.pagination || {
+                            page: 1,
+                            limit: 20,
+                            total: 0,
+                            totalPages: 0,
+                            hasNext: false,
+                            hasPrev: false
+                        }}
+                        onPageChange={(page) => setAuditPage(page)}
+                        onFilterChange={(action) => {
+                            setAuditActionFilter(action)
+                            setAuditPage(1)
+                        }}
+                        isLoading={isAuditLogsLoading}
+                    />
                 </TabsContent>
             </Tabs>
         </div>

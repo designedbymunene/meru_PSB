@@ -11,6 +11,7 @@ import { ResponsiveDialog } from '@/components/shared/responsive-dialog/responsi
 import { ApplicationForm } from '@/components/applications/application-form'
 import { useAuthContext } from '@/providers'
 import { useMyProfile } from '@/hooks/use-applicant-profile'
+import { calculateProfileCompletion } from '@meru/shared'
 import {
     CalendarIcon,
     BuildingIcon,
@@ -40,13 +41,8 @@ export function VacancyDetail() {
     const profile = profileResponse?.data
 
     // Check if essential profile sections are complete
-    // We check for: Basic info, Qualifications
-    const isProfileComplete = profile &&
-        profile.idNumber &&
-        profile.phone &&
-        profile.email &&
-        profile.qualifications &&
-        profile.qualifications.length > 0
+    const completion = calculateProfileCompletion(profile)
+    const isProfileComplete = completion.canApply
 
     if (isLoading) {
         return (
@@ -250,9 +246,18 @@ export function VacancyDetail() {
                                                     <AlertCircleIcon className="h-3.5 w-3.5 text-amber-600 dark:text-amber-500" />
                                                     Action Required
                                                 </div>
-                                                <p className="text-[11px] leading-relaxed opacity-90">
-                                                    Please complete your basic info and qualifications to enable applications.
-                                                </p>
+                                                <div className="space-y-1">
+                                                    <p className="text-[11px] leading-relaxed opacity-90">
+                                                        Complete your profile to enable applications. Missing:
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {completion.requiredMissing.map((m, i) => (
+                                                            <Badge key={i} variant="outline" className="text-[9px] py-0 px-1 bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300">
+                                                                {m}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
                                             <Button 
                                                 size="lg" 

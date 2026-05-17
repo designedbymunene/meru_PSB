@@ -46,3 +46,18 @@ export async function deleteDocument(id: number): Promise<ApiResponse<void>> {
     const { data } = await apiClient.delete<ApiResponse<void>>(`/account/documents/${id}`)
     return data
 }
+
+export async function downloadDocument(id: number, filename: string) {
+    const response = await apiClient.get(`/account/documents/${id}/view`, {
+        responseType: 'blob'
+    })
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+}

@@ -10,13 +10,17 @@ import { applicationsRouter } from './routes/applications'
 import { dashboardRouter } from './routes/dashboard'
 import { departmentsRouter } from './routes/departments'
 import { jobGroupsRouter } from './routes/job-groups'
+import { venuesRouter } from './routes/venues'
+import { venueTagsRouter } from './routes/venue-tags'
 import { applicantProfilesRouter } from './routes/applicant-profiles'
 import { referenceRouter } from './routes/reference'
 import { accountRouter } from './routes/account'
+import { usersRouter } from './routes/users'
 import { shortlistingRouter } from './routes/shortlisting'
 import { interviewsRouter } from './routes/interviews'
 import { boardRouter } from './routes/board'
 import { reportsRouter } from './routes/reports'
+import { downloadsRouter } from './routes/downloads'
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler'
@@ -34,7 +38,9 @@ app.use('*', logger())
 if (process.env.NODE_ENV !== 'production') {
   app.use('*', async (c, next) => {
     const { method, url } = c.req
-    console.log(`\x1b[36m[DEBUG] ${method} ${url}\x1b[0m`)
+    const reqId = Math.random().toString(36).substring(7)
+    const startTime = Date.now()
+    console.log(`\x1b[36m[DEBUG] [${reqId}] 🚀 START ${method} ${url}\x1b[0m`)
     
     // We only log the body for POST/PUT/PATCH and if it's JSON
     if (['POST', 'PUT', 'PATCH'].includes(method)) {
@@ -49,13 +55,20 @@ if (process.env.NODE_ENV !== 'production') {
           sensitiveFields.forEach(field => {
             if (sanitizedBody[field]) sanitizedBody[field] = '********'
           })
-          console.log(`\x1b[36m[DEBUG] Body: ${JSON.stringify(sanitizedBody, null, 2)}\x1b[0m`)
+          console.log(`\x1b[36m[DEBUG] [${reqId}] Body: ${JSON.stringify(sanitizedBody, null, 2)}\x1b[0m`)
         } catch (e) {
           // Ignore parsing errors
         }
       }
     }
-    return await next()
+    
+    await next()
+    
+    const duration = Date.now() - startTime
+    const status = c.res.status
+    const color = status >= 500 ? '\x1b[31m' : status >= 400 ? '\x1b[33m' : '\x1b[32m'
+    
+    console.log(`${color}[DEBUG] [${reqId}] ✅ END ${method} ${url} - ${status} - ${duration}ms\x1b[0m`)
   })
 }
 
@@ -105,17 +118,21 @@ app.get('/', (c) =>
 // Mount API routes
 app.route('/api/auth', authRouter)
 app.route('/api/account', accountRouter)
+app.route('/api/users', usersRouter)
 app.route('/api/vacancies', vacanciesRouter)
 app.route('/api/applications', applicationsRouter)
 app.route('/api/dashboard', dashboardRouter)
 app.route('/api/departments', departmentsRouter)
 app.route('/api/job-groups', jobGroupsRouter)
+app.route('/api/venues', venuesRouter)
+app.route('/api/venue-tags', venueTagsRouter)
 app.route('/api/applicant-profiles', applicantProfilesRouter)
 app.route('/api/reference', referenceRouter)
 app.route('/api/shortlisting', shortlistingRouter)
 app.route('/api/interviews', interviewsRouter)
 app.route('/api/board', boardRouter)
 app.route('/api/reports', reportsRouter)
+app.route('/api/downloads', downloadsRouter)
 
 // Error handler
 app.onError(errorHandler)

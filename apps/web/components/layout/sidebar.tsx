@@ -12,6 +12,10 @@ import {
   UserCircle,
   LifeBuoy,
   Settings,
+  Filter,
+  Scale,
+  BarChart3,
+  Download,
 } from "lucide-react"
 import { Logo } from "@/components/shared/logo"
 
@@ -52,8 +56,35 @@ const navData = {
       url: "/admin/profiles",
       icon: UserCircle,
     },
+    {
+      title: "Shortlisting",
+      url: "/admin/shortlisting",
+      icon: Filter,
+    },
+    {
+      title: "Interviews",
+      url: "/admin/interviews",
+      icon: Users,
+    },
+  ],
+  governance: [
+    {
+      title: "Board",
+      url: "/admin/board",
+      icon: Scale,
+    },
+    {
+      title: "Reports",
+      url: "/admin/reports",
+      icon: BarChart3,
+    },
   ],
   configuration: [
+    {
+      title: "Downloads",
+      url: "/admin/downloads",
+      icon: Download,
+    },
     {
       title: "Departments",
       url: "/admin/departments",
@@ -77,9 +108,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/admin">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Logo size="sm" variant="icon" className="brightness-0 invert" />
-                </div>
+                <Logo size="md" variant="icon" />
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">Meru Portal</span>
                   <span className="text-xs text-muted-foreground">Admin Panel</span>
@@ -95,6 +124,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             {navData.main.map((item) => {
               const isActive = pathname === item.url || (item.url !== "/admin" && pathname.startsWith(item.url))
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
+                    <Link href={item.url}>
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            })}
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Governance</SidebarGroupLabel>
+          <SidebarMenu>
+            {navData.governance.map((item) => {
+              const isActive = pathname === item.url || pathname.startsWith(item.url)
               return (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
@@ -130,17 +177,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Support">
-                <Link href="/support">
+                <Link href="/admin/support">
                   <LifeBuoy />
                   <span>Support</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Settings">
-                <Link href="/dashboard/settings">
-                  <Settings />
-                  <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -149,6 +188,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Settings">
+              <Link href="/admin/settings">
+                <Settings />
+                <span>Settings</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <UserNav showDetails className="border-none hover:bg-transparent px-2" />
           </SidebarMenuItem>

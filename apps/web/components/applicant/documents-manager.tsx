@@ -1,15 +1,27 @@
 'use client'
 
 import { useState } from 'react'
-import { Upload, FileText, Trash2, Loader2, AlertCircle } from 'lucide-react'
+import { Upload, FileText, Trash2, Loader2, Download, ImageIcon, FileIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useMyDocuments, useUploadDocument, useDeleteDocument } from '@/hooks/use-documents'
 import { Card, CardContent } from '@/components/ui/card'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { FileUpload } from '@/components/shared/file-upload'
+import { format } from 'date-fns'
+import { 
+    AlertDialog, 
+    AlertDialogAction, 
+    AlertDialogCancel, 
+    AlertDialogContent, 
+    AlertDialogDescription, 
+    AlertDialogFooter, 
+    AlertDialogHeader, 
+    AlertDialogTitle, 
+    AlertDialogTrigger 
+} from '@/components/ui/alert-dialog'
+import { downloadDocument } from '@/lib/api/documents'
 
 const DOCUMENT_TYPES = [
     { value: 'ID Card', label: 'ID Card / Passport' },
@@ -26,6 +38,7 @@ export function DocumentsManager() {
 
     const [file, setFile] = useState<File | null>(null)
     const [documentType, setDocumentType] = useState<string>('')
+    const [isDownloading, setIsDownloading] = useState<number | null>(null)
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -35,11 +48,33 @@ export function DocumentsManager() {
             onSuccess: () => {
                 setFile(null)
                 setDocumentType('')
-                // Reset file input
-                const fileInput = document.getElementById('file-upload') as HTMLInputElement
-                if (fileInput) fileInput.value = ''
             }
         })
+    }
+
+    const handleDownload = async (id: number, filename: string, originalName: string) => {
+        try {
+            setIsDownloading(id)
+            await downloadDocument(id, originalName)
+        } catch (error) {
+            console.error('Download failed', error)
+        } finally {
+            setIsDownloading(null)
+        }
+    }
+
+    const getFileIcon = (mimeType: string) => {
+        if (mimeType.includes('pdf')) return <FileText className="h-5 w-5 text-red-500" />
+        if (mimeType.includes('image')) return <ImageIcon className="h-5 w-5 text-blue-500" />
+        return <FileIcon className="h-5 w-5 text-gray-500" />
+    }
+
+    const formatFileSize = (bytes: number) => {
+        if (bytes === 0) return '0 Bytes'
+        const k = 1024
+        const sizes = ['Bytes', 'KB', 'MB', 'GB']
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     }
 
     const documents = response?.data || []
@@ -78,14 +113,13 @@ export function DocumentsManager() {
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="file-upload" className="text-xs font-bold uppercase text-muted-foreground/80 ml-1">Choose File *</Label>
-                                <Input 
-                                    id="file-upload" 
-                                    type="file" 
-                                    accept=".pdf,.jpg,.jpeg,.png" 
-                                    className="h-11 rounded-xl bg-card border-muted-foreground/20 file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer pt-2"
-                                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                    required
+                                <Label className="text-xs font-bold uppercase text-muted-foreground/80 ml-1">Choose File *</Label>
+                                <FileUpload 
+                                    value={file}
+                                    onChange={setFile}
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    maxSizeMB={5}
+                                    label="Choose or drag document"
                                 />
                             </div>
                         </div>
@@ -133,32 +167,73 @@ export function DocumentsManager() {
                         {documents.map((doc) => (
                             <div 
                                 key={doc.id} 
-                                className="group relative flex items-center justify-between p-4 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300"
+                                className="group relative flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300 gap-4"
                             >
                                 <div className="flex items-center gap-4 min-w-0">
                                     <div className="p-3 rounded-xl bg-primary/5 text-primary border border-primary/10">
-                                        <FileText className="h-5 w-5" />
+                                        {getFileIcon(doc.mimeType)}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="font-bold text-sm text-foreground truncate">{doc.documentType}</p>
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <p className="font-bold text-sm text-foreground truncate">{doc.documentType}</p>
+                                            <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold uppercase tracking-tighter">
+                                                {doc.status}
+                                            </Badge>
+                                        </div>
                                         <p className="text-[11px] text-muted-foreground truncate opacity-70 uppercase tracking-tight font-medium">
-                                            {doc.originalName}
+                                            {doc.originalName} • {formatFileSize(doc.fileSize)}
+                                        </p>
+                                        <p className="text-[9px] text-muted-foreground/60 font-medium">
+                                            Uploaded on {format(new Date(doc.createdAt), 'MMM d, yyyy')}
                                         </p>
                                     </div>
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-9 w-9 rounded-xl text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
-                                    onClick={() => deleteMutation.mutate(doc.id)}
-                                    disabled={deleteMutation.isPending}
-                                >
-                                    {deleteMutation.isPending ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <Trash2 className="h-4 w-4" />
-                                    )}
-                                </Button>
+                                <div className="flex items-center gap-2 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-9 rounded-xl gap-2 text-xs font-semibold"
+                                        onClick={() => handleDownload(doc.id, doc.filename, doc.originalName)}
+                                        disabled={isDownloading === doc.id}
+                                    >
+                                        {isDownloading === doc.id ? (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                            <Download className="h-3.5 w-3.5" />
+                                        )}
+                                        Download
+                                    </Button>
+                                    
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-9 w-9 rounded-xl text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
+                                                disabled={deleteMutation.isPending}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent className="rounded-2xl">
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Delete Document?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Are you sure you want to delete <span className="font-bold text-foreground">"{doc.originalName}"</span>? This action cannot be undone.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                                <AlertDialogAction 
+                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
+                                                    onClick={() => deleteMutation.mutate(doc.id)}
+                                                >
+                                                    Delete Permanently
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
                             </div>
                         ))}
                     </div>

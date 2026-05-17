@@ -13,6 +13,7 @@ export const applications = pgTable('applications', {
     vacancyId: integer('vacancy_id').notNull().references(() => vacancies.id, { onDelete: 'cascade' }),
     status: varchar('status', { length: 20 }).notNull().default('pending'), // 'pending', 'reviewed', 'shortlisted', 'interviewing', 'accepted', 'rejected'
     notes: text('notes'), // admin-only internal notes
+    tags: jsonb('tags').$type<string[]>().default([]), // internal labels (e.g., 'Strong Lead', 'Local Candidate')
     rating: integer('rating'), // 1-5 rating from reviewer
     reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
     reviewedBy: integer('reviewed_by').references(() => users.id, { onDelete: 'set null' }),

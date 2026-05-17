@@ -7,7 +7,9 @@ import {
     Users, 
     FileText, 
     Settings,
-    LayoutGrid
+    LayoutGrid,
+    Scale,
+    BarChart3
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,6 +22,20 @@ export function QuickActions() {
             href: "/admin/vacancies", // Assuming /new or similar, but following existing patterns
             icon: PlusCircle,
             color: "text-blue-600 bg-blue-50 dark:bg-blue-900/20",
+        },
+        {
+            title: "Board Pack Generator",
+            description: "Prepare documents for board review",
+            href: "/admin/board",
+            icon: Scale,
+            color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20",
+        },
+        {
+            title: "Reports & Analytics",
+            description: "Recruitment KPIs and diversity metrics",
+            href: "/admin/reports",
+            icon: BarChart3,
+            color: "text-cyan-600 bg-cyan-50 dark:bg-cyan-900/20",
         },
         {
             title: "Manage Departments",
@@ -52,7 +68,7 @@ export function QuickActions() {
         {
             title: "System Settings",
             description: "Portal configuration & audit logs",
-            href: "/dashboard/settings",
+            href: "/admin/settings",
             icon: Settings,
             color: "text-slate-600 bg-slate-50 dark:bg-slate-900/20",
         }

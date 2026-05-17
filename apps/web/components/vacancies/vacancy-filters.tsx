@@ -27,8 +27,8 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
 export function VacancyFilters() {
-    const [search, setSearch] = useQueryState('search', { defaultValue: '', shallow: false, throttleMs: 500 })
-    const [status, setStatus] = useQueryState('status', { defaultValue: 'open', shallow: false })
+    const [search, setSearch] = useQueryState('search', { defaultValue: '', shallow: false })
+    const [status, setStatus] = useQueryState('status', { shallow: false })
     const [departmentId, setDepartmentId] = useQueryState('departmentId', { shallow: false })
     const [jobGroupId, setJobGroupId] = useQueryState('jobGroupId', { shallow: false })
 
@@ -39,7 +39,7 @@ export function VacancyFilters() {
     const jobGroups = jobGroupsData?.data || []
 
     const activeFilterCount = [departmentId, jobGroupId].filter(Boolean).length
-    const hasAnyFilters = activeFilterCount > 0 || (search !== '' && search !== null) || (status !== 'open' && status !== null)
+    const hasAnyFilters = activeFilterCount > 0 || (search !== '' && search !== null) || (status !== null && status !== 'open')
 
     const clearFilters = () => {
         setSearch('')
@@ -109,11 +109,11 @@ export function VacancyFilters() {
                                     </div>
                                     <div className="grid grid-cols-3 gap-2">
                                         {statusOptions.map((opt) => {
-                                            const isSelected = (status || 'open') === opt.value
+                                            const isSelected = (status || 'all') === opt.value
                                             return (
                                                 <button
                                                     key={opt.value}
-                                                    onClick={() => setStatus(opt.value === 'all' ? null : opt.value)}
+                                                    onClick={() => setStatus(opt.value)}
                                                     className={cn(
                                                         "flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-all duration-200",
                                                         isSelected 
@@ -205,48 +205,6 @@ export function VacancyFilters() {
                     </Sheet>
                 </div>
             </div>
-
-            {hasAnyFilters && (
-                <div className="flex flex-wrap items-center gap-2 pt-1 animate-in fade-in slide-in-from-top-1 duration-300">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 mr-1 ml-1">Active Filters:</span>
-                    {search && (
-                        <Badge variant="secondary" className="bg-primary/10 text-primary border-none px-3 py-1.5 rounded-xl flex items-center gap-2 font-semibold">
-                            <SearchIcon className="h-3 w-3" />
-                            {search}
-                            <X className="h-3 w-3 cursor-pointer hover:bg-primary/20 rounded-full transition-colors" onClick={() => setSearch('')} />
-                        </Badge>
-                    )}
-                    {status !== 'open' && (
-                        <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-none px-3 py-1.5 rounded-xl flex items-center gap-2 font-semibold">
-                            <Clock className="h-3 w-3" />
-                            {status === 'all' ? 'All Status' : 'Closed'}
-                            <X className="h-3 w-3 cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-800/50 rounded-full transition-colors" onClick={() => setStatus('open')} />
-                        </Badge>
-                    )}
-                    {departmentId && (
-                        <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-none px-3 py-1.5 rounded-xl flex items-center gap-2 font-semibold">
-                            <Building2 className="h-3 w-3" />
-                            {departments.find(d => String(d.id) === departmentId)?.name || 'Dept'}
-                            <X className="h-3 w-3 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800/50 rounded-full transition-colors" onClick={() => setDepartmentId(null)} />
-                        </Badge>
-                    )}
-                    {jobGroupId && (
-                        <Badge variant="secondary" className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-none px-3 py-1.5 rounded-xl flex items-center gap-2 font-semibold">
-                            <Layers className="h-3 w-3" />
-                            {jobGroups.find(j => String(j.id) === jobGroupId)?.name || 'Group'}
-                            <X className="h-3 w-3 cursor-pointer hover:bg-indigo-200 dark:hover:bg-indigo-800/50 rounded-full transition-colors" onClick={() => setJobGroupId(null)} />
-                        </Badge>
-                    )}
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-[10px] font-black uppercase tracking-[0.1em] h-8 px-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all rounded-xl"
-                        onClick={clearFilters}
-                    >
-                        Clear All
-                    </Button>
-                </div>
-            )}
         </div>
     )
 }

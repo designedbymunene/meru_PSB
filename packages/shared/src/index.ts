@@ -8,39 +8,47 @@ export * from './schemas/applicant-profile'
 export * from './utils/profile-completion'
 
 import type { RegisterInput, LoginInput, ForgotPasswordRequestInput, RefreshTokenInput, ResetPasswordInput } from './schemas/auth'
-import type { 
-    CreateDepartmentInput, 
-    UpdateDepartmentInput, 
-    CreateJobGroupInput, 
-    UpdateJobGroupInput, 
-    CreateVacancyInput, 
-    UpdateVacancyInput 
+import type {
+    CreateDepartmentInput,
+    UpdateDepartmentInput,
+    CreateJobGroupInput,
+    UpdateJobGroupInput,
+    CreateVacancyInput,
+    UpdateVacancyInput
 } from './schemas/vacancies'
-import type { 
-    CreateApplicationInput, 
-    UpdateApplicationStatusInput, 
-    ApplicationFiltersInput, 
-    BulkApplicationStatusInput, 
-    ApplicationReviewInput 
+import type { CreateVenueInput, UpdateVenueInput } from './schemas/venues'
+import type { CreateVenueTagInput, UpdateVenueTagInput } from './schemas/venue-tags'
+import type {
+    CreateApplicationInput,
+    UpdateApplicationStatusInput,
+    ApplicationFiltersInput,
+    BulkApplicationStatusInput,
+    ApplicationReviewInput
 } from './schemas/applications'
-import type { 
-    ApplicantProfileInput, 
-    UpdateApplicantProfileInput, 
-    QualificationInput, 
-    UpdateQualificationInput, 
-    ProfessionalDetailInput, 
-    UpdateProfessionalDetailInput, 
-    TrainingCourseInput, 
-    UpdateTrainingCourseInput, 
-    ProfessionalMembershipInput, 
-    UpdateProfessionalMembershipInput, 
-    EmploymentHistoryInput, 
-    UpdateEmploymentHistoryInput 
+import type {
+    ApplicantProfileInput,
+    UpdateApplicantProfileInput,
+    QualificationInput,
+    UpdateQualificationInput,
+    ProfessionalDetailInput,
+    UpdateProfessionalDetailInput,
+    TrainingCourseInput,
+    UpdateTrainingCourseInput,
+    ProfessionalMembershipInput,
+    UpdateProfessionalMembershipInput,
+    EmploymentHistoryInput,
+    UpdateEmploymentHistoryInput
 } from './schemas/applicant-profile'
+
+export * from './schemas/venues'
+export * from './schemas/venue-tags'
+export * from './schemas/downloads'
 
 export type {
     RegisterInput, LoginInput, ForgotPasswordRequestInput, RefreshTokenInput, ResetPasswordInput,
     CreateDepartmentInput, UpdateDepartmentInput, CreateJobGroupInput, UpdateJobGroupInput, CreateVacancyInput, UpdateVacancyInput,
+    CreateVenueInput, UpdateVenueInput,
+    CreateVenueTagInput, UpdateVenueTagInput,
     CreateApplicationInput, UpdateApplicationStatusInput, ApplicationFiltersInput, BulkApplicationStatusInput, ApplicationReviewInput,
     ApplicantProfileInput, UpdateApplicantProfileInput, QualificationInput, UpdateQualificationInput, ProfessionalDetailInput, UpdateProfessionalDetailInput, TrainingCourseInput, UpdateTrainingCourseInput, ProfessionalMembershipInput, UpdateProfessionalMembershipInput, EmploymentHistoryInput, UpdateEmploymentHistoryInput
 }
@@ -71,6 +79,7 @@ export type ResetPasswordSchemaType = z.infer<typeof import('./schemas/auth').re
 
 export type CreateDepartmentSchemaType = z.infer<typeof import('./schemas/vacancies').createDepartmentSchema>
 export type CreateJobGroupSchemaType = z.infer<typeof import('./schemas/vacancies').createJobGroupSchema>
+export type CreateVenueSchemaType = z.infer<typeof import('./schemas/venues').createVenueSchema>
 export type CreateVacancySchemaType = z.infer<typeof import('./schemas/vacancies').createVacancySchema>
 export type UpdateVacancySchemaType = z.infer<typeof import('./schemas/vacancies').updateVacancySchema>
 
@@ -133,6 +142,27 @@ export interface Department {
     updatedAt: string
 }
 
+export interface Venue {
+    id: number
+    name: string
+    location: string | null
+    tagIds: number[]
+    createdAt: string
+    updatedAt: string
+}
+
+export interface VenueTag {
+    id: number
+    name: string
+    color: string
+    createdAt: string
+    updatedAt: string
+}
+
+export interface VenueWithRelations extends Venue {
+    tags?: VenueTag[]
+}
+
 export interface JobGroup {
     id: number
     name: string
@@ -186,7 +216,7 @@ export interface Application {
     id: number
     vacancyId: number
     applicantId: number
-    status: 'pending' | 'reviewed' | 'accepted' | 'rejected'
+    status: 'pending' | 'reviewed' | 'shortlisted' | 'interviewed' | 'accepted' | 'rejected'
     appliedAt: string
     reviewedAt: string | null
     reviewedBy: number | null
@@ -194,13 +224,43 @@ export interface Application {
     rejectionReason: string | null
     feedbackToApplicant: string | null
     rating: number | null
+    profileSnapshot: any | null
     createdAt: string
     updatedAt: string
 }
 
+export interface AuditLog {
+    id: number
+    adminId: number
+    action: string
+    targetType: string
+    targetId: number
+    previousState: any | null
+    newState: any | null
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: string
+    updatedAt: string
+}
+
+export interface AuditLogWithRelations extends AuditLog {
+    admin?: {
+        fullName: string
+    }
+}
+
 export interface ApplicationWithRelations extends Application {
-    vacancy?: Vacancy
-    applicant?: User
+    vacancy?: Vacancy & {
+        department?: Department | null
+        jobGroup?: JobGroup
+    }
+    applicant?: User & {
+        applicantProfile?: ApplicantProfile & {
+            homeCounty?: { name: string } | null
+        } | null
+    }
+    reviewer?: User | null
+    auditLogs?: AuditLogWithRelations[]
 }
 
 export interface Qualification {
@@ -378,4 +438,193 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
         limit: number
         offset: number
     }
+}
+
+// --- SHORTLISTING & INTERVIEW TYPES ---
+
+export interface ShortlistCriteria {
+    id: number
+    vacancyId: number
+    weights: {
+        qualifications?: number
+        experience?: number
+        skills?: number
+        education?: number
+        certifications?: number
+    }
+    minScore: number
+    configuredBy: number
+    createdAt: string
+    updatedAt: string
+}
+
+export interface ShortlistResult {
+    vacancyId: number
+    processed: number
+    shortlisted: number
+    failed: number
+    results: Array<{
+        applicationId: number
+        applicantName: string
+        totalScore: number
+        isShortlisted: boolean
+        breakdown: Record<string, number>
+    }>
+}
+
+export interface Interview {
+    id: number
+    vacancyId: number
+    applicationId: number
+    scheduledAt: string
+    venue: string
+    virtualLink?: string
+    status: 'scheduled' | 'completed' | 'cancelled'
+    panelMembers: number[]
+    createdAt: string
+    updatedAt: string
+}
+
+export interface InterviewWithRelations extends Interview {
+    vacancy?: Vacancy
+    application?: ApplicationWithRelations
+    panelMemberDetails?: User[]
+}
+
+export interface InterviewScore {
+    id: number
+    interviewId: number
+    panelMemberId: number
+    score: number
+    comments: string
+    conflictOfInterest: boolean
+    declarationNotes?: string
+    createdAt: string
+    updatedAt: string
+}
+
+export interface InterviewResults {
+    vacancyId: number
+    interviews: Array<{
+        interviewId: number
+        applicantName: string
+        applicationId: number
+        scheduledAt: string
+        venue: string
+        status: string
+        averageScore: number
+        scoresSubmitted: number
+        totalPanelMembers: number
+        scores: Array<{
+            panelMemberName: string
+            score: number
+            comments: string
+        }>
+    }>
+}
+
+// --- BOARD GOVERNANCE TYPES ---
+
+export interface BoardResolution {
+    id: number
+    vacancyId: number
+    resolutionText: string
+    status: 'approved' | 'rejected' | 'deferred'
+    approvedBy: number
+    createdAt: string
+    updatedAt: string
+}
+
+export interface BoardResolutionInput {
+    vacancyId: number
+    resolutionText: string
+}
+
+export interface BoardResolutionWithRelations extends BoardResolution {
+    vacancy?: Vacancy & { department?: Department }
+    approver?: User
+}
+
+// --- REPORTS TYPES ---
+
+export interface ReportFilters {
+    vacancyId?: number
+    departmentId?: number
+    startDate?: string
+    endDate?: string
+}
+
+export interface FunnelDataPoint {
+    name: string
+    value: number
+    fill: string
+}
+
+export interface TimeSeriesDataPoint {
+    date: string
+    count: number
+}
+
+export interface DiversityReport {
+    vacancyId?: number
+    period: { start: string; end: string }
+    gender: { Male: number; Female: number; Other: number; PreferNotToSay: number }
+    ethnicity: Record<string, number>
+    disability: { hasImpairment: number; noImpairment: number; preferNotToSay: number }
+    counties: Record<string, number>
+    totalApplicants: number
+}
+
+export interface VacancyPerformance {
+    id: number
+    title: string
+    department: string
+    applicationsCount: number
+    shortlistedCount: number
+    interviewedCount: number
+    acceptedCount: number
+}
+
+export interface KPIReport {
+    period: { start: string; end: string }
+    timeToShortlist: { avg: number; min: number; max: number }
+    timeToInterview: { avg: number; min: number; max: number }
+    totalVacancies: number
+    totalApplications: number
+    averageRating: number
+    recruitmentVelocity: {
+        stage: string
+        avgDays: number
+    }[]
+}
+
+export interface ConversionTrendPoint {
+    date: string
+    applicationToShortlist: number
+    shortlistToInterview: number
+    interviewToAcceptance: number
+}
+
+// Input types
+export interface CreateShortlistCriteriaInput {
+    vacancyId: number
+    weights: Record<string, number>
+    minScore: number
+}
+
+export interface ScheduleInterviewInput {
+    vacancyId: number
+    applicationId: number
+    scheduledAt: string
+    venue: string
+    virtualLink?: string
+    panelMembers: number[]
+}
+
+export interface SubmitInterviewScoreInput {
+    interviewId: number
+    score: number
+    comments: string
+    conflictOfInterest?: boolean
+    declarationNotes?: string
 }

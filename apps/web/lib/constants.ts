@@ -8,6 +8,8 @@ export const VACANCY_STATUS = {
 export const APPLICATION_STATUS = {
     PENDING: 'pending',
     REVIEWED: 'reviewed',
+    SHORTLISTED: 'shortlisted',
+    INTERVIEWED: 'interviewed',
     ACCEPTED: 'accepted',
     REJECTED: 'rejected',
 } as const
@@ -15,6 +17,8 @@ export const APPLICATION_STATUS = {
 export const APPLICATION_STATUS_COLORS = {
     pending: 'bg-yellow-100 text-yellow-800',
     reviewed: 'bg-blue-100 text-blue-800',
+    shortlisted: 'bg-purple-100 text-purple-800',
+    interviewed: 'bg-indigo-100 text-indigo-800',
     accepted: 'bg-green-100 text-green-800',
     rejected: 'bg-red-100 text-red-800',
 } as const
@@ -45,6 +49,17 @@ export const QUERY_KEYS = {
     APPLICATIONS: ['applications'],
     MY_APPLICATIONS: ['applications', 'mine'],
     APPLICATION: (id: number) => ['application', id],
+
+    // Shortlisting
+    SHORTLIST_CRITERIA: (vacancyId: number) => ['shortlist-criteria', vacancyId],
+    SHORTLIST_RESULTS: (vacancyId: number) => ['shortlist-results', vacancyId],
+
+    // Interviews
+    INTERVIEWS: ['interviews'],
+    INTERVIEW: (id: number) => ['interview', id],
+    MY_INTERVIEWS: ['interviews', 'mine'],
+    INTERVIEW_RESULTS: (vacancyId: number) => ['interview-results', vacancyId],
+    VACANCY_INTERVIEWS: (vacancyId: number) => ['vacancy-interviews', vacancyId],
 
     // Reference data
 

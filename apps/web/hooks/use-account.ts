@@ -58,3 +58,10 @@ export function useUpdatePassword() {
         }
     })
 }
+
+export function useAuditLogs(params?: { page?: number; limit?: number; action?: string }) {
+    return useQuery({
+        queryKey: ['audit-logs', params],
+        queryFn: () => accountApi.getAuditLogs(params),
+    })
+}

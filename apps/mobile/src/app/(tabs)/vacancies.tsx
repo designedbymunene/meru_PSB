@@ -1,5 +1,5 @@
 import { useVacancies, VacancyFilters } from '@/hooks/use-vacancies';
-import { useNetInfo } from '@react-native-community/netinfo';
+import { useNetInfo } from '@react-community/netinfo';
 import { useRouter } from 'expo-router';
 import { Briefcase, Calendar, ChevronRight, Filter, MapPin, Search, Users, X } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
@@ -9,12 +9,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
 import { VacanciesListLoadingState } from '@/components/ui/loading-skeletons';
 import { VacancyFilterSheet } from '@/components/vacancies/VacancyFilterSheet';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export default function VacanciesScreen() {
     const router = useRouter();
     const { colorScheme } = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
     const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearch = useDebounce(searchQuery, 500);
     const [isFilterSheetVisible, setIsFilterSheetVisible] = useState(false);
     const [filters, setFilters] = useState<VacancyFilters>({
         status: 'open',
@@ -32,7 +34,7 @@ export default function VacanciesScreen() {
         isError,
         refetch,
         isRefetching
-    } = useVacancies(filters);
+    } = useVacancies({ ...filters, search: debouncedSearch });
 
     const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
     const normalizedError = error ? getNormalizedApiError(error) : null;
@@ -56,26 +58,16 @@ export default function VacanciesScreen() {
         return count;
     }, [filters]);
 
-    const filteredVacancies = useMemo(() => {
-        if (!data) return [];
-        if (!searchQuery) return data;
-        
-        const query = searchQuery.toLowerCase();
-        return data.filter((v: any) => 
-            v.title.toLowerCase().includes(query) || 
-            v.department?.name?.toLowerCase().includes(query) ||
-            v.advertisementNumber?.toLowerCase().includes(query)
-        );
-    }, [data, searchQuery]);
+    const vacancies = data || [];
 
-    if (isLoading && !isRefetching && filteredVacancies.length === 0 && !isError) {
+    if (isLoading && !isRefetching && vacancies.length === 0 && !isError) {
         return <VacanciesListLoadingState />;
     }
 
     return (
         <View className="flex-1 bg-white dark:bg-gray-950">
             <FlatList
-                data={filteredVacancies}
+                data={vacancies}
                 keyExtractor={(item) => item.id.toString()}
                 contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 20 }}
                 showsVerticalScrollIndicator={false}

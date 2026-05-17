@@ -78,6 +78,13 @@
       "when": 1778930371233,
       "tag": "0010_damp_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779007040905,
+      "tag": "0011_aspiring_wong",
+      "breakpoints": true
     }
   ]
 }

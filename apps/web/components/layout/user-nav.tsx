@@ -18,16 +18,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuthContext } from "@/hooks/use-auth"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
-import { ChevronRight, LogOut, Settings, User as UserIcon, ChevronsUpDown } from "lucide-react"
+import { ChevronRight, LogOut, Settings, User as UserIcon, ChevronsUpDown, ShieldCheck, Users } from "lucide-react"
 import { SidebarContext } from "@/components/ui/sidebar"
 import * as React from "react"
 
 export function UserNav({ showDetails = false, className }: { showDetails?: boolean; className?: string }) {
-    const { user, logout } = useAuthContext()
+    const { user, logout, switchView } = useAuthContext()
     const router = useRouter()
+    const pathname = usePathname()
     const sidebarContext = React.useContext(SidebarContext)
     const isCollapsed = sidebarContext?.state === "collapsed"
 
@@ -45,6 +46,9 @@ export function UserNav({ showDetails = false, className }: { showDetails?: bool
         .join("")
         .toUpperCase()
         .slice(0, 2)
+
+    const isAdmin = user.role === "admin"
+    const isAdminSide = pathname.startsWith("/admin")
 
     return (
         <DropdownMenu>
@@ -107,6 +111,24 @@ export function UserNav({ showDetails = false, className }: { showDetails?: bool
                     </>
                 )}
                 <DropdownMenuGroup className="space-y-1">
+                    {isAdmin && (
+                        <DropdownMenuItem 
+                            onClick={() => switchView(isAdminSide ? "applicant" : "admin")}
+                            className="h-10 rounded-xl cursor-pointer focus:bg-primary/5 focus:text-primary"
+                        >
+                            {isAdminSide ? (
+                                <>
+                                    <Users className="mr-2 h-4 w-4 opacity-60" />
+                                    <span className="font-medium">Applicant View</span>
+                                </>
+                            ) : (
+                                <>
+                                    <ShieldCheck className="mr-2 h-4 w-4 opacity-60" />
+                                    <span className="font-medium">Admin View</span>
+                                </>
+                            )}
+                        </DropdownMenuItem>
+                    )}
                     <Link href="/dashboard/profile">
                         <DropdownMenuItem className="h-10 rounded-xl cursor-pointer focus:bg-primary/5 focus:text-primary">
                             <UserIcon className="mr-2 h-4 w-4 opacity-60" />
@@ -115,7 +137,7 @@ export function UserNav({ showDetails = false, className }: { showDetails?: bool
                         </DropdownMenuItem>
                     </Link>
                     <DropdownMenuItem asChild className="h-10 rounded-xl cursor-pointer focus:bg-primary/5 focus:text-primary">
-                        <Link href="/dashboard/settings" className="flex items-center w-full">
+                        <Link href={pathname.startsWith('/admin') ? "/admin/settings" : "/dashboard/settings"} className="flex items-center w-full">
                             <Settings className="mr-2 h-4 w-4 opacity-60" />
                             <span className="font-medium">Settings</span>
                             <DropdownMenuShortcut className="text-[10px] opacity-40 font-bold uppercase tracking-widest ml-auto">⌘S</DropdownMenuShortcut>

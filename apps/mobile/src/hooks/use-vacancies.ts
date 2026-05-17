@@ -5,6 +5,7 @@ export interface VacancyFilters {
     status?: 'open' | 'closed' | 'all';
     departmentId?: number | string | null;
     jobGroupId?: number | string | null;
+    search?: string;
 }
 
 export function useVacancies(filters?: VacancyFilters) {
@@ -20,6 +21,9 @@ export function useVacancies(filters?: VacancyFilters) {
             }
             if (filters?.jobGroupId) {
                 params.append('jobGroupId', filters.jobGroupId.toString());
+            }
+            if (filters?.search) {
+                params.append('search', filters.search);
             }
 
             const queryString = params.toString();
