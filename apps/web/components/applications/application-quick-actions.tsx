@@ -15,7 +15,6 @@ interface ApplicationQuickActionsProps {
     vacancyTitle?: string
     onShare?: () => void
     onPrint?: () => void
-    onDownload?: () => void
     onContactSupport?: () => void
     onGetHelp?: () => void
 }
@@ -25,7 +24,6 @@ export function ApplicationQuickActions({
     vacancyTitle,
     onShare,
     onPrint,
-    onDownload,
     onContactSupport,
     onGetHelp
 }: ApplicationQuickActionsProps) {
@@ -52,11 +50,6 @@ export function ApplicationQuickActions({
         onPrint?.()
     }
 
-    const handleDownload = () => {
-        // Generate PDF of application status
-        onDownload?.()
-    }
-
     return (
         <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -72,14 +65,6 @@ export function ApplicationQuickActions({
                         <div>
                             <p className="font-medium">Share Application</p>
                             <p className="text-xs text-slate-500">Copy link or share</p>
-                        </div>
-                    </DropdownMenuItem>
-
-                    <DropdownMenuItem onClick={handleDownload} className="gap-2 cursor-pointer">
-                        <Download className="h-4 w-4 text-slate-500" />
-                        <div>
-                            <p className="font-medium">Download Summary</p>
-                            <p className="text-xs text-slate-500">Save as PDF</p>
                         </div>
                     </DropdownMenuItem>
 
@@ -117,12 +102,10 @@ export function ApplicationQuickActions({
 // Individual action buttons for use in different contexts
 export function QuickActionButtons({
     onShare,
-    onDownload,
     onPrint,
     onContact
 }: {
     onShare?: () => void
-    onDownload?: () => void
     onPrint?: () => void
     onContact?: () => void
 }) {
@@ -136,16 +119,6 @@ export function QuickActionButtons({
             >
                 <Share2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Share</span>
-            </Button>
-
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={onDownload}
-                className="gap-2"
-            >
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Download</span>
             </Button>
 
             <Button

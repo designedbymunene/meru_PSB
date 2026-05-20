@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
-import { successResponse, ValidationError } from '../utils/errors'
+import { successResponse, ValidationError, NotFoundError } from '../utils/errors'
 import { InterviewService } from '../services/interview-service'
 
 export const interviewsRouter = new Hono()
@@ -100,22 +100,6 @@ interviewsRouter.get('/admin/:vacancyId/criteria', authenticate, requireAdmin, a
 })
 
 /**
- * GET /api/interviews/admin/:vacancyId/report
- * Generates a PDF report for vacancy interview results.
- */
-interviewsRouter.get('/admin/:vacancyId/report', authenticate, requireAdmin, async (c) => {
-    const vacancyId = parseInt(c.req.param('vacancyId') || '0')
-    if (isNaN(vacancyId)) throw new ValidationError('Invalid vacancyId')
-
-    const { buffer, filename } = await InterviewService.generatePanelReport(vacancyId)
-    
-    c.header('Content-Type', 'application/pdf')
-    c.header('Content-Disposition', `attachment; filename="${filename}"`)
-    
-    return c.body(buffer)
-})
-
-/**
  * POST /api/interviews/admin/:vacancyId/criteria
  * Sets interview criteria for a vacancy.
  */
@@ -186,7 +170,7 @@ interviewsRouter.get('/admin/:id', authenticate, requireAdmin, async (c) => {
     if (isNaN(id)) throw new ValidationError('Invalid interview ID')
 
     const interview = await InterviewService.getInterviewById(id)
-    if (!interview) return errorResponse(c, 'Interview not found', 'NOT_FOUND', null, 404)
+    if (!interview) throw new NotFoundError('Interview')
 
     return successResponse(c, interview)
 })
@@ -205,7 +189,7 @@ interviewsRouter.patch('/admin/:id/status', authenticate, requireAdmin, async (c
     if (!body.status) throw new ValidationError('Status is required')
 
     const interview = await InterviewService.updateInterviewStatus(id, body.status, user.userId)
-    if (!interview) return errorResponse(c, 'Interview not found', 'NOT_FOUND', null, 404)
+    if (!interview) throw new NotFoundError('Interview')
 
     return successResponse(c, interview, 'Interview status updated successfully')
 })
@@ -229,7 +213,7 @@ interviewsRouter.patch('/admin/:id/reschedule', authenticate, requireAdmin, asyn
         virtualLink: body.virtualLink,
         adminId: user.userId
     })
-    if (!interview) return errorResponse(c, 'Interview not found', 'NOT_FOUND', null, 404)
+    if (!interview) throw new NotFoundError('Interview')
 
     return successResponse(c, interview, 'Interview rescheduled successfully')
 })

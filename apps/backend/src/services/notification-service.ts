@@ -1,6 +1,7 @@
 import { db } from '../db'
 import { users } from '../db/schema'
 import { eq } from 'drizzle-orm'
+import { logger } from '../utils/logger'
 
 export type PushNotificationPayload = {
     to: string | string[]
@@ -16,7 +17,7 @@ export class NotificationService {
      * Sends a push notification via Expo
      */
     static async sendPushNotification(payload: PushNotificationPayload) {
-        console.log(`[NotificationService] Sending push notification to: ${payload.to}`)
+        logger.info({ to: payload.to }, '[NotificationService] Sending push notification')
         
         try {
             const response = await fetch('https://exp.host/--/api/v2/push/send', {
@@ -32,14 +33,14 @@ export class NotificationService {
             const data = await response.json()
             
             if (!response.ok) {
-                console.error(`[NotificationService] Expo API error:`, data)
+                logger.error({ data }, '[NotificationService] Expo API error')
                 return { success: false, error: data }
             }
 
-            console.log(`[NotificationService] Notification sent successfully`)
+            logger.info('[NotificationService] Notification sent successfully')
             return { success: true, data }
         } catch (error) {
-            console.error(`[NotificationService] Failed to send push notification:`, error)
+            logger.error({ err: error }, '[NotificationService] Failed to send push notification')
             return { success: false, error }
         }
     }
@@ -56,7 +57,7 @@ export class NotificationService {
         })
 
         if (!user?.pushToken) {
-            console.log(`[NotificationService] User ${userId} has no push token. Skipping.`)
+            logger.info({ userId }, '[NotificationService] User has no push token. Skipping.')
             return { success: false, error: 'No push token' }
         }
 

@@ -75,7 +75,7 @@ const buildBaseEmailHtml = (contentHtml: string) => `
 </html>
 `
 
-const buildPasswordResetMessage = ({ fullName, otp }: PasswordResetEmailInput) => {
+const buildPasswordResetMessage = ({ fullName, otp }: Omit<PasswordResetEmailInput, 'to'>) => {
     const subject = 'Your Password Reset Code - Meru County PSB'
     const text = `Hello ${fullName},\n\nYour password reset code is ${otp}. It expires in 10 minutes.\n\nRegards,\nMeru County Public Service Board`
     
@@ -170,7 +170,7 @@ const buildApplicationStatusMessage = ({
     return { subject, text, html }
 }
 
-const buildTwoFactorMessage = ({ fullName, otp }: PasswordResetEmailInput) => {
+const buildTwoFactorMessage = ({ fullName, otp }: Omit<PasswordResetEmailInput, 'to'>) => {
     const subject = 'Your Login Verification Code - Meru County PSB'
     const text = `Hello ${fullName},\n\nYour verification code is ${otp}. It expires in 5 minutes.\n\nRegards,\nMeru County Public Service Board`
 
@@ -185,7 +185,7 @@ const buildTwoFactorMessage = ({ fullName, otp }: PasswordResetEmailInput) => {
     return { subject, text, html }
 }
 
-const buildLoginOtpMessage = ({ fullName, otp }: PasswordResetEmailInput) => {
+const buildLoginOtpMessage = ({ fullName, otp }: Omit<PasswordResetEmailInput, 'to'>) => {
     const subject = 'Your Login Code - Meru County PSB'
     const text = `Hello ${fullName},\n\nYour login verification code is ${otp}. It expires in 5 minutes.\n\nRegards,\nMeru County Public Service Board`
 
@@ -216,116 +216,125 @@ const buildUnlockAccountMessage = ({ fullName, unlockUrl }: { fullName: string; 
     return { subject, text, html }
 }
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-    }
-})
+import { getSmtpConfig } from './env'
+import { logger } from './logger'
 
-export const sendPasswordResetOtpEmail = async ({ to, fullName, otp }: PasswordResetEmailInput) => {
-    console.log(`[Mailer] Attempting to send password reset email to: ${to}`)
-    const { subject, text, html } = buildPasswordResetMessage({ fullName, otp })
+let transporter: nodemailer.Transporter | null = null
 
-    // If using the old webhook method for backward compatibility/legacy support
-    const deliveryUrl = process.env.PASSWORD_RESET_EMAIL_WEBHOOK_URL
-    if (deliveryUrl) {
-        console.log(`[Mailer] Sending via Webhook to: ${deliveryUrl}`)
-        const response = await fetch(deliveryUrl, {
+const getTransporter = () => {
+    if (transporter) return transporter
+    const config = getSmtpConfig()
+    if (!config.SMTP_HOST) return null
+    transporter = nodemailer.createTransport({
+        host: config.SMTP_HOST,
+        port: config.SMTP_PORT,
+        secure: config.SMTP_SECURE,
+        auth: config.SMTP_USER && config.SMTP_PASS ? {
+            user: config.SMTP_USER,
+            pass: config.SMTP_PASS
+        } : undefined
+    })
+    return transporter
+}
+
+const sendEmail = async ({
+    to,
+    subject,
+    text,
+    html,
+    webhookUrl,
+    webhookToken,
+    consoleFallbackLabel
+}: {
+    to: string
+    subject: string
+    text: string
+    html: string
+    webhookUrl?: string
+    webhookToken?: string
+    consoleFallbackLabel: string
+}) => {
+    logger.info({ to, subject }, `[Mailer] Sending ${consoleFallbackLabel} email`)
+    
+    // Check webhook delivery
+    if (webhookUrl) {
+        logger.info({ webhookUrl }, '[Mailer] Sending via Webhook')
+        const response = await fetch(webhookUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                ...(process.env.PASSWORD_RESET_EMAIL_WEBHOOK_TOKEN
-                    ? {
-                          Authorization: `Bearer ${process.env.PASSWORD_RESET_EMAIL_WEBHOOK_TOKEN}`
-                      }
-                    : {})
+                ...(webhookToken ? { Authorization: `Bearer ${webhookToken}` } : {})
             },
             body: JSON.stringify({ to, subject, text, html })
         })
 
         if (!response.ok) {
-            console.error(`[Mailer] Webhook failed with status: ${response.status}`)
-            throw new Error('Password reset email delivery failed via webhook')
+            logger.error({ status: response.status }, '[Mailer] Webhook delivery failed')
+            throw new Error(`Email delivery failed via webhook with status ${response.status}`)
         }
 
-        console.log(`[Mailer] Webhook delivery successful`)
-        return
+        logger.info('[Mailer] Webhook delivery successful')
+        return { success: true }
     }
 
-    // Try SMTP delivery if configured
-    if (process.env.SMTP_HOST) {
-        console.log(`[Mailer] Sending via SMTP: ${process.env.SMTP_HOST} as ${process.env.SMTP_USER}`)
+    // Try SMTP delivery
+    const transport = getTransporter()
+    if (transport) {
+        const config = getSmtpConfig()
+        logger.info({ host: config.SMTP_HOST }, '[Mailer] Sending via SMTP')
         try {
-            await transporter.sendMail({
-                from: process.env.SMTP_FROM || '"Meru County PSB" <noreply@merupsb.go.ke>',
+            await transport.sendMail({
+                from: config.SMTP_FROM,
                 to,
                 subject,
                 text,
                 html
             })
-            console.log(`[Mailer] SMTP delivery successful to: ${to}`)
-            return
+            logger.info({ to }, '[Mailer] SMTP delivery successful')
+            return { success: true }
         } catch (error: any) {
-            console.error('[Mailer] SMTP email delivery failed!')
-            console.error('[Mailer] Error code:', error.code)
-            console.error('[Mailer] Error message:', error.message)
-            
+            logger.error({ err: error }, '[Mailer] SMTP delivery failed')
             if (process.env.NODE_ENV === 'production') {
                 throw new Error(`Email delivery failed: ${error.message}`)
             }
-            console.warn('[Mailer] Falling back to console log due to SMTP failure')
+            logger.warn('[Mailer] Falling back to console log due to SMTP failure')
         }
     }
 
     if (process.env.NODE_ENV !== 'production') {
-        console.info(`[Mailer] Falling back to console log (NODE_ENV=${process.env.NODE_ENV})`)
-        console.info(`[password-reset] OTP for ${to}: ${otp}`)
-        return
+        logger.info(`[Mailer] Console fallback for ${consoleFallbackLabel} to ${to}`)
+        return { success: true }
     }
 
-    console.error('[Mailer] No delivery method configured')
-    throw new Error('Password reset email delivery is not configured')
+    logger.error('[Mailer] No email delivery method configured')
+    throw new Error('Email delivery is not configured')
+}
+
+export const sendPasswordResetOtpEmail = async ({ to, fullName, otp }: PasswordResetEmailInput) => {
+    const { subject, text, html } = buildPasswordResetMessage({ fullName, otp })
+    return sendEmail({
+        to,
+        subject,
+        text,
+        html,
+        webhookUrl: process.env.PASSWORD_RESET_EMAIL_WEBHOOK_URL,
+        webhookToken: process.env.PASSWORD_RESET_EMAIL_WEBHOOK_TOKEN,
+        consoleFallbackLabel: 'password-reset'
+    })
 }
 
 export const sendTwoFactorOtpEmail = async ({ to, fullName, otp }: PasswordResetEmailInput) => {
-    console.log(`[Mailer] Attempting to send 2FA email to: ${to}`)
     const { subject, text, html } = buildTwoFactorMessage({ fullName, otp })
-
-    if (process.env.SMTP_HOST) {
-        try {
-            await transporter.sendMail({
-                from: process.env.SMTP_FROM || '"Meru County PSB" <noreply@merupsb.go.ke>',
-                to,
-                subject,
-                text,
-                html
-            })
-            console.log(`[Mailer] SMTP 2FA delivery successful to: ${to}`)
-            return
-        } catch (error: any) {
-            console.error('[Mailer] SMTP 2FA delivery failed:', error.message)
-            console.error('[Mailer] Error code:', error.code)
-            if (process.env.NODE_ENV === 'production') {
-                throw new Error(`Verification email delivery failed: ${error.message}`)
-            }
-            console.warn('[Mailer] Falling back to console log for 2FA due to SMTP failure')
-        }
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-        console.info(`[2fa-verification] OTP for ${to}: ${otp}`)
-        return
-    }
-
-    throw new Error('Verification email delivery is not configured')
+    return sendEmail({
+        to,
+        subject,
+        text,
+        html,
+        consoleFallbackLabel: '2fa-verification'
+    })
 }
 
 export const sendApplicationStatusEmail = async ({ to, fullName, vacancyTitle, status, feedbackToApplicant, rejectionReason }: ApplicationStatusEmailInput) => {
-    console.log(`[Mailer] Attempting to send application status email to: ${to}`)
     const { subject, text, html } = buildApplicationStatusMessage({
         fullName,
         vacancyTitle,
@@ -333,125 +342,44 @@ export const sendApplicationStatusEmail = async ({ to, fullName, vacancyTitle, s
         feedbackToApplicant,
         rejectionReason,
     })
-
-    if (process.env.SMTP_HOST) {
-        try {
-            await transporter.sendMail({
-                from: process.env.SMTP_FROM || '"Meru County PSB" <noreply@merupsb.go.ke>',
-                to,
-                subject,
-                text,
-                html
-            })
-            console.log(`[Mailer] Application status email sent to: ${to}`)
-            return { success: true }
-        } catch (error: any) {
-            console.error('[Mailer] Application status email delivery failed:', error.message)
-            if (process.env.NODE_ENV === 'production') {
-                throw new Error(`Application status email delivery failed: ${error.message}`)
-            }
-        }
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-        console.info(`[application-status] Email to ${to}: ${subject}`)
-        return { success: true }
-    }
-
-    throw new Error('Application status email delivery is not configured')
+    return sendEmail({
+        to,
+        subject,
+        text,
+        html,
+        consoleFallbackLabel: 'application-status'
+    })
 }
 
 export const sendLoginOtpEmail = async ({ to, fullName, otp }: PasswordResetEmailInput) => {
-    console.log(`[Mailer] Attempting to send login OTP email to: ${to}`)
     const { subject, text, html } = buildLoginOtpMessage({ fullName, otp })
-
-    if (process.env.SMTP_HOST) {
-        try {
-            await transporter.sendMail({
-                from: process.env.SMTP_FROM || '"Meru County PSB" <noreply@merupsb.go.ke>',
-                to,
-                subject,
-                text,
-                html
-            })
-            console.log(`[Mailer] SMTP login OTP delivery successful to: ${to}`)
-            return
-        } catch (error: any) {
-            console.error('[Mailer] SMTP login OTP delivery failed:', error.message)
-            console.error('[Mailer] Error code:', error.code)
-            if (process.env.NODE_ENV === 'production') {
-                throw new Error(`Login email delivery failed: ${error.message}`)
-            }
-            console.warn('[Mailer] Falling back to console log for login OTP due to SMTP failure')
-        }
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-        console.info(`[login-otp] OTP for ${to}: ${otp}`)
-        return
-    }
-
-    throw new Error('Login verification email delivery is not configured')
+    return sendEmail({
+        to,
+        subject,
+        text,
+        html,
+        consoleFallbackLabel: 'login-otp'
+    })
 }
 
 export const sendUnlockAccountEmail = async ({ to, fullName, unlockUrl }: { to: string; fullName: string; unlockUrl: string }) => {
-    console.log(`[Mailer] Attempting to send unlock email to: ${to}`)
     const { subject, text, html } = buildUnlockAccountMessage({ fullName, unlockUrl })
-
-    if (process.env.SMTP_HOST) {
-        try {
-            await transporter.sendMail({
-                from: process.env.SMTP_FROM || '"Meru County PSB" <noreply@merupsb.go.ke>',
-                to,
-                subject,
-                text,
-                html
-            })
-            console.log(`[Mailer] SMTP unlock delivery successful to: ${to}`)
-            return
-        } catch (error: any) {
-            console.error('[Mailer] SMTP unlock delivery failed:', error.message)
-            if (process.env.NODE_ENV === 'production') {
-                throw new Error(`Unlock email delivery failed: ${error.message}`)
-            }
-        }
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-        console.info(`[unlock-account] Link for ${to}: ${unlockUrl}`)
-        return
-    }
-
-    throw new Error('Unlock email delivery is not configured')
+    return sendEmail({
+        to,
+        subject,
+        text,
+        html,
+        consoleFallbackLabel: 'unlock-account'
+    })
 }
 
 export const sendRegistrationSuccessEmail = async ({ to, fullName, profileUrl }: RegistrationSuccessEmailInput) => {
-    console.log(`[Mailer] Attempting to send registration success email to: ${to}`)
     const { subject, text, html } = buildRegistrationSuccessMessage({ fullName, profileUrl })
-
-    if (process.env.SMTP_HOST) {
-        try {
-            await transporter.sendMail({
-                from: process.env.SMTP_FROM || '"Meru County PSB" <noreply@merupsb.go.ke>',
-                to,
-                subject,
-                text,
-                html
-            })
-            console.log(`[Mailer] SMTP registration success delivery successful to: ${to}`)
-            return
-        } catch (error: any) {
-            console.error('[Mailer] SMTP registration success delivery failed:', error.message)
-            if (process.env.NODE_ENV === 'production') {
-                throw new Error(`Registration success email delivery failed: ${error.message}`)
-            }
-        }
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-        console.info(`[registration-success] Email for ${to}: ${profileUrl}`)
-        return
-    }
-
-    throw new Error('Registration success email delivery is not configured')
+    return sendEmail({
+        to,
+        subject,
+        text,
+        html,
+        consoleFallbackLabel: 'registration-success'
+    })
 }

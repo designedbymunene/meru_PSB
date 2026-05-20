@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, text, unique } from 'drizzle-orm/pg-core'
+import { pgTable, integer, varchar, unique } from 'drizzle-orm/pg-core'
 import { timestamps } from './common'
 
 // Ethnicities table

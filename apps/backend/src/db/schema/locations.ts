@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, text, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, integer, varchar } from 'drizzle-orm/pg-core'
 import { timestamps } from './common'
 
 // Counties table

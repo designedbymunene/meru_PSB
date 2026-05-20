@@ -56,10 +56,6 @@ export function ShortlistResultsModal({
         URL.revokeObjectURL(url)
     }
 
-    const handleDownloadPDF = () => {
-        alert("PDF download will be available once the backend endpoint is implemented")
-    }
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl">

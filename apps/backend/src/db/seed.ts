@@ -1,6 +1,6 @@
 import { db } from './index'
-import { departments, jobGroups, users, vacancies, applications, applicantProfiles, ethnicities, counties } from './schema'
-import { eq, inArray } from 'drizzle-orm'
+import { departments, jobGroups, users, vacancies, applications, applicantProfiles, ethnicities, counties, constituencies, wards } from './schema'
+import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { seedLocations } from './seed-locations'
 import { seedReferenceData } from './seed-reference-data'
@@ -31,9 +31,19 @@ export async function seed() {
 
         const allEthnicities = await db.select().from(ethnicities)
         const allCounties = await db.select().from(counties)
+        const allConstituencies = await db.select().from(constituencies)
+        const allWards = await db.select().from(wards)
         
         const meruCounty = allCounties.find(c => c.name.toLowerCase().includes('meru'))
         const ameruEthnicity = allEthnicities.find(e => e.name === 'Ameru')
+
+        const meruConstituencies = meruCounty 
+            ? allConstituencies.filter(c => c.countyId === meruCounty.id)
+            : []
+        const meruConstituencyIds = meruConstituencies.map(c => c.id)
+        const meruWards = meruConstituencyIds.length > 0
+            ? allWards.filter(w => meruConstituencyIds.includes(w.constituencyId))
+            : []
 
         // 1. Seed Departments
         console.log('📦 Seeding departments...')
@@ -136,6 +146,29 @@ export async function seed() {
                 { value: allCounties[Math.floor(Math.random() * allCounties.length)]?.id, weight: 20 }
             ])
 
+            // Determine sub-county and ward matching the countyId
+            let homeSubCountyId: number | null = null
+            let wardId: number | null = null
+
+            if (countyId === meruCounty?.id && meruConstituencies.length > 0) {
+                const sub = meruConstituencies[Math.floor(Math.random() * meruConstituencies.length)]
+                homeSubCountyId = sub.id
+                const subWards = meruWards.filter(w => w.constituencyId === sub.id)
+                if (subWards.length > 0) {
+                    wardId = subWards[Math.floor(Math.random() * subWards.length)].id
+                }
+            } else {
+                const countyConstituencies = allConstituencies.filter(c => c.countyId === countyId)
+                if (countyConstituencies.length > 0) {
+                    const sub = countyConstituencies[Math.floor(Math.random() * countyConstituencies.length)]
+                    homeSubCountyId = sub.id
+                    const subWards = allWards.filter(w => w.constituencyId === sub.id)
+                    if (subWards.length > 0) {
+                        wardId = subWards[Math.floor(Math.random() * subWards.length)].id
+                    }
+                }
+            }
+
             const [user] = await db.insert(users).values({
                 email,
                 phoneNumber: `071100000${i}`,
@@ -144,7 +177,7 @@ export async function seed() {
                 role: 'applicant'
             }).returning()
 
-            await db.insert(applicantProfiles).values({
+            const [profile] = await db.insert(applicantProfiles).values({
                 userId: user.id,
                 fullName: `Test Applicant ${i}`,
                 idNumber: `3344556${i}`,
@@ -153,17 +186,43 @@ export async function seed() {
                 gender,
                 ethnicityId,
                 homeCountyId: countyId,
+                homeSubCountyId,
+                wardId,
                 impairment: Math.random() < 0.05
-            })
+            }).returning()
 
             const numApps = Math.floor(Math.random() * 2) + 1
             for (let j = 0; j < numApps; j++) {
                 const vacancy = vacanciesData[Math.floor(Math.random() * vacanciesData.length)]
+                
+                const profileSnapshotObj = {
+                    id: profile.id,
+                    userId: profile.userId,
+                    fullName: profile.fullName,
+                    idNumber: profile.idNumber,
+                    gender: profile.gender,
+                    phoneNumber: profile.phoneNumber,
+                    email: profile.email,
+                    ethnicityId: profile.ethnicityId,
+                    homeCountyId: profile.homeCountyId,
+                    homeSubCountyId: profile.homeSubCountyId,
+                    wardId: profile.wardId,
+                    impairment: profile.impairment,
+                    impairmentDetails: null,
+                    hasNoExperience: false,
+                    qualifications: [],
+                    employmentHistory: [],
+                    professionalDetails: [],
+                    professionalMemberships: [],
+                    trainingCourses: []
+                }
+
                 await db.insert(applications).values({
                     applicantId: user.id,
                     vacancyId: vacancy.id,
                     status: 'pending',
-                    appliedAt: new Date()
+                    appliedAt: new Date(),
+                    profileSnapshot: profileSnapshotObj
                 })
             }
         }
@@ -178,3 +237,4 @@ export async function seed() {
 if (import.meta.url === `file://${process.argv[1]}`) {
     seed().catch(console.error)
 }
+

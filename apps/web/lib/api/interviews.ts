@@ -149,17 +149,6 @@ export async function setInterviewCriteria(
     return response
 }
 
-// Admin: Download interview report PDF
-export async function downloadInterviewReport(
-    vacancyId: number
-): Promise<Blob> {
-    const { data } = await apiClient.get(
-        `/interviews/admin/${vacancyId}/report`,
-        { responseType: 'blob' }
-    )
-    return data
-}
-
 // Get my interviews (for panel members)
 export async function getMyInterviews(): Promise<ApiResponse<InterviewWithRelations[]>> {
     const { data: response } = await apiClient.get<ApiResponse<InterviewWithRelations[]>>(

@@ -1,9 +1,11 @@
 import { Hono } from 'hono'
+import { getUploadConfig } from '../utils/env'
+import { logger } from '../utils/logger'
 import { db } from '../db'
 import { users, activeSessions, auditLogs } from '../db/schema'
-import { eq, and, ne, desc, sql, or } from 'drizzle-orm'
+import { eq, and, desc, sql } from 'drizzle-orm'
 import { authenticate } from '../middleware/auth'
-import { successResponse, ValidationError, UnauthorizedError, NotFoundError } from '../utils/errors'
+import { successResponse, ValidationError, NotFoundError } from '../utils/errors'
 import { hashPassword, verifyPassword } from '../utils/auth'
 import { validate } from '../middleware/validation'
 import { changePasswordSchema } from '@meru/shared'
@@ -54,7 +56,7 @@ accountRouter.get('/security', authenticate, async (c) => {
 // PUT /api/account/password - Update password
 accountRouter.put('/password', authenticate, validate(changePasswordSchema), async (c) => {
     const user = c.get('user')
-    const data = await c.req.json()
+    const data = c.get('validatedData') as { currentPassword: string; newPassword: string }
     
     const [dbUser] = await db.select().from(users).where(eq(users.id, user.userId))
     if (!dbUser) throw new NotFoundError('User not found')
@@ -154,7 +156,7 @@ accountRouter.get('/sessions', authenticate, async (c) => {
 // DELETE /api/account/sessions/:id - Revoke specific session
 accountRouter.delete('/sessions/:id', authenticate, async (c) => {
     const user = c.get('user')
-    const sessionId = parseInt(c.req.param('id'))
+    const sessionId = parseInt(c.req.param('id') || '0')
 
     const [session] = await db.select().from(activeSessions)
         .where(eq(activeSessions.id, sessionId))
@@ -172,7 +174,7 @@ accountRouter.delete('/sessions/:id', authenticate, async (c) => {
         action: 'SESSION_REVOKED',
         targetType: 'SESSION',
         targetId: sessionId,
-        previousState: session ? { deviceName: session.deviceName, deviceType: session.deviceType } : undefined,
+        previousState: session ? { deviceName: session.deviceName, os: session.os } : undefined,
         newState: { status: 'revoked' },
         ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || undefined,
         userAgent: c.req.header('user-agent')
@@ -204,7 +206,7 @@ accountRouter.delete('/sessions', authenticate, async (c) => {
             action: 'SESSION_REVOKED',
             targetType: 'SESSION',
             targetId: session.id,
-            previousState: { deviceName: session.deviceName, deviceType: session.deviceType },
+            previousState: { deviceName: session.deviceName, os: session.os },
             newState: { status: 'revoked' },
             ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || undefined,
             userAgent: c.req.header('user-agent')
@@ -239,13 +241,15 @@ accountRouter.get('/documents', authenticate, async (c) => {
 // GET /api/account/documents/:id/view - View/Download a document
 accountRouter.get('/documents/:id/view', authenticate, async (c) => {
     const user = c.get('user')
-    const docId = parseInt(c.req.param('id'))
+    const docId = parseInt(c.req.param('id') || '0')
     
+    const conditions = [eq(applicantDocuments.id, docId)]
+    if (user.role !== 'admin') {
+        conditions.push(eq(applicantDocuments.userId, user.userId))
+    }
+
     const [doc] = await db.select().from(applicantDocuments)
-        .where(and(
-            eq(applicantDocuments.id, docId),
-            user.role === 'admin' ? undefined : eq(applicantDocuments.userId, user.userId)
-        ))
+        .where(and(...conditions))
         
     if (!doc) {
         throw new NotFoundError('Document not found')
@@ -260,7 +264,7 @@ accountRouter.get('/documents/:id/view', authenticate, async (c) => {
             'Content-Disposition': `inline; filename="${doc.originalName}"`,
         })
     } catch (err) {
-        console.error(`Failed to read file: ${absolutePath}`, err)
+        logger.error({ err, path: absolutePath }, 'Failed to read file')
         throw new NotFoundError('File not found on server')
     }
 })
@@ -277,6 +281,40 @@ accountRouter.post('/documents/upload', authenticate, async (c) => {
         throw new ValidationError('File and document type are required')
     }
 
+    if (typeof documentType !== 'string' || documentType.trim().length === 0 || documentType.length > 100) {
+        throw new ValidationError('Invalid document type. It must be between 1 and 100 characters.')
+    }
+
+    // Validate that it is a file object
+    if (!file.name || typeof file.size !== 'number' || typeof file.arrayBuffer !== 'function') {
+        throw new ValidationError('Invalid file uploaded')
+    }
+
+    // Validate file size limit
+    const uploadConfig = getUploadConfig()
+    if (file.size > uploadConfig.MAX_FILE_SIZE) {
+        throw new ValidationError(`File size exceeds the maximum limit of ${uploadConfig.MAX_FILE_SIZE / 1024 / 1024}MB`)
+    }
+
+    const originalName = file.name
+    const mimeType = file.type
+    const extension = path.extname(originalName).toLowerCase()
+
+    // Whitelist file extensions and MIME types
+    const allowedExtensions = ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx']
+    const allowedMimeTypes = [
+        'application/pdf',
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ]
+
+    if (!allowedExtensions.includes(extension) || !allowedMimeTypes.includes(mimeType)) {
+        throw new ValidationError('Invalid file type. Only PDF, PNG, JPG, and DOC/DOCX files are allowed.')
+    }
+
     // Create uploads directory if it doesn't exist
     try {
         await fs.access(UPLOADS_DIR)
@@ -284,10 +322,6 @@ accountRouter.post('/documents/upload', authenticate, async (c) => {
         await fs.mkdir(UPLOADS_DIR, { recursive: true })
     }
 
-    const originalName = file.name
-    const mimeType = file.type
-    const fileSize = file.size
-    const extension = path.extname(originalName)
     const filename = `${user.userId}-${Date.now()}${extension}`
     const filePath = path.join(UPLOADS_DIR, filename)
 
@@ -302,7 +336,7 @@ accountRouter.post('/documents/upload', authenticate, async (c) => {
         originalName,
         filename,
         filePath: `applicant-documents/${filename}`,
-        fileSize,
+        fileSize: file.size,
         mimeType,
         status: 'uploaded'
     }).returning()
@@ -314,7 +348,7 @@ accountRouter.post('/documents/upload', authenticate, async (c) => {
         targetType: 'DOCUMENT',
         targetId: doc.id,
         previousState: undefined,
-        newState: { documentType, originalName, fileSize },
+        newState: { documentType, originalName, fileSize: file.size },
         ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || undefined,
         userAgent: c.req.header('user-agent')
     })
@@ -322,10 +356,11 @@ accountRouter.post('/documents/upload', authenticate, async (c) => {
     return successResponse(c, doc, 'Document uploaded successfully')
 })
 
+
 // DELETE /api/account/documents/:id - Delete a document
 accountRouter.delete('/documents/:id', authenticate, async (c) => {
     const user = c.get('user')
-    const docId = parseInt(c.req.param('id'))
+    const docId = parseInt(c.req.param('id') || '0')
     
     const [doc] = await db.select().from(applicantDocuments)
         .where(and(
@@ -342,7 +377,7 @@ accountRouter.delete('/documents/:id', authenticate, async (c) => {
     try {
         await fs.unlink(absolutePath)
     } catch (err) {
-        console.error(`Failed to delete file: ${absolutePath}`, err)
+        logger.error({ err, path: absolutePath }, 'Failed to delete file from disk')
     }
 
     // Delete from database
@@ -364,27 +399,6 @@ accountRouter.delete('/documents/:id', authenticate, async (c) => {
     return successResponse(c, null, 'Document deleted')
 })
 
-// POST /api/account/test-audit - Test audit logging
-accountRouter.post('/test-audit', authenticate, async (c) => {
-    const user = c.get('user')
-
-    console.log('[TEST] Creating test audit log for user:', user.userId)
-
-    const log = await AuditService.logAction({
-        adminId: user.userId,
-        action: 'TEST_ACTION',
-        targetType: 'TEST',
-        targetId: 1,
-        previousState: { test: 'before' },
-        newState: { test: 'after' },
-        ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || undefined,
-        userAgent: c.req.header('user-agent')
-    })
-
-    console.log('[TEST] Audit log created:', log)
-
-    return successResponse(c, { log }, 'Test audit log created')
-})
 
 // POST /api/account/push-token - Save push notification token
 accountRouter.post('/push-token', authenticate, async (c) => {
@@ -413,7 +427,7 @@ accountRouter.get('/audit-logs', authenticate, async (c) => {
         const action = url.searchParams.get('action')
         const offset = (page - 1) * limit
 
-        console.log('[AuditLogs] Fetching logs for user:', user.userId, 'page:', page, 'limit:', limit, 'action:', action)
+        logger.debug({ userId: user.userId, page, limit, action }, '[AuditLogs] Fetching logs for user')
 
         // Build query conditions
         const conditions = [
@@ -430,7 +444,7 @@ accountRouter.get('/audit-logs', authenticate, async (c) => {
             .from(auditLogs)
             .where(and(...conditions))
 
-        console.log('[AuditLogs] Total logs:', count)
+        logger.debug({ count }, '[AuditLogs] Total logs count')
 
         // Fetch audit logs with pagination
         const logs = await db.select({
@@ -450,7 +464,7 @@ accountRouter.get('/audit-logs', authenticate, async (c) => {
             .limit(limit)
             .offset(offset)
 
-        console.log('[AuditLogs] Retrieved logs:', logs.length)
+        logger.debug({ count: logs.length }, '[AuditLogs] Retrieved logs')
 
         return successResponse(c, {
             logs,
@@ -464,7 +478,7 @@ accountRouter.get('/audit-logs', authenticate, async (c) => {
             }
         })
     } catch (error) {
-        console.error('[AuditLogs] Error fetching logs:', error)
+        logger.error({ err: error, userId: user.userId }, '[AuditLogs] Error fetching logs')
         throw error
     }
 })

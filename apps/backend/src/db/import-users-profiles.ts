@@ -3,7 +3,7 @@ import { readFile } from 'fs/promises'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
-import { Pool } from 'pg'
+import { Pool, type PoolClient } from 'pg'
 
 dotenv.config()
 
@@ -206,7 +206,7 @@ function chunk<T>(values: T[], size: number) {
 }
 
 async function loadReferenceRows(
-    client: Pool extends { connect: () => Promise<infer C> } ? C : never,
+    client: PoolClient,
     tableName: string
 ) {
     const exists = await client.query(
@@ -222,7 +222,7 @@ async function loadReferenceRows(
     return rows.rows as Array<{ id: number; name: string }>
 }
 
-async function usesIdentityColumns(client: Pool extends { connect: () => Promise<infer C> } ? C : never, tableName: string) {
+async function usesIdentityColumns(client: PoolClient, tableName: string) {
     const result = await client.query(
         `select column_name, is_identity
          from information_schema.columns
@@ -233,7 +233,7 @@ async function usesIdentityColumns(client: Pool extends { connect: () => Promise
     return result.rows[0]?.is_identity === 'YES'
 }
 
-async function tableColumns(client: Pool extends { connect: () => Promise<infer C> } ? C : never, tableName: string) {
+async function tableColumns(client: PoolClient, tableName: string) {
     const result = await client.query(
         `select column_name
          from information_schema.columns
@@ -242,7 +242,7 @@ async function tableColumns(client: Pool extends { connect: () => Promise<infer 
         [tableName]
     )
 
-    return result.rows.map(row => row.column_name as string)
+    return result.rows.map((row: any) => row.column_name as string)
 }
 
 async function main() {

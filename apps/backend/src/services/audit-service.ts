@@ -2,7 +2,7 @@ import { db } from '../db'
 import { auditLogs } from '../db/schema/audit-logs'
 import { users } from '../db/schema'
 import { eq } from 'drizzle-orm'
-import type { NewAuditLog } from '../db/schema/audit-logs'
+import { logger } from '../utils/logger'
 
 export class AuditService {
     /**
@@ -19,19 +19,18 @@ export class AuditService {
         userAgent?: string;
     }) {
         try {
-            console.log('[AuditService] Recording action:', {
+            logger.debug({
                 action: params.action,
                 targetType: params.targetType,
                 targetId: params.targetId,
                 adminId: params.adminId
-            })
+            }, '[AuditService] Recording action')
 
             // Verify that the adminId exists in the users table
             const [adminUser] = await db.select({ id: users.id }).from(users).where(eq(users.id, params.adminId))
 
             if (!adminUser) {
-                console.error('[AuditService] Invalid adminId - user does not exist:', params.adminId)
-                console.log('[AuditService] Skipping audit log creation to avoid foreign key constraint violation')
+                logger.error({ adminId: params.adminId }, '[AuditService] Invalid adminId - user does not exist. Skipping audit log.')
                 return null
             }
 
@@ -46,12 +45,13 @@ export class AuditService {
                 userAgent: params.userAgent
             }).returning()
 
-            console.log('[AuditService] Successfully recorded log:', log.id)
+            logger.info({ logId: log.id }, '[AuditService] Successfully recorded log')
             return log
         } catch (error) {
-            console.error('[AuditService] Failed to record log:', error)
+            logger.error({ err: error }, '[AuditService] Failed to record log')
             // We don't throw here to avoid failing the main action if logging fails
             return null
         }
     }
 }
+

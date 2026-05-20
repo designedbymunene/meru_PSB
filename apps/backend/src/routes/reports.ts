@@ -3,17 +3,19 @@ import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { ReportingService, ReportFilters } from '../services/reporting-service'
 import { successResponse } from '../utils/errors'
+import { safeParseIntOptional } from '../utils/safe-parse'
 
 export const reportsRouter = new Hono()
 
 const getFilters = (c: any): ReportFilters => {
     return {
-        vacancyId: c.req.query('vacancyId') ? parseInt(c.req.query('vacancyId')) : undefined,
-        departmentId: c.req.query('departmentId') ? parseInt(c.req.query('departmentId')) : undefined,
+        vacancyId: safeParseIntOptional(c.req.query('vacancyId')),
+        departmentId: safeParseIntOptional(c.req.query('departmentId')),
         startDate: c.req.query('startDate'),
         endDate: c.req.query('endDate')
     }
 }
+
 
 /**
  * GET /api/reports/diversity

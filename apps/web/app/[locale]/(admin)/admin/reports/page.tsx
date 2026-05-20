@@ -17,22 +17,22 @@ import {
     DiversityPieChart, 
     EthnicityBarChart,
     CountyDistributionChart,
+    SubCountyDistributionChart,
+    WardDistributionChart,
     RecruitmentVelocityChart,
     VacancyPerformanceChart,
     ConversionTrendsChart
 } from '@/components/reports/charts'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle, FileQuestion, RefreshCw, FileJson, FileBarChart, Filter } from 'lucide-react'
+import { AlertCircle, FileQuestion, RefreshCw, FileJson, Filter, Users, Activity, HeartHandshake, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReportFilters as Filters } from '@meru/shared'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function ReportsPage() {
     const [filters, setFilters] = React.useState<Filters>({})
-    const dashboardRef = React.useRef<HTMLDivElement>(null)
+    const [geoTab, setGeoTab] = React.useState<'counties' | 'subcounties' | 'wards'>('counties')
 
     const { 
         data: diversityData, 
@@ -81,33 +81,6 @@ export default function ReportsPage() {
         refetchTrends()
     }
 
-    const downloadPDF = async () => {
-        if (!dashboardRef.current) return
-        
-        const loadingToast = toast.loading('Generating PDF...')
-        try {
-            const canvas = await html2canvas(dashboardRef.current, {
-                scale: 2,
-                logging: false,
-                useCORS: true
-            })
-            const imgData = canvas.toDataURL('image/png')
-            const pdf = new jsPDF('p', 'mm', 'a4')
-            const imgProps = pdf.getImageProperties(imgData)
-            const pdfWidth = pdf.internal.pageSize.getWidth()
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
-            
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-            pdf.save(`recruitment-report-${new Date().toISOString().split('T')[0]}.pdf`)
-            toast.success('PDF downloaded successfully')
-        } catch (error) {
-            console.error('PDF Generation failed', error)
-            toast.error('Failed to generate PDF')
-        } finally {
-            toast.dismiss(loadingToast)
-        }
-    }
-
     const exportCSV = () => {
         if (!kpiData?.data) return
         
@@ -154,10 +127,6 @@ export default function ReportsPage() {
                         <FileJson className="h-4 w-4" />
                         Export CSV
                     </Button>
-                    <Button variant="outline" size="sm" onClick={downloadPDF} className="gap-2" disabled={!hasData}>
-                        <FileBarChart className="h-4 w-4" />
-                        Download PDF
-                    </Button>
                     <Button size="sm" onClick={handleRefresh} className="gap-2">
                         <RefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
                         Refresh
@@ -196,7 +165,7 @@ export default function ReportsPage() {
                         <TabsTrigger value="performance">Performance</TabsTrigger>
                     </TabsList>
 
-                    <div ref={dashboardRef} className="space-y-6">
+                    <div className="space-y-6">
                         <TabsContent value="overview" className="space-y-6 mt-0">
                             {kpiData?.data && <KPIDashboard data={kpiData.data} />}
 
@@ -212,9 +181,106 @@ export default function ReportsPage() {
                         </TabsContent>
 
                         <TabsContent value="diversity" className="space-y-6 mt-0">
-                            <div className="grid gap-4 lg:grid-cols-5">
-                                {diversityData?.data && (
-                                    <>
+                            {diversityData?.data && (
+                                <React.Fragment>
+                                    {/* Demographic KPI Summary Cards */}
+                                    {(() => {
+                                        const total = diversityData.data.totalApplicants || 0;
+                                        const female = diversityData.data.gender?.Female || 0;
+                                        const male = diversityData.data.gender?.Male || 0;
+                                        const femalePercentage = total > 0 ? Math.round((female / total) * 100) : 0;
+                                        const malePercentage = total > 0 ? Math.round((male / total) * 100) : 0;
+                                        
+                                        const impairmentCount = diversityData.data.disability?.hasImpairment || 0;
+                                        const impairmentRate = total > 0 ? ((impairmentCount / total) * 100).toFixed(1) : '0';
+                                        
+                                        const countyCounts = diversityData.data.counties || {};
+                                        const meruKey = Object.keys(countyCounts).find(k => k.toLowerCase().includes('meru'));
+                                        const meruCount = meruKey ? countyCounts[meruKey] : 0;
+                                        const meruRate = total > 0 ? Math.round((meruCount / total) * 100) : 0;
+
+                                        return (
+                                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                                <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card p-6 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                                                    <div className="absolute top-0 right-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-primary/5 blur-2xl" />
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-medium text-muted-foreground">Total Analyzed</span>
+                                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                                            <Users className="h-5 w-5" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-4">
+                                                        <h3 className="text-3xl font-extrabold tracking-tight">{total.toLocaleString()}</h3>
+                                                        <p className="mt-1 text-xs text-muted-foreground">Unique applicants in selected period</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card p-6 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                                                    <div className="absolute top-0 right-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-pink-500/5 blur-2xl" />
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-medium text-muted-foreground">Gender Split</span>
+                                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-500/10 text-pink-500">
+                                                            <Activity className="h-5 w-5" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-4">
+                                                        <h3 className="text-2xl font-extrabold tracking-tight flex items-baseline gap-1">
+                                                            <span>{femalePercentage}%</span>
+                                                            <span className="text-xs font-semibold text-muted-foreground">Female</span>
+                                                            <span className="text-sm font-normal text-border mx-1">|</span>
+                                                            <span>{malePercentage}%</span>
+                                                            <span className="text-xs font-semibold text-muted-foreground">Male</span>
+                                                        </h3>
+                                                        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted flex">
+                                                            <div 
+                                                                className="bg-gradient-to-r from-pink-400 to-pink-500" 
+                                                                style={{ width: `${femalePercentage}%` }} 
+                                                            />
+                                                            <div 
+                                                                className="bg-gradient-to-r from-blue-400 to-blue-500" 
+                                                                style={{ width: `${malePercentage}%` }} 
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card p-6 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                                                    <div className="absolute top-0 right-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-amber-500/5 blur-2xl" />
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-medium text-muted-foreground">PwD Inclusion</span>
+                                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-500">
+                                                            <HeartHandshake className="h-5 w-5" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-4">
+                                                        <h3 className="text-3xl font-extrabold tracking-tight">{impairmentRate}%</h3>
+                                                        <p className="mt-1 text-xs text-muted-foreground">
+                                                            {impairmentCount} candidates with impairments
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card p-6 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                                                    <div className="absolute top-0 right-0 h-24 w-24 translate-x-6 -translate-y-6 rounded-full bg-emerald-500/5 blur-2xl" />
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-medium text-muted-foreground">Meru Representation</span>
+                                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-500">
+                                                            <Globe className="h-5 w-5" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-4">
+                                                        <h3 className="text-3xl font-extrabold tracking-tight">{meruRate}%</h3>
+                                                        <p className="mt-1 text-xs text-muted-foreground">
+                                                            {meruCount} candidates from Meru County
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Primary Demographics Grid */}
+                                    <div className="grid gap-4 lg:grid-cols-5">
                                         <DiversityPieChart 
                                             title="Gender Distribution" 
                                             data={Object.entries(diversityData.data.gender).map(([name, value]) => ({ name, value }))}
@@ -232,12 +298,63 @@ export default function ReportsPage() {
                                             dataKey="value"
                                             nameKey="name"
                                         />
-                                    </>
-                                )}
-                            </div>
-                            <div className="grid gap-4 lg:grid-cols-3">
-                                {diversityData?.data?.counties && <CountyDistributionChart data={diversityData.data.counties} />}
-                            </div>
+                                    </div>
+
+                                    {/* Geographic Distribution section with sub-tabs */}
+                                    <div className="space-y-4">
+                                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-6 mb-2 border-b border-border/50 pb-4">
+                                            <div>
+                                                <h3 className="text-lg font-bold tracking-tight">Geographic & Location Distribution</h3>
+                                                <p className="text-sm text-muted-foreground">Analyze candidate volumes by county, constituency, or ward level</p>
+                                            </div>
+                                            <div className="flex bg-muted/80 backdrop-blur-sm p-1 rounded-xl w-fit border border-border/50 shadow-sm">
+                                                <button
+                                                    onClick={() => setGeoTab('counties')}
+                                                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                                                        geoTab === 'counties' 
+                                                            ? 'bg-background text-foreground shadow-sm' 
+                                                            : 'text-muted-foreground hover:text-foreground'
+                                                    }`}
+                                                >
+                                                    All Counties
+                                                </button>
+                                                <button
+                                                    onClick={() => setGeoTab('subcounties')}
+                                                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                                                        geoTab === 'subcounties' 
+                                                            ? 'bg-background text-foreground shadow-sm' 
+                                                            : 'text-muted-foreground hover:text-foreground'
+                                                    }`}
+                                                >
+                                                    Meru Sub-Counties
+                                                </button>
+                                                <button
+                                                    onClick={() => setGeoTab('wards')}
+                                                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                                                        geoTab === 'wards' 
+                                                            ? 'bg-background text-foreground shadow-sm' 
+                                                            : 'text-muted-foreground hover:text-foreground'
+                                                    }`}
+                                                >
+                                                    Meru Wards
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-4">
+                                            {geoTab === 'counties' && diversityData.data.counties && (
+                                                <CountyDistributionChart data={diversityData.data.counties} />
+                                            )}
+                                            {geoTab === 'subcounties' && diversityData.data.meruSubCounties && (
+                                                <SubCountyDistributionChart data={diversityData.data.meruSubCounties} />
+                                            )}
+                                            {geoTab === 'wards' && diversityData.data.meruWards && (
+                                                <WardDistributionChart data={diversityData.data.meruWards} />
+                                            )}
+                                        </div>
+                                    </div>
+                                </React.Fragment>
+                            )}
                         </TabsContent>
 
                         <TabsContent value="performance" className="space-y-6 mt-0">

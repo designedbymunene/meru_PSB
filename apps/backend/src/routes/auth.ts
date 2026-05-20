@@ -1,6 +1,4 @@
 import { Hono } from 'hono'
-import { and, desc, eq, gt, isNull } from 'drizzle-orm'
-import { db, passwordResetSessions, loginOtpSessions, users, revokedTokens, applicantProfiles } from '../db'
 import { validate } from '../middleware/validation'
 import { authRateLimiter } from '../middleware/rateLimiter'
 import {
@@ -14,719 +12,143 @@ import {
     otpLoginVerifySchema
 } from '@meru/shared'
 import type { RegisterInput } from '@meru/shared'
+import { AuthService } from '../services/auth-service'
 import {
-    hashPassword,
-    generatePasswordResetOtp,
-    hashPasswordResetOtp,
-    verifyPassword,
-    generateAccessToken,
-    generateRefreshToken,
-    verifyRefreshToken,
-    verifyPasswordResetOtp
-} from '../utils/auth'
-import {
-    sendPasswordResetOtpEmail,
-    sendTwoFactorOtpEmail,
-    sendLoginOtpEmail,
-    sendUnlockAccountEmail,
-    sendRegistrationSuccessEmail
-} from '../utils/mailer'
-import { activeSessions } from '../db/schema'
-import { getAppConfig } from '../utils/env'
-import {
-    ConflictError,
-    UnauthorizedError,
-    NotFoundError,
-    ForbiddenError,
     ValidationError,
     successResponse
 } from '../utils/errors'
 
 export const authRouter = new Hono()
 
-const { FRONTEND_URL } = getAppConfig()
-
-const createLoginOtpSession = async (userId: number, otpHash: string, expiresAt: Date) => {
-    await db.delete(loginOtpSessions).where(eq(loginOtpSessions.userId, userId))
-
-    const [session] = await db.insert(loginOtpSessions).values({
-        userId,
-        otpHash,
-        expiresAt,
-        attemptCount: 0
-    }).returning()
-
-    return session
-}
-
-const getActiveLoginOtpSession = async (userId: number) => {
-    const [session] = await db
-        .select()
-        .from(loginOtpSessions)
-        .where(and(
-            eq(loginOtpSessions.userId, userId),
-            isNull(loginOtpSessions.usedAt),
-            gt(loginOtpSessions.expiresAt, new Date())
-        ))
-        .orderBy(desc(loginOtpSessions.createdAt))
-        .limit(1)
-
-    return session
-}
-
-const markLoginOtpSessionUsed = async (sessionId: number) => {
-    await db.update(loginOtpSessions)
-        .set({ usedAt: new Date() })
-        .where(eq(loginOtpSessions.id, sessionId))
-}
-
-const failLoginOtpSessionAttempt = async (sessionId: number, attemptCount: number) => {
-    const update: { attemptCount: number; usedAt?: Date } = { attemptCount }
-    if (attemptCount >= 5) {
-        update.usedAt = new Date()
-    }
-
-    await db.update(loginOtpSessions)
-        .set(update)
-        .where(eq(loginOtpSessions.id, sessionId))
-}
-
 // POST /api/auth/register - Register new user
 authRouter.post('/register', authRateLimiter, validate(registerSchema), async (c) => {
-    const requestId = Math.random().toString(36).substring(7)
-    console.log(`[Auth] [${requestId}] Registration attempt started`)
-    
-    const data = c.get('validatedData' as never) as RegisterInput
-    const fullName = `${data.firstName.trim()} ${data.lastName.trim()}`.trim()
+    const requestId = c.get('requestId')
+    const data = c.get('validatedData') as RegisterInput
 
-    try {
-        // Hash password
-        console.log(`[Auth] [${requestId}] Hashing password for: ${data.email}`)
-        const hashedPassword = await hashPassword(data.password)
+    const result = await AuthService.register(data, requestId)
 
-        // Create user and profile in a transaction
-        console.log(`[Auth] [${requestId}] Executing database transaction`)
-        
-        const { newUser, profile } = await db.transaction(async (tx) => {
-            // 1. Create user
-            console.log(`[Auth] [${requestId}] [Tx] Inserting user`)
-            const [u] = await tx
-                .insert(users)
-                .values({
-                    email: data.email.toLowerCase(),
-                    phoneNumber: data.phoneNumber,
-                    password: hashedPassword,
-                    fullName,
-                    role: data.role || 'applicant'
-                })
-                .returning()
-
-            // 2. Create applicant profile if role is applicant
-            let p = null
-            if (u.role === 'applicant') {
-                console.log(`[Auth] [${requestId}] [Tx] Inserting applicant profile`)
-                const [createdProfile] = await tx
-                    .insert(applicantProfiles)
-                    .values({
-                        userId: u.id,
-                        fullName,
-                        idNumber: data.nationalId,
-                        email: u.email,
-                        phoneNumber: u.phoneNumber
-                    })
-                    .returning()
-                p = createdProfile
-            }
-
-            return { newUser: u, profile: p }
-        })
-
-        console.log(`[Auth] [${requestId}] Registration successful. User: ${newUser.id}, Profile: ${profile?.id || 'none'}`)
-
-        // Generate tokens
-        const tokenPayload = {
-            userId: newUser.id,
-            email: newUser.email,
-            role: newUser.role,
-            tokenVersion: newUser.tokenVersion ?? 0
-        }
-
-        const accessToken = generateAccessToken(tokenPayload)
-        const refreshToken = generateRefreshToken(tokenPayload)
-
-        void sendRegistrationSuccessEmail({
-            to: newUser.email,
-            fullName: newUser.fullName,
-            profileUrl: `${FRONTEND_URL}/dashboard?showProfileModal=true`
-        }).catch((error) => {
-            console.error(`[Auth] [${requestId}] Registration success email failed:`, error.message)
-        })
-
-        console.log(`[Auth] [${requestId}] Tokens generated, sending success response`)
-
-        return successResponse(
-            c,
-            {
-                user: {
-                    id: newUser.id,
-                    email: newUser.email,
-                    phoneNumber: newUser.phoneNumber,
-                    fullName: newUser.fullName,
-                    role: newUser.role
-                },
-                accessToken,
-                refreshToken
-            },
-            'Registration successful',
-            201
-        )
-    } catch (error: any) {
-        console.error(`[Auth] [${requestId}] Registration failed:`, error.message)
-        
-        // Handle database unique constraint violation
-        const dbError = error.cause || error
-        
-        // Check for PostgreSQL unique constraint violation (code 23505)
-        if (dbError.code === '23505') {
-            if (dbError.detail?.includes('email')) {
-                throw new ConflictError('User with this email already exists')
-            }
-            if (dbError.detail?.includes('phone_number')) {
-                throw new ConflictError('Phone number already registered')
-            }
-            if (dbError.detail?.includes('id_number')) {
-                throw new ConflictError('National ID already registered')
-            }
-            throw new ConflictError('User already exists')
-        }
-        throw error
-    }
+    return successResponse(
+        c,
+        result,
+        'Registration successful',
+        201
+    )
 })
 
 // POST /api/auth/login - Login user
 authRouter.post('/login', authRateLimiter, validate(loginSchema), async (c) => {
-    const data = c.get('validatedData' as never) as {
-        email: string
-        password: string
-        deviceId?: string
-        deviceName?: string
-        os?: string
+    const requestId = c.get('requestId')
+    const data = c.get('validatedData') as any
+
+    const ipAddress = c.req.header('x-forwarded-for') || '127.0.0.1'
+    const userAgent = c.req.header('user-agent')
+
+    const result = await AuthService.login({
+        ...data,
+        ipAddress,
+        userAgent
+    }, requestId)
+
+    if ('twoFactorRequired' in result) {
+        return successResponse(c, { twoFactorRequired: true }, result.message)
     }
 
-    // Find user
-    const [user] = await db.select().from(users).where(eq(users.email, data.email.toLowerCase())).limit(1)
-
-    if (!user) {
-        throw new UnauthorizedError('Invalid email or password')
-    }
-
-    // Check if account is locked
-    if (user.isLocked) {
-        if (user.lockoutUntil && user.lockoutUntil > new Date()) {
-            throw new ForbiddenError('Account is locked. Please check your email to unlock or try again later.')
-        } else if (user.lockoutUntil && user.lockoutUntil <= new Date()) {
-            // Auto-unlock if lockout period has passed
-            await db.update(users)
-                .set({ isLocked: false, failedLoginAttempts: 0, lockoutUntil: null })
-                .where(eq(users.id, user.id))
-        }
-    }
-
-    // Verify password
-    const isValidPassword = await verifyPassword(data.password, user.password)
-
-    if (!isValidPassword) {
-        const nextFailedAttempts = (user.failedLoginAttempts ?? 0) + 1
-        const isNowLocked = nextFailedAttempts >= 5
-        const lockoutUntil = isNowLocked ? new Date(Date.now() + 30 * 60 * 1000) : null // 30 mins
-
-        await db.update(users)
-            .set({ 
-                failedLoginAttempts: nextFailedAttempts,
-                isLocked: isNowLocked,
-                lockoutUntil
-            })
-            .where(eq(users.id, user.id))
-
-        if (isNowLocked) {
-            // Generate unlock token/session
-            const otp = generatePasswordResetOtp() // We'll use this as a token
-            const otpHash = await hashPasswordResetOtp(otp)
-            
-            await db.delete(passwordResetSessions).where(eq(passwordResetSessions.userId, user.id))
-            await db.insert(passwordResetSessions).values({
-                userId: user.id,
-                otpHash,
-                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-            })
-
-            const unlockUrl = `${FRONTEND_URL}/auth/unlock?email=${encodeURIComponent(user.email)}&token=${otp}`
-            
-            await sendUnlockAccountEmail({
-                to: user.email,
-                fullName: user.fullName,
-                unlockUrl
-            })
-
-            throw new ForbiddenError('Account locked due to too many failed attempts. An unlock link has been sent to your email.')
-        }
-
-        throw new UnauthorizedError('Invalid email or password')
-    }
-
-    // Reset failed attempts on successful login
-    await db.update(users)
-        .set({ failedLoginAttempts: 0, isLocked: false, lockoutUntil: null })
-        .where(eq(users.id, user.id))
-
-    // Check for 2FA
-    if (user.twoFactorEnabled) {
-        const otp = generatePasswordResetOtp() // Reuse same generator
-        const otpHash = await hashPasswordResetOtp(otp)
-
-        await createLoginOtpSession(user.id, otpHash, new Date(Date.now() + 5 * 60 * 1000))
-
-        await sendTwoFactorOtpEmail({
-            to: user.email,
-            fullName: user.fullName,
-            otp
-        })
-
-        return successResponse(c, { twoFactorRequired: true }, 'Verification code sent to your email')
-    }
-
-    // Generate tokens
-    const tokenPayload = {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        tokenVersion: user.tokenVersion ?? 0
-    }
-
-    const accessToken = generateAccessToken(tokenPayload)
-    const refreshToken = generateRefreshToken(tokenPayload)
-
-    await db.insert(activeSessions).values({
-        userId: user.id,
-        tokenVersion: user.tokenVersion ?? 0,
-        deviceId: data.deviceId,
-        deviceName: data.deviceName,
-        os: data.os,
-        ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
-        userAgent: c.req.header('user-agent'),
-        isCurrent: true
-    })
-
-    return successResponse(c, {
-        user: {
-            id: user.id,
-            email: user.email,
-            phoneNumber: user.phoneNumber,
-            fullName: user.fullName,
-            role: user.role
-        },
-        accessToken,
-        refreshToken
-    })
+    return successResponse(c, result)
 })
 
 // POST /api/auth/login/2fa - Verify 2FA and complete login
 authRouter.post('/login/2fa', authRateLimiter, validate(login2faSchema), async (c) => {
-    const data = c.get('validatedData' as never) as {
-        email: string
-        otp: string
-        deviceId?: string
-        deviceName?: string
-        os?: string
-    }
+    const requestId = c.get('requestId')
+    const data = c.get('validatedData') as any
 
-    const user = await db.query.users.findFirst({
-        where: eq(users.email, data.email.toLowerCase())
-    })
+    const ipAddress = c.req.header('x-forwarded-for') || '127.0.0.1'
+    const userAgent = c.req.header('user-agent')
 
-    if (!user) throw new UnauthorizedError('Invalid request')
+    const result = await AuthService.login2fa({
+        ...data,
+        ipAddress,
+        userAgent
+    }, requestId)
 
-    const session = await getActiveLoginOtpSession(user.id)
-
-    if (!session) {
-        throw new UnauthorizedError('Verification code expired or invalid')
-    }
-
-    const isValid = await verifyPasswordResetOtp(data.otp, session.otpHash)
-    if (!isValid) {
-        throw new UnauthorizedError('Invalid verification code')
-    }
-
-    // Mark session as used
-    await markLoginOtpSessionUsed(session.id)
-
-    // Generate tokens
-    const tokenPayload = {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        tokenVersion: user.tokenVersion ?? 0
-    }
-
-    const accessToken = generateAccessToken(tokenPayload)
-    const refreshToken = generateRefreshToken(tokenPayload)
-
-    await db.insert(activeSessions).values({
-        userId: user.id,
-        tokenVersion: user.tokenVersion ?? 0,
-        deviceId: data.deviceId,
-        deviceName: data.deviceName,
-        os: data.os,
-        ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
-        userAgent: c.req.header('user-agent'),
-        isCurrent: true
-    })
-
-    return successResponse(c, {
-        user: {
-            id: user.id,
-            email: user.email,
-            phoneNumber: user.phoneNumber,
-            fullName: user.fullName,
-            role: user.role
-        },
-        accessToken,
-        refreshToken
-    })
+    return successResponse(c, result)
 })
 
 // POST /api/auth/logout - Logout user and revoke refresh token
 authRouter.post('/logout', validate(refreshTokenSchema), async (c) => {
-    const data = c.get('validatedData' as never) as { refreshToken: string }
-
-    try {
-        const decoded = verifyRefreshToken(data.refreshToken)
-
-        // Store revoked token with its expiry
-        await db.insert(revokedTokens).values({
-            token: data.refreshToken,
-            expiresAt: decoded.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        }).onConflictDoNothing()
-
-        return successResponse(c, null, 'Logged out successfully')
-    } catch (error) {
-        // Even if token is invalid/expired, we consider it a successful logout
-        return successResponse(c, null, 'Logged out successfully')
-    }
+    const data = c.get('validatedData') as { refreshToken: string }
+    await AuthService.logout(data.refreshToken)
+    return successResponse(c, null, 'Logged out successfully')
 })
 
 // POST /api/auth/refresh - Refresh access token
 authRouter.post('/refresh', validate(refreshTokenSchema), async (c) => {
-    const data = c.get('validatedData' as never) as { refreshToken: string }
-
-    try {
-        // Check if token is revoked
-        const isRevoked = await db.query.revokedTokens.findFirst({
-            where: eq(revokedTokens.token, data.refreshToken)
-        })
-
-        if (isRevoked) {
-            throw new UnauthorizedError('Invalid or expired refresh token')
-        }
-
-        const decoded = verifyRefreshToken(data.refreshToken)
-
-        const user = await db.query.users.findFirst({
-            where: eq(users.id, decoded.userId)
-        })
-
-        if (!user || (user.tokenVersion ?? 0) !== decoded.tokenVersion) {
-            throw new UnauthorizedError('Invalid or expired refresh token')
-        }
-
-        // Generate new access token
-        const accessToken = generateAccessToken({
-            userId: user.id,
-            email: user.email,
-            role: user.role,
-            tokenVersion: user.tokenVersion ?? 0
-        })
-
-        return successResponse(c, { accessToken })
-    } catch (error) {
-        if (error instanceof UnauthorizedError) throw error
-        throw new UnauthorizedError('Invalid or expired refresh token')
-    }
+    const data = c.get('validatedData') as { refreshToken: string }
+    const result = await AuthService.refresh(data.refreshToken)
+    return successResponse(c, result)
 })
 
 // POST /api/auth/forgot-password/request - Request a password reset code
 authRouter.post('/forgot-password/request', authRateLimiter, validate(forgotPasswordRequestSchema), async (c) => {
-    const data = c.get('validatedData' as never) as {
-        email: string
-    }
+    const requestId = c.get('requestId')
+    const data = c.get('validatedData') as { email: string }
 
-    // Find user
-    const [user] = await db.select().from(users).where(eq(users.email, data.email.toLowerCase())).limit(1)
-
-    if (user) {
-        console.log(`[Auth] User found for password reset: ${user.email}`)
-        const otp = generatePasswordResetOtp()
-        const otpHash = await hashPasswordResetOtp(otp)
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-
-        await db.delete(passwordResetSessions).where(eq(passwordResetSessions.userId, user.id))
-
-        const [session] = await db
-            .insert(passwordResetSessions)
-            .values({
-                userId: user.id,
-                otpHash,
-                expiresAt,
-                attemptCount: 0
-            })
-            .returning()
-
-        try {
-            await sendPasswordResetOtpEmail({
-                to: user.email,
-                fullName: user.fullName,
-                otp
-            })
-        } catch (error: any) {
-            console.error(`[Auth] Failed to send password reset email: ${error.message}`)
-            await db.delete(passwordResetSessions).where(eq(passwordResetSessions.id, session.id))
-            throw error
-        }
-    } else {
-        console.log(`[Auth] Password reset requested for non-existent email: ${data.email.toLowerCase()}`)
-    }
+    await AuthService.requestForgotPassword(data.email, requestId)
 
     return successResponse(c, null, 'If the account exists, a reset code has been sent')
 })
 
 // POST /api/auth/reset-password - Confirm password reset with OTP
 authRouter.post('/reset-password', authRateLimiter, validate(resetPasswordSchema), async (c) => {
-    const data = c.get('validatedData' as never) as {
-        email: string
-        otp: string
-        newPassword: string
-    }
+    const requestId = c.get('requestId')
+    const data = c.get('validatedData') as any
 
-    const user = await db.query.users.findFirst({
-        where: eq(users.email, data.email.toLowerCase())
-    })
-
-    if (!user) {
-        throw new UnauthorizedError('Invalid or expired reset code')
-    }
-
-    const [session] = await db
-        .select()
-        .from(passwordResetSessions)
-        .where(
-            and(
-                eq(passwordResetSessions.userId, user.id),
-                isNull(passwordResetSessions.usedAt),
-                gt(passwordResetSessions.expiresAt, new Date())
-            )
-        )
-        .orderBy(desc(passwordResetSessions.createdAt))
-        .limit(1)
-
-    if (!session) {
-        throw new UnauthorizedError('Invalid or expired reset code')
-    }
-
-    const isValidCode = await verifyPasswordResetOtp(data.otp, session.otpHash)
-
-    if (!isValidCode) {
-        const nextAttemptCount = session.attemptCount + 1
-        await db
-            .update(passwordResetSessions)
-            .set({
-                attemptCount: nextAttemptCount,
-                usedAt: nextAttemptCount >= 5 ? new Date() : session.usedAt
-            })
-            .where(eq(passwordResetSessions.id, session.id))
-
-        throw new UnauthorizedError('Invalid or expired reset code')
-    }
-
-    // Update password and invalidate existing tokens
-    const hashedPassword = await hashPassword(data.newPassword)
-
-    await db.transaction(async (tx) => {
-        await tx
-            .update(users)
-            .set({
-                password: hashedPassword,
-                tokenVersion: (user.tokenVersion ?? 0) + 1
-            })
-            .where(eq(users.id, user.id))
-
-        await tx
-            .update(passwordResetSessions)
-            .set({
-                usedAt: new Date(),
-                attemptCount: session.attemptCount + 1
-            })
-            .where(eq(passwordResetSessions.id, session.id))
-    })
+    await AuthService.resetPassword(data, requestId)
 
     return successResponse(c, null, 'Password reset successful')
 })
 
 // POST /api/auth/otp/request - Request a login OTP (passwordless)
 authRouter.post('/otp/request', authRateLimiter, validate(otpLoginRequestSchema), async (c) => {
-    const data = c.get('validatedData' as never) as { email: string }
-    const email = data.email.toLowerCase()
+    const requestId = c.get('requestId')
+    const data = c.get('validatedData') as { email: string }
 
-    // Find user
-    const user = await db.query.users.findFirst({
-        where: eq(users.email, email)
-    })
-
-    if (!user) {
-        // For security, we don't confirm if user exists, but for login it's often better to be clear
-        // However, let's follow the standard pattern
-        return successResponse(c, null, 'If the account exists, a verification code has been sent')
-    }
-
-    const otp = generatePasswordResetOtp()
-    const otpHash = await hashPasswordResetOtp(otp)
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
-
-    // Delete existing sessions for this user
-    await createLoginOtpSession(user.id, otpHash, expiresAt)
-
-    try {
-        await sendLoginOtpEmail({
-            to: user.email,
-            fullName: user.fullName,
-            otp
-        })
-    } catch (error: any) {
-        console.error(`[Auth] Failed to send login OTP email: ${error.message}`)
-        // We don't throw here to keep the "silent" behavior if we want, 
-        // but since it's a login attempt, maybe we should.
-        // Let's throw in dev for visibility.
-        if (process.env.NODE_ENV !== 'production') throw error
-    }
+    await AuthService.requestOtp(data.email, requestId)
 
     return successResponse(c, null, 'Verification code sent to your email')
 })
 
 // POST /api/auth/otp/verify - Verify login OTP and login
 authRouter.post('/otp/verify', authRateLimiter, validate(otpLoginVerifySchema), async (c) => {
-    const data = c.get('validatedData' as never) as {
-        email: string
-        otp: string
-        deviceId?: string
-        deviceName?: string
-        os?: string
-    }
+    const requestId = c.get('requestId')
+    const data = c.get('validatedData') as any
 
-    const email = data.email.toLowerCase()
+    const ipAddress = c.req.header('x-forwarded-for') || '127.0.0.1'
+    const userAgent = c.req.header('user-agent')
 
-    const user = await db.query.users.findFirst({
-        where: eq(users.email, email)
-    })
+    const result = await AuthService.verifyOtp({
+        ...data,
+        ipAddress,
+        userAgent
+    }, requestId)
 
-    if (!user) {
-        throw new UnauthorizedError('Invalid verification code')
-    }
-
-    const session = await getActiveLoginOtpSession(user.id)
-
-    if (!session) {
-        throw new UnauthorizedError('Verification code expired or invalid')
-    }
-
-    const isValid = await verifyPasswordResetOtp(data.otp, session.otpHash)
-
-    if (!isValid) {
-        const nextAttemptCount = session.attemptCount + 1
-        await failLoginOtpSessionAttempt(session.id, nextAttemptCount)
-
-        throw new UnauthorizedError('Invalid verification code')
-    }
-
-    // Mark session as used
-    await markLoginOtpSessionUsed(session.id)
-
-    // Generate tokens
-    const tokenPayload = {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        tokenVersion: user.tokenVersion ?? 0
-    }
-
-    const accessToken = generateAccessToken(tokenPayload)
-    const refreshToken = generateRefreshToken(tokenPayload)
-
-    // Record session
-    await db.insert(activeSessions).values({
-        userId: user.id,
-        tokenVersion: user.tokenVersion ?? 0,
-        deviceId: data.deviceId,
-        deviceName: data.deviceName,
-        os: data.os,
-        ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
-        userAgent: c.req.header('user-agent'),
-        isCurrent: true
-    })
-
-    return successResponse(c, {
-        user: {
-            id: user.id,
-            email: user.email,
-            phoneNumber: user.phoneNumber,
-            fullName: user.fullName,
-            role: user.role
-        },
-        accessToken,
-        refreshToken
-    }, 'Login successful')
+    return successResponse(c, result, 'Login successful')
 })
 
 // POST /api/auth/unlock - Unlock account with token
 authRouter.post('/unlock', authRateLimiter, async (c) => {
-    const { email, token } = await c.req.json()
+    const requestId = c.get('requestId')
+    const body = await c.req.json()
+    const email = body?.email
+    const token = body?.token
 
-    if (!email || !token) {
-        throw new ValidationError('Email and token are required')
+    if (!email || typeof email !== 'string') {
+        throw new ValidationError('A valid email is required')
+    }
+    if (!token || typeof token !== 'string') {
+        throw new ValidationError('A valid unlock token is required')
     }
 
-    const user = await db.query.users.findFirst({
-        where: eq(users.email, email.toLowerCase())
-    })
-
-    if (!user) {
-        throw new NotFoundError('User')
-    }
-
-    const session = await getActiveLoginOtpSession(user.id)
-
-    if (!session) {
-        throw new UnauthorizedError('Invalid or expired unlock link')
-    }
-
-    const isValid = await verifyPasswordResetOtp(token, session.otpHash)
-
-    if (!isValid) {
-        throw new UnauthorizedError('Invalid or expired unlock link')
-    }
-
-    // Unlock account
-    await db.transaction(async (tx) => {
-        await tx.update(users)
-            .set({ 
-                isLocked: false, 
-                failedLoginAttempts: 0, 
-                lockoutUntil: null 
-            })
-            .where(eq(users.id, user.id))
-
-        await tx.update(passwordResetSessions)
-            .set({ usedAt: new Date() })
-            .where(eq(passwordResetSessions.id, session.id))
-    })
+    await AuthService.unlock(email, token, requestId)
 
     return successResponse(c, null, 'Account unlocked successfully. You can now log in.')
 })

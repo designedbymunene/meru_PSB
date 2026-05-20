@@ -4,7 +4,6 @@ import { interviews, interviewScores, applications, vacancyPanelMembers, intervi
 import { ValidationError } from '../utils/errors'
 import { AuditService } from './audit-service'
 import { ApplicationNotificationService } from './application-notification-service'
-import PDFDocument from 'pdfkit'
 
 export class InterviewService {
     /**
@@ -450,7 +449,7 @@ export class InterviewService {
     }) {
         const { vacancyId, applicationIds, startAt, durationMinutes, gapMinutes, venue, virtualLink, panelMembers, adminId } = data
 
-        const results = []
+        const results: any[] = []
         let currentStartTime = new Date(startAt)
 
         return await db.transaction(async (tx) => {
@@ -512,92 +511,6 @@ export class InterviewService {
             return await tx.insert(interviewCriteria)
                 .values(newCriteria)
                 .returning()
-        })
-    }
-
-    /**
-     * Generates a formal PDF report for interview results.
-     */
-    static async generatePanelReport(vacancyId: number) {
-        const results = await this.getInterviewResults(vacancyId)
-        const vacancy = await db.query.vacancies.findFirst({
-            where: eq(vacancies.id, vacancyId)
-        })
-
-        if (!vacancy) throw new ValidationError('Vacancy not found')
-
-        return new Promise<{ buffer: Buffer, filename: string }>((resolve, reject) => {
-            const doc = new PDFDocument({ margin: 50, size: 'A4' })
-            const chunks: Buffer[] = []
-
-            doc.on('data', (chunk) => chunks.push(chunk))
-            doc.on('end', () => resolve({ 
-                buffer: Buffer.concat(chunks),
-                filename: `Interview_Report_${vacancy.advertisementNumber.replace(/\//g, '_')}.pdf`
-            }))
-
-            // Helper to draw horizontal line
-            const line = (y: number) => doc.moveTo(50, y).lineTo(545, y).stroke()
-
-            // Header
-            doc.fontSize(16).font('Helvetica-Bold').text('MERU COUNTY PUBLIC SERVICE BOARD', { align: 'center' })
-            doc.fontSize(12).text('RECRUITMENT AND SELECTION PANEL REPORT', { align: 'center' })
-            doc.moveDown()
-            line(doc.y)
-            doc.moveDown(0.5)
-
-            // Vacancy Info
-            doc.fontSize(10).font('Helvetica-Bold').text('Position: ', { continued: true }).font('Helvetica').text(vacancy.title)
-            doc.font('Helvetica-Bold').text('Advertisement Ref: ', { continued: true }).font('Helvetica').text(vacancy.advertisementNumber)
-            doc.font('Helvetica-Bold').text('Report Date: ', { continued: true }).font('Helvetica').text(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }))
-            doc.moveDown()
-            line(doc.y)
-            doc.moveDown()
-
-            // Summary Table
-            doc.fontSize(11).font('Helvetica-Bold').text('Candidate Performance Summary')
-            doc.moveDown(0.5)
-
-            const startY = doc.y
-            doc.fontSize(9).font('Helvetica-Bold')
-            doc.text('RANK', 50, startY)
-            doc.text('CANDIDATE NAME', 90, startY)
-            doc.text('APP ID', 300, startY)
-            doc.text('SCORE (AVG)', 380, startY, { width: 80, align: 'right' })
-            doc.text('STATUS', 480, startY, { width: 65, align: 'right' })
-            doc.moveDown(0.5)
-            line(doc.y)
-            doc.moveDown(0.5)
-
-            doc.font('Helvetica')
-            results.interviews.forEach((interview, index) => {
-                if (doc.y > 750) doc.addPage()
-                const y = doc.y
-                doc.text(`${index + 1}`, 50, y)
-                doc.text(interview.applicantName.toUpperCase(), 90, y)
-                doc.text(`#${interview.applicationId}`, 300, y)
-                doc.text(`${interview.averageScore.toFixed(1)}%`, 380, y, { width: 80, align: 'right' })
-                doc.text(interview.status.toUpperCase(), 480, y, { width: 65, align: 'right' })
-                doc.moveDown(0.5)
-            })
-
-            doc.moveDown(2)
-            
-            // Signatures
-            if (doc.y > 650) doc.addPage()
-            doc.fontSize(11).font('Helvetica-Bold').text('Authentication')
-            doc.moveDown()
-            doc.fontSize(10).font('Helvetica').text('We, the undersigned members of the interview panel, certify that the above results are a true reflection of the candidates\' performance.')
-            doc.moveDown(2)
-
-            const sigY = doc.y
-            doc.text('__________________________', 50, sigY)
-            doc.text('CHAIRPERSON', 50, sigY + 15)
-
-            doc.text('__________________________', 350, sigY)
-            doc.text('SECRETARY', 350, sigY + 15)
-
-            doc.end()
         })
     }
 }

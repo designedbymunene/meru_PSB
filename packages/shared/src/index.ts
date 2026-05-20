@@ -582,6 +582,8 @@ export interface DiversityReport {
     ethnicity: Record<string, number>
     disability: { hasImpairment: number; noImpairment: number; preferNotToSay: number }
     counties: Record<string, number>
+    meruSubCounties?: Record<string, number>
+    meruWards?: Record<string, number>
     totalApplicants: number
 }
 

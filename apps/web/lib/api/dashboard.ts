@@ -13,6 +13,7 @@ export interface DashboardData {
         status: string
         progress: number
         nextStep: string
+        appliedAt: string
         vacancy: {
             title: string
             refNumber: string

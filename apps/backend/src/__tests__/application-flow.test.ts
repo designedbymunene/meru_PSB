@@ -6,8 +6,10 @@ import fs from 'fs'
 import path from 'path'
 
 // Mock database and services
-vi.mock('../db', () => ({
-    db: {
+let mockUserEmail = 'applicant@example.com'
+
+vi.mock('../db', () => {
+    const mockDb = {
         query: {
             users: { findFirst: vi.fn() },
             applicantProfiles: { findFirst: vi.fn() },
@@ -17,13 +19,38 @@ vi.mock('../db', () => ({
         },
         insert: vi.fn(() => ({ values: vi.fn(() => ({ returning: vi.fn(() => Promise.resolve([])) })) })),
         update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn(() => ({ returning: vi.fn(() => Promise.resolve([])) })) })) })),
-        transaction: vi.fn((cb) => cb(db))
-    },
-    users: { id: 'users.id', email: 'users.email', tokenVersion: 'users.tokenVersion' },
-    applications: { id: 'applications.id', applicantId: 'applications.applicantId', vacancyId: 'applications.vacancyId', status: 'applications.status' },
-    applicantProfiles: { id: 'applicantProfiles.id', userId: 'applicantProfiles.userId' },
-    auditLogs: { id: 'auditLogs.id' }
-}))
+        select: vi.fn(() => {
+            const queryBuilder = {
+                from: vi.fn(() => queryBuilder),
+                where: vi.fn(() => {
+                    const result = Promise.resolve([
+                        { id: 2, role: 'admin', email: 'admin@example.com', tokenVersion: 0, password: 'hashed-password', status: 'active', isTwoFactorEnabled: false }
+                    ]) as any;
+                    result.limit = vi.fn(() => {
+                        const isAdmin = mockUserEmail === 'admin@example.com'
+                        if (isAdmin) {
+                            return Promise.resolve([{ id: 2, role: 'admin', email: 'admin@example.com', tokenVersion: 0, password: 'hashed-password', status: 'active', isTwoFactorEnabled: false }])
+                        }
+                        return Promise.resolve([{ id: 1, role: 'applicant', email: 'applicant@example.com', tokenVersion: 0, password: 'hashed-password', status: 'active', isTwoFactorEnabled: false }])
+                    })
+                    return result
+                })
+            }
+            return queryBuilder
+        }),
+        transaction: vi.fn((cb) => cb(mockDb))
+    }
+    return {
+        db: mockDb,
+        pool: {
+            end: vi.fn(() => Promise.resolve())
+        },
+        users: { id: 'users.id', email: 'users.email', tokenVersion: 'users.tokenVersion' },
+        applications: { id: 'applications.id', applicantId: 'applications.applicantId', vacancyId: 'applications.vacancyId', status: 'applications.status' },
+        applicantProfiles: { id: 'applicantProfiles.id', userId: 'applicantProfiles.userId' },
+        auditLogs: { id: 'auditLogs.id' }
+    }
+})
 
 // Mock Auth Utils
 vi.mock('../utils/auth', () => ({
@@ -76,6 +103,7 @@ describe('Job Application Flow Integration Test', () => {
     })
 
     it('Step 1: Log in as an applicant', async () => {
+        mockUserEmail = 'applicant@example.com'
         const payload = { email: 'applicant@example.com', password: 'password123' }
         const res = await app.fetch(new Request('http://localhost/api/auth/login', {
             method: 'POST',
@@ -138,7 +166,10 @@ describe('Job Application Flow Integration Test', () => {
         ;(db.query.applicantProfiles.findFirst as any).mockResolvedValue({
             id: 1, userId: 1, fullName: 'John Doe', idNumber: '12345678', gender: 'Male',
             phoneNumber: '0712345678', email: 'john@example.com', dateOfBirth: '1990-01-01',
-            qualifications: [{}]
+            homeCountyId: 1, homeSubCountyId: 1, wardId: 1, ethnicityId: 1,
+            qualifications: [{}],
+            hasNoExperience: true,
+            hasNoTrainings: true
         })
 
         applicationId = 501
@@ -158,6 +189,7 @@ describe('Job Application Flow Integration Test', () => {
     })
 
     it('Step 5: Log in as an admin', async () => {
+        mockUserEmail = 'admin@example.com'
         const payload = { email: 'admin@example.com', password: 'password123' }
         const mockedAuth = vi.mocked(authUtils)
         mockedAuth.generateAccessToken.mockReturnValueOnce('admin-token')
@@ -198,6 +230,10 @@ describe('Job Application Flow Integration Test', () => {
                 profileSnapshot: { 
                     fullName: 'John Doe', idNumber: '12345678', gender: 'Male',
                     birthYear: '1990', email: 'john@example.com', phoneNumber: '0712345678',
+                    ethnicity: { name: 'Kalenjin' },
+                    homeCounty: { name: 'Meru' },
+                    homeSubCounty: { name: 'Imenti South' },
+                    ward: { name: 'Igoji East' },
                     qualifications: [{ level: 'Degree', course: 'CS', institution: 'Uni', yearStart: 2010, yearEnd: 2014 }]
                 },
                 vacancy: { advertisementNumber: 'V001', title: 'Mock Job' },

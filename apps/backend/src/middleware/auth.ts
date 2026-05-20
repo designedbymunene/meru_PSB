@@ -4,16 +4,7 @@ import { db, users } from '../db'
 import { verifyAccessToken } from '../utils/auth'
 import { UnauthorizedError } from '../utils/errors'
 
-declare module 'hono' {
-    interface ContextVariableMap {
-        user: {
-            userId: number
-            email: string
-            role: 'applicant' | 'admin'
-        }
-        validatedData: unknown
-    }
-}
+
 
 export const authenticate = async (c: Context, next: Next) => {
     try {

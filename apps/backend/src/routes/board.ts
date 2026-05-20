@@ -1,10 +1,17 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
+import { validate } from '../middleware/validation'
 import { BoardService } from '../services/board-service'
-import { successResponse } from '../utils/errors'
+import { successResponse, ValidationError } from '../utils/errors'
 
 export const boardRouter = new Hono()
+
+const recordResolutionSchema = z.object({
+    vacancyId: z.number().int().positive(),
+    resolutionText: z.string().min(1, 'Resolution text is required')
+})
 
 /**
  * GET /api/board/resolutions
@@ -17,34 +24,20 @@ boardRouter.get('/resolutions', authenticate, requireAdmin, async (c) => {
 })
 
 /**
- * GET /api/board/pack/:vacancyId
- * Generates and streams a PDF board pack for a vacancy.
- * Restricted to admins.
- */
-boardRouter.get('/pack/:vacancyId', authenticate, requireAdmin, async (c) => {
-    const vacancyId = parseInt(c.req.param('vacancyId'))
-    const buffer = await BoardService.generateBoardPack(vacancyId)
-    
-    return c.body(buffer, 200, {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="board-pack-${vacancyId}.pdf"`
-    })
-})
-
-/**
  * POST /api/board/resolution
  * Records a board resolution for a vacancy.
  * Restricted to admins.
  */
-boardRouter.post('/resolution', authenticate, requireAdmin, async (c) => {
-    const user = c.get('user' as never) as { userId: number }
-    const body = await c.req.json()
+boardRouter.post('/resolution', authenticate, requireAdmin, validate(recordResolutionSchema), async (c) => {
+    const user = c.get('user')
+    const data = c.get('validatedData') as { vacancyId: number; resolutionText: string }
     
     const resolution = await BoardService.recordResolution({
-        vacancyId: body.vacancyId,
-        resolutionText: body.resolutionText,
+        vacancyId: data.vacancyId,
+        resolutionText: data.resolutionText,
         adminId: user.userId
     })
     
     return successResponse(c, resolution, 'Resolution recorded successfully')
 })
+

@@ -25,9 +25,7 @@ import {
     ethnicities, 
     institutions, 
     courses, 
-    professionalBodies, 
-    educationLevels, 
-    educationGrades 
+    professionalBodies 
 } from './reference-data'
 
 // Relations for users

@@ -1,16 +1,15 @@
 import { Hono } from 'hono'
 import { db, downloadCategories, downloadFiles } from '../db'
-import { eq, desc, and, asc } from 'drizzle-orm'
+import { eq, desc, and, asc, sql } from 'drizzle-orm'
 import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
 import {
     createDownloadCategorySchema,
-    updateDownloadCategorySchema,
-    createDownloadFileSchema,
-    updateDownloadFileSchema
+    updateDownloadCategorySchema
 } from '@meru/shared'
 import { NotFoundError, successResponse, ValidationError } from '../utils/errors'
+import { logger } from '../utils/logger'
 import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -18,6 +17,30 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const UPLOADS_DIR = path.join(__dirname, '../../uploads/downloads')
+
+async function saveDownloadFile(file: any): Promise<{ filename: string, formattedSize: string }> {
+    try {
+        await fs.access(UPLOADS_DIR)
+    } catch {
+        await fs.mkdir(UPLOADS_DIR, { recursive: true })
+    }
+
+    const originalName = file.name
+    const fileSize = file.size
+    const extension = path.extname(originalName)
+    const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`
+    const filePath = path.join(UPLOADS_DIR, filename)
+
+    const arrayBuffer = await file.arrayBuffer()
+    await fs.writeFile(filePath, Buffer.from(arrayBuffer))
+
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(fileSize) / Math.log(k))
+    const formattedSize = parseFloat((fileSize / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+
+    return { filename, formattedSize }
+}
 
 export const downloadsRouter = new Hono()
 
@@ -124,6 +147,9 @@ downloadsRouter.put(
 downloadsRouter.delete('/categories/:id', authenticate, requireAdmin, async (c) => {
     const id = parseInt(c.req.param('id') || '0')
 
+    // Find all files in this category first to avoid orphan files on disk
+    const files = await db.select().from(downloadFiles).where(eq(downloadFiles.categoryId, id))
+
     const [deletedCategory] = await db
         .delete(downloadCategories)
         .where(eq(downloadCategories.id, id))
@@ -131,6 +157,18 @@ downloadsRouter.delete('/categories/:id', authenticate, requireAdmin, async (c) 
 
     if (!deletedCategory) {
         throw new NotFoundError('Download category')
+    }
+
+    // Delete physical files from disk
+    for (const file of files) {
+        if (file.url) {
+            const filePath = path.join(UPLOADS_DIR, file.url)
+            try {
+                await fs.unlink(filePath)
+            } catch (err) {
+                logger.error({ err, filePath }, '[Downloads] Failed to delete orphaned file from disk')
+            }
+        }
     }
 
     return successResponse(c, null, 'Download category deleted successfully')
@@ -145,12 +183,15 @@ downloadsRouter.get('/files', async (c) => {
 
     let query = db.select().from(downloadFiles).$dynamic()
 
+    const conditions = []
     if (categoryId) {
-        query = query.where(eq(downloadFiles.categoryId, parseInt(categoryId)))
+        conditions.push(eq(downloadFiles.categoryId, parseInt(categoryId)))
     }
-
     if (isActive === 'true') {
-        query = query.where(eq(downloadFiles.isActive, true))
+        conditions.push(eq(downloadFiles.isActive, true))
+    }
+    if (conditions.length > 0) {
+        query = query.where(and(...conditions))
     }
 
     const files = await query.orderBy(asc(downloadFiles.order), desc(downloadFiles.createdAt))
@@ -173,10 +214,10 @@ downloadsRouter.get('/files/:id', async (c) => {
         throw new NotFoundError('Download file')
     }
 
-    // Increment download count
+    // Increment download count atomically
     await db
         .update(downloadFiles)
-        .set({ downloadCount: (file.downloadCount || 0) + 1 })
+        .set({ downloadCount: sql`COALESCE(${downloadFiles.downloadCount}, 0) + 1` })
         .where(eq(downloadFiles.id, id))
 
     return successResponse(c, { ...file, downloadCount: (file.downloadCount || 0) + 1 })
@@ -194,10 +235,10 @@ downloadsRouter.get('/files/:id/download', async (c) => {
         throw new NotFoundError('Download file')
     }
 
-    // Increment download count
+    // Increment download count atomically
     await db
         .update(downloadFiles)
-        .set({ downloadCount: (file.downloadCount || 0) + 1 })
+        .set({ downloadCount: sql`COALESCE(${downloadFiles.downloadCount}, 0) + 1` })
         .where(eq(downloadFiles.id, id))
 
     const absolutePath = path.join(UPLOADS_DIR, file.url)
@@ -209,7 +250,7 @@ downloadsRouter.get('/files/:id/download', async (c) => {
             'Content-Disposition': `attachment; filename="${file.name}"`,
         })
     } catch (err) {
-        console.error(`Failed to read file: ${absolutePath}`, err)
+        logger.error({ err, path: absolutePath }, 'Failed to read file')
         throw new NotFoundError('File not found on server')
     }
 })
@@ -248,28 +289,7 @@ downloadsRouter.post(
             throw new NotFoundError('Download category')
         }
 
-        // Create uploads directory if it doesn't exist
-        try {
-            await fs.access(UPLOADS_DIR)
-        } catch {
-            await fs.mkdir(UPLOADS_DIR, { recursive: true })
-        }
-
-        const originalName = file.name
-        const fileSize = file.size
-        const extension = path.extname(originalName)
-        const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`
-        const filePath = path.join(UPLOADS_DIR, filename)
-
-        // Save file to disk
-        const arrayBuffer = await file.arrayBuffer()
-        await fs.writeFile(filePath, Buffer.from(arrayBuffer))
-
-        // Format file size for display
-        const k = 1024
-        const sizes = ['Bytes', 'KB', 'MB', 'GB']
-        const i = Math.floor(Math.log(fileSize) / Math.log(k))
-        const formattedSize = parseFloat((fileSize / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+        const { filename, formattedSize } = await saveDownloadFile(file)
 
         const [newFile] = await db
             .insert(downloadFiles)
@@ -322,32 +342,23 @@ downloadsRouter.put(
         }
 
         if (file) {
-            // Create uploads directory if it doesn't exist
-            try {
-                await fs.access(UPLOADS_DIR)
-            } catch {
-                await fs.mkdir(UPLOADS_DIR, { recursive: true })
-            }
+            const oldFile = await db.query.downloadFiles.findFirst({
+                where: eq(downloadFiles.id, id)
+            })
 
-            const originalName = file.name
-            const fileSize = file.size
-            const extension = path.extname(originalName)
-            const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`
-            const filePath = path.join(UPLOADS_DIR, filename)
-
-            // Save file to disk
-            const arrayBuffer = await file.arrayBuffer()
-            await fs.writeFile(filePath, Buffer.from(arrayBuffer))
-
-            // Format file size for display
-            const k = 1024
-            const sizes = ['Bytes', 'KB', 'MB', 'GB']
-            const i = Math.floor(Math.log(fileSize) / Math.log(k))
-            data.fileSize = parseFloat((fileSize / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+            const { filename, formattedSize } = await saveDownloadFile(file)
+            data.fileSize = formattedSize
             data.url = filename
             data.updatedDate = new Date().toISOString().split('T')[0]
             
-            // Note: We might want to delete the old file here, but for simplicity we'll just leave it or handle it in a cleanup task
+            if (oldFile?.url) {
+                const oldFilePath = path.join(UPLOADS_DIR, oldFile.url)
+                try {
+                    await fs.unlink(oldFilePath)
+                } catch (err) {
+                    logger.error({ err, oldFilePath }, '[Downloads] Failed to delete old file from disk')
+                }
+            }
         }
 
         const [updatedFile] = await db
@@ -375,6 +386,17 @@ downloadsRouter.delete('/files/:id', authenticate, requireAdmin, async (c) => {
 
     if (!deletedFile) {
         throw new NotFoundError('Download file')
+    }
+
+    // Delete physical file from disk
+    if (deletedFile.url) {
+        const filePath = path.join(UPLOADS_DIR, deletedFile.url)
+        try {
+            await fs.unlink(filePath)
+        } catch (err) {
+            // File may already be gone — log but don't fail
+            logger.error({ err, filePath }, '[Downloads] Failed to delete file from disk')
+        }
     }
 
     return successResponse(c, null, 'Download file deleted successfully')

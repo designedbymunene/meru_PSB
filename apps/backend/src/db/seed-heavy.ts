@@ -17,8 +17,9 @@ import {
     courses,
     professionalBodies,
     shortlistCriteria,
-    interviews,
-    counties
+    counties,
+    constituencies,
+    wards
 } from './schema'
 import bcrypt from 'bcryptjs'
 import { seedReferenceData } from './seed-reference-data'
@@ -58,6 +59,18 @@ export async function seedHeavy() {
         
         const ameruEthnicity = allEthnicities.find(e => e.name === 'Ameru')
         const otherEthnicities = allEthnicities.filter(e => e.name !== 'Ameru')
+
+        // Fetch all constituencies and wards for precise location mapping
+        const allConstituencies = await db.select().from(constituencies)
+        const allWards = await db.select().from(wards)
+
+        const meruConstituencies = meruCounty 
+            ? allConstituencies.filter(c => c.countyId === meruCounty.id)
+            : []
+        const meruConstituencyIds = meruConstituencies.map(c => c.id)
+        const meruWards = meruConstituencyIds.length > 0
+            ? allWards.filter(w => meruConstituencyIds.includes(w.constituencyId))
+            : []
 
         // 1. Seed Departments
         console.log('📦 Seeding departments...')
@@ -206,6 +219,29 @@ export async function seedHeavy() {
             ])
             const impairment = weightedRandom([{ value: true, weight: 5 }, { value: false, weight: 95 }])
 
+            // Determine sub-county and ward matching the countyId
+            let homeSubCountyId: number | null = null
+            let wardId: number | null = null
+
+            if (countyId === meruCounty?.id && meruConstituencies.length > 0) {
+                const sub = meruConstituencies[Math.floor(Math.random() * meruConstituencies.length)]
+                homeSubCountyId = sub.id
+                const subWards = meruWards.filter(w => w.constituencyId === sub.id)
+                if (subWards.length > 0) {
+                    wardId = subWards[Math.floor(Math.random() * subWards.length)].id
+                }
+            } else {
+                const countyConstituencies = allConstituencies.filter(c => c.countyId === countyId)
+                if (countyConstituencies.length > 0) {
+                    const sub = countyConstituencies[Math.floor(Math.random() * countyConstituencies.length)]
+                    homeSubCountyId = sub.id
+                    const subWards = allWards.filter(w => w.constituencyId === sub.id)
+                    if (subWards.length > 0) {
+                        wardId = subWards[Math.floor(Math.random() * subWards.length)].id
+                    }
+                }
+            }
+
             const [newUser] = await db
                 .insert(users)
                 .values({ email, phoneNumber: phone, password: userPassword, fullName: name, role: 'applicant' })
@@ -224,6 +260,8 @@ export async function seedHeavy() {
                     email,
                     ethnicityId,
                     homeCountyId: countyId,
+                    homeSubCountyId,
+                    wardId,
                     impairment,
                     impairmentDetails: impairment ? 'Physical disability requiring accessibility support' : null,
                     hasNoExperience: Math.random() < 0.15
@@ -257,7 +295,50 @@ export async function seedHeavy() {
             const chosenVacancies = shuffledVacancies.slice(0, numApps)
 
             for (const vacancy of chosenVacancies) {
-                await db.insert(applications).values({ applicantId: user.id, vacancyId: vacancy.id, status: 'pending', appliedAt: new Date() })
+                // Populate profileSnapshot with the details of the profile for the reporting service
+                const profileSnapshotObj = {
+                    id: profile.id,
+                    userId: profile.userId,
+                    fullName: profile.fullName,
+                    idNumber: profile.idNumber,
+                    gender: profile.gender,
+                    dateOfBirth: profile.dateOfBirth,
+                    birthYear: 1995,
+                    phoneNumber: profile.phoneNumber,
+                    email: profile.email,
+                    ethnicityId: profile.ethnicityId,
+                    homeCountyId: profile.homeCountyId,
+                    homeSubCountyId: profile.homeSubCountyId,
+                    wardId: profile.wardId,
+                    impairment: profile.impairment,
+                    impairmentDetails: profile.impairmentDetails,
+                    hasNoExperience: profile.hasNoExperience,
+                    qualifications: [
+                        { level: 'BACHELORS', course: course.name, courseId: course.id, grade: 'Second Class Upper', institution: inst.name, institutionId: inst.id, yearStart: 2014, yearEnd: 2018 },
+                        { level: 'KCSE', course: 'Kenya Certificate of Secondary Education', grade: 'B+', institution: 'High School Academy', yearStart: 2010, yearEnd: 2013 }
+                    ],
+                    employmentHistory: profile.hasNoExperience ? [] : [
+                        { startDate: '2019-01-01', endDate: '2022-12-31', jobTitle: 'Junior Officer', organization: 'Previous Corp Ltd', responsibilities: '...' },
+                        { startDate: '2023-01-01', jobTitle: 'Professional Consultant', organization: 'Self Employed', responsibilities: '...' }
+                    ],
+                    professionalDetails: [
+                        { licenseType: 'Practice License', issuingBody: body.name, issuingBodyId: body.id, registrationNumber: `REG-${1000 + i}`, issueDate: '2020-01-01', expiryDate: '2026-01-01' }
+                    ],
+                    professionalMemberships: [
+                        { membershipBody: body.name, membershipBodyId: body.id, membershipType: 'Full Member', registrationNumber: `MEM-${2000 + i}`, expiryDate: '2027-01-01' }
+                    ],
+                    trainingCourses: [
+                        { courseName: 'Strategic Leadership Training', institution: 'Kenya School of Government', year: 2021, grade: 'Completed' }
+                    ]
+                }
+
+                await db.insert(applications).values({ 
+                    applicantId: user.id, 
+                    vacancyId: vacancy.id, 
+                    status: 'pending', 
+                    appliedAt: new Date(),
+                    profileSnapshot: profileSnapshotObj
+                })
             }
             
             if (i % 10 === 0) {
@@ -276,3 +357,4 @@ export async function seedHeavy() {
 if (import.meta.url === `file://${process.argv[1]}`) {
     seedHeavy().catch(console.error)
 }
+

@@ -88,9 +88,10 @@ export const buildDashboardData = (applications: DashboardApplication[], vacanci
     const ongoingActivity = latestApplication?.vacancy
         ? {
               id: `app_${latestApplication.id}`,
-          status: getApplicationStatusLabel(latestApplication.status),
+              status: getApplicationStatusLabel(latestApplication.status),
               progress: getDashboardApplicationProgress(latestApplication.status),
               nextStep: getDashboardApplicationNextStep(latestApplication.status),
+              appliedAt: latestApplication.appliedAt,
               vacancy: {
                   title: latestApplication.vacancy.title,
                   refNumber: latestApplication.vacancy.advertisementNumber,

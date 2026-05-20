@@ -7,14 +7,14 @@ import {
     trainingCourses,
     professionalMemberships,
     employmentHistory,
-    referees,
-    users
+    referees
 } from '../db/schema'
 import { eq, and, or, ilike, desc, asc, sql, SQL } from 'drizzle-orm'
 import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { successResponse, NotFoundError, ForbiddenError, ValidationError, ConflictError } from '../utils/errors'
 import { calculateProfileCompletion } from '../utils/profile-completion'
+import { logger } from '../utils/logger'
 import {
     applicantProfileSchema,
     updateApplicantProfileSchema,
@@ -34,6 +34,16 @@ import {
 } from '@meru/shared'
 
 export const applicantProfilesRouter = new Hono()
+
+// Helper to get current user's profile ID
+const getMyProfileId = async (userId: number) => {
+    const profile = await db.query.applicantProfiles.findFirst({
+        where: eq(applicantProfiles.userId, userId),
+        columns: { id: true }
+    })
+    if (!profile) throw new NotFoundError('Profile not found. Please create a profile first.')
+    return profile.id
+}
 
 // ============ STATS ENDPOINT ============
 
@@ -59,7 +69,7 @@ applicantProfilesRouter.get('/stats', authenticate, requireAdmin, async (c) => {
             femaleProfiles: Number(femaleProfilesResult[0].count)
         })
     } catch (error) {
-        console.error('[ERROR] Failed to fetch profile stats', error)
+        logger.error({ err: error }, 'Failed to fetch profile stats')
         throw error
     }
 })
@@ -69,7 +79,7 @@ applicantProfilesRouter.get('/stats', authenticate, requireAdmin, async (c) => {
 // GET /api/applicant-profiles - Alias for /me (Get current user's profile)
 applicantProfilesRouter.get('/', authenticate, async (c) => {
     const user = c.get('user')
-    console.log(`[DEBUG] Fetching profile for user: ${user.userId}`)
+    logger.debug({ userId: user.userId }, 'Fetching profile for user via root alias')
 
     try {
         const profile = await db.query.applicantProfiles.findFirst({
@@ -86,7 +96,7 @@ applicantProfilesRouter.get('/', authenticate, async (c) => {
         })
 
         if (!profile) {
-            console.log(`[DEBUG] Profile not found for user: ${user.userId}`)
+            logger.debug({ userId: user.userId }, 'Profile not found for user via root alias')
             return successResponse(c, null)
         }
 
@@ -97,7 +107,7 @@ applicantProfilesRouter.get('/', authenticate, async (c) => {
 
         return successResponse(c, profileWithCompletion)
     } catch (error) {
-        console.error(`[ERROR] Error fetching profile for user: ${user.userId}`, error)
+        logger.error({ err: error, userId: user.userId }, 'Error fetching profile for user via root alias')
         throw error
     }
 })
@@ -105,41 +115,44 @@ applicantProfilesRouter.get('/', authenticate, async (c) => {
 // GET /api/applicant-profiles/me - Get current user's profile
 applicantProfilesRouter.get('/me', authenticate, async (c) => {
     const user = c.get('user')
+    try {
+        const profile = await db.query.applicantProfiles.findFirst({
+            where: eq(applicantProfiles.userId, user.userId),
+            with: {
+                qualifications: true,
+                professionalDetails: true,
+                trainingCourses: true,
+                professionalMemberships: true,
+                employmentHistory: true,
+                referees: true,
+                documents: true
+            }
+        })
 
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.userId, user.userId),
-        with: {
-            qualifications: true,
-            professionalDetails: true,
-            trainingCourses: true,
-            professionalMemberships: true,
-            employmentHistory: true,
-            referees: true,
-            documents: true
+        if (!profile) {
+            return successResponse(c, null)
         }
 
-    })
+        const profileWithCompletion = {
+            ...profile,
+            profileCompletion: calculateProfileCompletion(profile)
+        }
 
-    if (!profile) {
-        return successResponse(c, null)
+        return successResponse(c, profileWithCompletion)
+    } catch (error) {
+        logger.error({ err: error, userId: user.userId }, 'Error fetching profile for user via /me')
+        throw error
     }
-
-    const profileWithCompletion = {
-        ...profile,
-        profileCompletion: calculateProfileCompletion(profile)
-    }
-
-    return successResponse(c, profileWithCompletion)
 })
 
 // PUT /api/applicant-profiles/me - Update current user's profile
 applicantProfilesRouter.put('/me', authenticate, async (c) => {
     const user = c.get('user')
-    let body;
+    let body: any
     try {
         body = await c.req.json()
     } catch (e) {
-        console.error('[ERROR] Failed to parse JSON body or empty body received', e)
+        logger.error({ err: e }, 'Failed to parse JSON body or empty body received in PUT /me')
         throw new ValidationError('Invalid request: Empty or malformed JSON body')
     }
 
@@ -148,8 +161,6 @@ applicantProfilesRouter.put('/me', authenticate, async (c) => {
         where: eq(applicantProfiles.userId, user.userId)
     })
 
-    // If it's a new profile, validate with the full schema to ensure required fields
-    // If it's an update, validate with the partial schema
     const schema = existingProfile ? updateApplicantProfileSchema : applicantProfileSchema
     const validationResult = schema.safeParse(body)
 
@@ -160,7 +171,7 @@ applicantProfilesRouter.put('/me', authenticate, async (c) => {
     const data = validationResult.data
 
     try {
-        let profile
+        let profile: any
 
         await db.transaction(async (tx) => {
             if (existingProfile) {
@@ -201,313 +212,6 @@ applicantProfilesRouter.put('/me', authenticate, async (c) => {
     }
 })
 
-// ============ ME (CURRENT USER) SECTION ENDPOINTS ============
-
-// Helper to get current user's profile ID
-const getMyProfileId = async (userId: number) => {
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.userId, userId),
-        columns: { id: true }
-    })
-    if (!profile) throw new NotFoundError('Profile not found. Please create a profile first.')
-    return profile.id
-}
-
-// GET /api/applicant-profiles/me/qualifications
-applicantProfilesRouter.get('/me/qualifications', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const quals = await db.query.qualifications.findMany({
-        where: eq(qualifications.applicantProfileId, profileId)
-    })
-    return successResponse(c, quals)
-})
-
-// POST /api/applicant-profiles/me/qualifications
-applicantProfilesRouter.post('/me/qualifications', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = qualificationSchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid qualification data', validationResult.error.flatten())
-    }
-    const [qualification] = await db.insert(qualifications).values({
-        applicantProfileId: profileId,
-        ...validationResult.data
-    }).returning()
-    return successResponse(c, qualification, 'Qualification added successfully')
-})
-
-// PUT /api/applicant-profiles/me/qualifications/:qualId
-applicantProfilesRouter.put('/me/qualifications/:qualId', authenticate, async (c) => {
-    const user = c.get('user')
-    const qualId = parseInt(c.req.param('qualId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = updateQualificationSchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid qualification data', validationResult.error.flatten())
-    }
-    const [updated] = await db.update(qualifications).set({
-        ...validationResult.data,
-        updatedAt: new Date()
-    }).where(and(
-        eq(qualifications.id, qualId),
-        eq(qualifications.applicantProfileId, profileId)
-    )).returning()
-    if (!updated) throw new NotFoundError('Qualification not found')
-    return successResponse(c, updated, 'Qualification updated successfully')
-})
-
-// DELETE /api/applicant-profiles/me/qualifications/:qualId
-applicantProfilesRouter.delete('/me/qualifications/:qualId', authenticate, async (c) => {
-    const user = c.get('user')
-    const qualId = parseInt(c.req.param('qualId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    await db.delete(qualifications).where(and(
-        eq(qualifications.id, qualId),
-        eq(qualifications.applicantProfileId, profileId)
-    ))
-    return successResponse(c, null, 'Qualification deleted successfully')
-})
-
-// GET /api/applicant-profiles/me/professional-details
-applicantProfilesRouter.get('/me/professional-details', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const details = await db.query.professionalDetails.findMany({
-        where: eq(professionalDetails.applicantProfileId, profileId)
-    })
-    return successResponse(c, details)
-})
-
-// POST /api/applicant-profiles/me/professional-details
-applicantProfilesRouter.post('/me/professional-details', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = professionalDetailSchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid professional detail data', validationResult.error.flatten())
-    }
-    const [detail] = await db.insert(professionalDetails).values({
-        applicantProfileId: profileId,
-        ...validationResult.data
-    }).returning()
-    return successResponse(c, detail, 'Professional detail added successfully')
-})
-
-// PUT /api/applicant-profiles/me/professional-details/:detailId
-applicantProfilesRouter.put('/me/professional-details/:detailId', authenticate, async (c) => {
-    const user = c.get('user')
-    const detailId = parseInt(c.req.param('detailId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = updateProfessionalDetailSchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid professional detail data', validationResult.error.flatten())
-    }
-    const [updated] = await db.update(professionalDetails).set({
-        ...validationResult.data,
-        updatedAt: new Date()
-    }).where(and(
-        eq(professionalDetails.id, detailId),
-        eq(professionalDetails.applicantProfileId, profileId)
-    )).returning()
-    if (!updated) throw new NotFoundError('Professional detail not found')
-    return successResponse(c, updated, 'Professional detail updated successfully')
-})
-
-// DELETE /api/applicant-profiles/me/professional-details/:detailId
-applicantProfilesRouter.delete('/me/professional-details/:detailId', authenticate, async (c) => {
-    const user = c.get('user')
-    const detailId = parseInt(c.req.param('detailId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    await db.delete(professionalDetails).where(and(
-        eq(professionalDetails.id, detailId),
-        eq(professionalDetails.applicantProfileId, profileId)
-    ))
-    return successResponse(c, null, 'Professional detail deleted successfully')
-})
-
-// GET /api/applicant-profiles/me/training-courses
-applicantProfilesRouter.get('/me/training-courses', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const courses = await db.query.trainingCourses.findMany({
-        where: eq(trainingCourses.applicantProfileId, profileId)
-    })
-    return successResponse(c, courses)
-})
-
-// POST /api/applicant-profiles/me/training-courses
-applicantProfilesRouter.post('/me/training-courses', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = trainingCourseSchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid training course data', validationResult.error.flatten())
-    }
-    const [course] = await db.insert(trainingCourses).values({
-        applicantProfileId: profileId,
-        ...validationResult.data
-    }).returning()
-    return successResponse(c, course, 'Training course added successfully')
-})
-
-// PUT /api/applicant-profiles/me/training-courses/:courseId
-applicantProfilesRouter.put('/me/training-courses/:courseId', authenticate, async (c) => {
-    const user = c.get('user')
-    const courseId = parseInt(c.req.param('courseId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = updateTrainingCourseSchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid training course data', validationResult.error.flatten())
-    }
-    const [updated] = await db.update(trainingCourses).set({
-        ...validationResult.data,
-        updatedAt: new Date()
-    }).where(and(
-        eq(trainingCourses.id, courseId),
-        eq(trainingCourses.applicantProfileId, profileId)
-    )).returning()
-    if (!updated) throw new NotFoundError('Training course not found')
-    return successResponse(c, updated, 'Training course updated successfully')
-})
-
-// DELETE /api/applicant-profiles/me/training-courses/:courseId
-applicantProfilesRouter.delete('/me/training-courses/:courseId', authenticate, async (c) => {
-    const user = c.get('user')
-    const courseId = parseInt(c.req.param('courseId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    await db.delete(trainingCourses).where(and(
-        eq(trainingCourses.id, courseId),
-        eq(trainingCourses.applicantProfileId, profileId)
-    ))
-    return successResponse(c, null, 'Training course deleted successfully')
-})
-
-// GET /api/applicant-profiles/me/professional-memberships
-applicantProfilesRouter.get('/me/professional-memberships', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const memberships = await db.query.professionalMemberships.findMany({
-        where: eq(professionalMemberships.applicantProfileId, profileId)
-    })
-    return successResponse(c, memberships)
-})
-
-// POST /api/applicant-profiles/me/professional-memberships
-applicantProfilesRouter.post('/me/professional-memberships', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = professionalMembershipSchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid professional membership data', validationResult.error.flatten())
-    }
-    const [membership] = await db.insert(professionalMemberships).values({
-        applicantProfileId: profileId,
-        ...validationResult.data
-    }).returning()
-    return successResponse(c, membership, 'Professional membership added successfully')
-})
-
-// PUT /api/applicant-profiles/me/professional-memberships/:membershipId
-applicantProfilesRouter.put('/me/professional-memberships/:membershipId', authenticate, async (c) => {
-    const user = c.get('user')
-    const membershipId = parseInt(c.req.param('membershipId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = updateProfessionalMembershipSchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid professional membership data', validationResult.error.flatten())
-    }
-    const [updated] = await db.update(professionalMemberships).set({
-        ...validationResult.data,
-        updatedAt: new Date()
-    }).where(and(
-        eq(professionalMemberships.id, membershipId),
-        eq(professionalMemberships.applicantProfileId, profileId)
-    )).returning()
-    if (!updated) throw new NotFoundError('Professional membership not found')
-    return successResponse(c, updated, 'Professional membership updated successfully')
-})
-
-// DELETE /api/applicant-profiles/me/professional-memberships/:membershipId
-applicantProfilesRouter.delete('/me/professional-memberships/:membershipId', authenticate, async (c) => {
-    const user = c.get('user')
-    const membershipId = parseInt(c.req.param('membershipId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    await db.delete(professionalMemberships).where(and(
-        eq(professionalMemberships.id, membershipId),
-        eq(professionalMemberships.applicantProfileId, profileId)
-    ))
-    return successResponse(c, null, 'Professional membership deleted successfully')
-})
-
-// GET /api/applicant-profiles/me/employment-history
-applicantProfilesRouter.get('/me/employment-history', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const history = await db.query.employmentHistory.findMany({
-        where: eq(employmentHistory.applicantProfileId, profileId)
-    })
-    return successResponse(c, history)
-})
-
-// POST /api/applicant-profiles/me/employment-history
-applicantProfilesRouter.post('/me/employment-history', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = employmentHistorySchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid employment history data', validationResult.error.flatten())
-    }
-    const [history] = await db.insert(employmentHistory).values({
-        applicantProfileId: profileId,
-        ...validationResult.data
-    }).returning()
-    return successResponse(c, history, 'Employment history added successfully')
-})
-
-// PUT /api/applicant-profiles/me/employment-history/:historyId
-applicantProfilesRouter.put('/me/employment-history/:historyId', authenticate, async (c) => {
-    const user = c.get('user')
-    const historyId = parseInt(c.req.param('historyId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = updateEmploymentHistorySchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid employment history data', validationResult.error.flatten())
-    }
-    const [updated] = await db.update(employmentHistory).set({
-        ...validationResult.data,
-        updatedAt: new Date()
-    }).where(and(
-        eq(employmentHistory.id, historyId),
-        eq(employmentHistory.applicantProfileId, profileId)
-    )).returning()
-    if (!updated) throw new NotFoundError('Employment history not found')
-    return successResponse(c, updated, 'Employment history updated successfully')
-})
-
-// DELETE /api/applicant-profiles/me/employment-history/:historyId
-applicantProfilesRouter.delete('/me/employment-history/:historyId', authenticate, async (c) => {
-    const user = c.get('user')
-    const historyId = parseInt(c.req.param('historyId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    await db.delete(employmentHistory).where(and(
-        eq(employmentHistory.id, historyId),
-        eq(employmentHistory.applicantProfileId, profileId)
-    ))
-    return successResponse(c, null, 'Employment history deleted successfully')
-})
-
 // GET /api/applicant-profiles/:id - Get profile by ID (admin or owner)
 applicantProfilesRouter.get('/:id', authenticate, async (c) => {
     const id = parseInt(c.req.param('id') || '0')
@@ -529,17 +233,17 @@ applicantProfilesRouter.get('/:id', authenticate, async (c) => {
             trainingCourses: true,
             professionalMemberships: true,
             employmentHistory: true,
-                homeCounty: true,
-                homeSubCounty: true,
-                ward: true,
-                ethnicity: true,
-                referees: true,
-                documents: true
+            homeCounty: true,
+            homeSubCounty: true,
+            ward: true,
+            ethnicity: true,
+            referees: true,
+            documents: true
         }
     })
 
     if (!profile) {
-        throw new NotFoundError('Profile not found')
+        throw new NotFoundError('Profile')
     }
 
     // Only allow admin or the profile owner to view
@@ -576,17 +280,17 @@ applicantProfilesRouter.get('/user/:userId', authenticate, async (c) => {
             trainingCourses: true,
             professionalMemberships: true,
             employmentHistory: true,
-                homeCounty: true,
-                homeSubCounty: true,
-                ward: true,
-                ethnicity: true,
-                referees: true,
-                documents: true
+            homeCounty: true,
+            homeSubCounty: true,
+            ward: true,
+            ethnicity: true,
+            referees: true,
+            documents: true
         }
     })
 
     if (!profile) {
-        throw new NotFoundError('Profile not found for this user')
+        throw new NotFoundError('Profile')
     }
 
     return successResponse(c, profile)
@@ -611,7 +315,7 @@ applicantProfilesRouter.post('/', authenticate, async (c) => {
         where: eq(applicantProfiles.userId, user.userId)
     })
 
-    let profile
+    let profile: any
 
     try {
         if (existingProfile) {
@@ -635,7 +339,6 @@ applicantProfilesRouter.post('/', authenticate, async (c) => {
                 .returning()
         }
     } catch (error: any) {
-        // Drizzle/node-postgres error wrapper
         const dbError = error.cause || error
 
         // Handle unique constraint violation (duplicate ID number)
@@ -656,675 +359,185 @@ applicantProfilesRouter.post('/', authenticate, async (c) => {
     return successResponse(c, profile, existingProfile ? 'Profile updated successfully' : 'Profile created successfully')
 })
 
-// ============ QUALIFICATIONS ENDPOINTS ============
+// ============ SUB-RESOURCES REGISTRATION HELPER ============
 
-// GET /api/applicant-profiles/:id/qualifications - Get all qualifications
-applicantProfilesRouter.get('/:id/qualifications', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const user = c.get('user')
+function registerSubResourceRoutes({
+    subPath,
+    table,
+    schema,
+    updateSchema,
+    fieldName,
+    paramName
+}: {
+    subPath: string
+    table: any
+    schema: any
+    updateSchema: any
+    fieldName: string
+    paramName: string
+}) {
+    const resolveProfileId = async (c: any, userId: number) => {
+        const idParam = c.req.param('id')
+        if (idParam === 'me') {
+            return getMyProfileId(userId)
+        }
+        const parsed = parseInt(idParam || '0', 10)
+        if (isNaN(parsed) || parsed <= 0) {
+            throw new ValidationError('Invalid profile ID')
+        }
+        return parsed
+    }
 
-    // Verify profile ownership or admin
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
+    // Unified route version (handles both /me/ and /:id/)
+    applicantProfilesRouter.get(`/:id/${subPath}`, authenticate, async (c) => {
+        const user = c.get('user')
+        const profileId = await resolveProfileId(c, user.userId)
+        
+        const profile = await db.query.applicantProfiles.findFirst({
+            where: eq(applicantProfiles.id, profileId)
+        })
+        if (!profile) throw new NotFoundError('Profile')
+        if (user.role !== 'admin' && profile.userId !== user.userId) {
+            throw new ForbiddenError('Access denied')
+        }
+        
+        const items = await db.select().from(table).where(eq(table.applicantProfileId, profileId))
+        return successResponse(c, items)
     })
 
-    if (!profile) {
-        throw new NotFoundError('Profile not found')
-    }
-
-    if (user.role !== 'admin' && profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const quals = await db.query.qualifications.findMany({
-        where: eq(qualifications.applicantProfileId, profileId)
-    })
-
-    return successResponse(c, quals)
-})
-
-// POST /api/applicant-profiles/:id/qualifications - Add qualification
-applicantProfilesRouter.post('/:id/qualifications', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const user = c.get('user')
-    const body = await c.req.json()
-
-    // Verify profile ownership
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile) {
-        throw new NotFoundError('Profile not found')
-    }
-
-    if (profile.userId !== user.userId) {
-        throw new ForbiddenError('You can only add qualifications to your own profile')
-    }
-
-    // Validate input
-    const validationResult = qualificationSchema.safeParse(body)
-
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid qualification data', validationResult.error.flatten())
-    }
-
-    const [qualification] = await db
-        .insert(qualifications)
-        .values({
+    applicantProfilesRouter.post(`/:id/${subPath}`, authenticate, async (c) => {
+        const user = c.get('user')
+        const profileId = await resolveProfileId(c, user.userId)
+        const body = await c.req.json()
+        
+        const profile = await db.query.applicantProfiles.findFirst({
+            where: eq(applicantProfiles.id, profileId)
+        })
+        if (!profile) throw new NotFoundError('Profile')
+        if (profile.userId !== user.userId) {
+            throw new ForbiddenError(`You can only add ${fieldName.toLowerCase()}s to your own profile`)
+        }
+        
+        const validationResult = schema.safeParse(body)
+        if (!validationResult.success) {
+            throw new ValidationError(`Invalid ${fieldName.toLowerCase()} data`, validationResult.error.flatten())
+        }
+        const inserted = await (db.insert(table).values({
             applicantProfileId: profileId,
             ...validationResult.data
-        })
-        .returning()
-
-    return successResponse(c, qualification, 'Qualification added successfully')
-})
-
-// PUT /api/applicant-profiles/:id/qualifications/:qualId - Update qualification
-applicantProfilesRouter.put('/:id/qualifications/:qualId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const qualId = parseInt(c.req.param('qualId') || '0')
-    const user = c.get('user')
-    const body = await c.req.json()
-
-    // Verify ownership
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
+        }).returning() as any)
+        const item = inserted[0]
+        return successResponse(c, item, `${fieldName} added successfully`)
     })
 
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    // Validate input
-    const validationResult = updateQualificationSchema.safeParse(body)
-
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid qualification data', validationResult.error.flatten())
-    }
-
-    const [updated] = await db
-        .update(qualifications)
-        .set({
+    applicantProfilesRouter.put(`/:id/${subPath}/:${paramName}`, authenticate, async (c) => {
+        const user = c.get('user')
+        const profileId = await resolveProfileId(c, user.userId)
+        const itemId = parseInt(c.req.param(paramName) || '0')
+        const body = await c.req.json()
+        
+        const profile = await db.query.applicantProfiles.findFirst({
+            where: eq(applicantProfiles.id, profileId)
+        })
+        if (!profile || profile.userId !== user.userId) {
+            throw new ForbiddenError('Access denied')
+        }
+        
+        const validationResult = updateSchema.safeParse(body)
+        if (!validationResult.success) {
+            throw new ValidationError(`Invalid ${fieldName.toLowerCase()} data`, validationResult.error.flatten())
+        }
+        const updatedResult = await (db.update(table).set({
             ...validationResult.data,
             updatedAt: new Date()
+        }).where(and(
+            eq(table.id, itemId),
+            eq(table.applicantProfileId, profileId)
+        )).returning() as any)
+        const updated = updatedResult[0]
+        if (!updated) throw new NotFoundError(fieldName)
+        return successResponse(c, updated, `${fieldName} updated successfully`)
+    })
+
+    applicantProfilesRouter.delete(`/:id/${subPath}/:${paramName}`, authenticate, async (c) => {
+        const user = c.get('user')
+        const profileId = await resolveProfileId(c, user.userId)
+        const itemId = parseInt(c.req.param(paramName) || '0')
+        
+        const profile = await db.query.applicantProfiles.findFirst({
+            where: eq(applicantProfiles.id, profileId)
         })
-        .where(and(
-            eq(qualifications.id, qualId),
-            eq(qualifications.applicantProfileId, profileId)
-        ))
-        .returning()
+        if (!profile || profile.userId !== user.userId) {
+            throw new ForbiddenError('Access denied')
+        }
+        const deletedResult = await (db.delete(table).where(and(
+            eq(table.id, itemId),
+            eq(table.applicantProfileId, profileId)
+        )).returning() as any)
+        const deleted = deletedResult[0]
+        if (!deleted) throw new NotFoundError(fieldName)
+        return successResponse(c, null, `${fieldName} deleted successfully`)
+    })
+}
 
-    if (!updated) {
-        throw new NotFoundError('Qualification not found')
-    }
-
-    return successResponse(c, updated, 'Qualification updated successfully')
+// Register all sub-resource routes
+registerSubResourceRoutes({
+    subPath: 'qualifications',
+    table: qualifications,
+    schema: qualificationSchema,
+    updateSchema: updateQualificationSchema,
+    fieldName: 'Qualification',
+    paramName: 'qualId'
 })
 
-// DELETE /api/applicant-profiles/:id/qualifications/:qualId - Delete qualification
-applicantProfilesRouter.delete('/:id/qualifications/:qualId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const qualId = parseInt(c.req.param('qualId') || '0')
-    const user = c.get('user')
-
-    // Verify ownership
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    await db.delete(qualifications).where(and(
-        eq(qualifications.id, qualId),
-        eq(qualifications.applicantProfileId, profileId)
-    ))
-
-    return successResponse(c, null, 'Qualification deleted successfully')
+registerSubResourceRoutes({
+    subPath: 'professional-details',
+    table: professionalDetails,
+    schema: professionalDetailSchema,
+    updateSchema: updateProfessionalDetailSchema,
+    fieldName: 'Professional detail',
+    paramName: 'detailId'
 })
 
-// ============ PROFESSIONAL DETAILS ENDPOINTS ============
-
-// GET /api/applicant-profiles/:id/professional-details
-applicantProfilesRouter.get('/:id/professional-details', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const user = c.get('user')
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile) {
-        throw new NotFoundError('Profile not found')
-    }
-
-    if (user.role !== 'admin' && profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const details = await db.query.professionalDetails.findMany({
-        where: eq(professionalDetails.applicantProfileId, profileId)
-    })
-
-    return successResponse(c, details)
+registerSubResourceRoutes({
+    subPath: 'training-courses',
+    table: trainingCourses,
+    schema: trainingCourseSchema,
+    updateSchema: updateTrainingCourseSchema,
+    fieldName: 'Training course',
+    paramName: 'courseId'
 })
 
-// POST /api/applicant-profiles/:id/professional-details
-applicantProfilesRouter.post('/:id/professional-details', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const user = c.get('user')
-    const body = await c.req.json()
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const validationResult = professionalDetailSchema.safeParse(body)
-
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid professional detail data', validationResult.error.flatten())
-    }
-
-    const [detail] = await db
-        .insert(professionalDetails)
-        .values({
-            applicantProfileId: profileId,
-            ...validationResult.data
-        })
-        .returning()
-
-    return successResponse(c, detail, 'Professional detail added successfully')
+registerSubResourceRoutes({
+    subPath: 'professional-memberships',
+    table: professionalMemberships,
+    schema: professionalMembershipSchema,
+    updateSchema: updateProfessionalMembershipSchema,
+    fieldName: 'Professional membership',
+    paramName: 'membershipId'
 })
 
-// PUT /api/applicant-profiles/:id/professional-details/:detailId
-applicantProfilesRouter.put('/:id/professional-details/:detailId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const detailId = parseInt(c.req.param('detailId') || '0')
-    const user = c.get('user')
-    const body = await c.req.json()
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const validationResult = updateProfessionalDetailSchema.safeParse(body)
-
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid professional detail data', validationResult.error.flatten())
-    }
-
-    const [updated] = await db
-        .update(professionalDetails)
-        .set({
-            ...validationResult.data,
-            updatedAt: new Date()
-        })
-        .where(and(
-            eq(professionalDetails.id, detailId),
-            eq(professionalDetails.applicantProfileId, profileId)
-        ))
-        .returning()
-
-    if (!updated) {
-        throw new NotFoundError('Professional detail not found')
-    }
-
-    return successResponse(c, updated, 'Professional detail updated successfully')
+registerSubResourceRoutes({
+    subPath: 'employment-history',
+    table: employmentHistory,
+    schema: employmentHistorySchema,
+    updateSchema: updateEmploymentHistorySchema,
+    fieldName: 'Employment history',
+    paramName: 'historyId'
 })
 
-// DELETE /api/applicant-profiles/:id/professional-details/:detailId
-applicantProfilesRouter.delete('/:id/professional-details/:detailId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const detailId = parseInt(c.req.param('detailId') || '0')
-    const user = c.get('user')
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    await db.delete(professionalDetails).where(and(
-        eq(professionalDetails.id, detailId),
-        eq(professionalDetails.applicantProfileId, profileId)
-    ))
-
-    return successResponse(c, null, 'Professional detail deleted successfully')
-})
-
-// ============ REFEREES ENDPOINTS ============
-
-// GET /api/applicant-profiles/me/referees
-applicantProfilesRouter.get('/me/referees', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const items = await db.query.referees.findMany({
-        where: eq(referees.applicantProfileId, profileId)
-    })
-    return successResponse(c, items)
-})
-
-// POST /api/applicant-profiles/me/referees
-applicantProfilesRouter.post('/me/referees', authenticate, async (c) => {
-    const user = c.get('user')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = refereeSchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid referee data', validationResult.error.flatten())
-    }
-    const [item] = await db.insert(referees).values({
-        applicantProfileId: profileId,
-        ...validationResult.data
-    }).returning()
-    return successResponse(c, item, 'Referee added successfully')
-})
-
-// PUT /api/applicant-profiles/me/referees/:refId
-applicantProfilesRouter.put('/me/referees/:refId', authenticate, async (c) => {
-    const user = c.get('user')
-    const refId = parseInt(c.req.param('refId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    const body = await c.req.json()
-    const validationResult = updateRefereeSchema.safeParse(body)
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid referee data', validationResult.error.flatten())
-    }
-    const [updated] = await db.update(referees).set({
-        ...validationResult.data,
-        updatedAt: new Date()
-    }).where(and(
-        eq(referees.id, refId),
-        eq(referees.applicantProfileId, profileId)
-    )).returning()
-    if (!updated) throw new NotFoundError('Referee not found')
-    return successResponse(c, updated, 'Referee updated successfully')
-})
-
-// DELETE /api/applicant-profiles/me/referees/:refId
-applicantProfilesRouter.delete('/me/referees/:refId', authenticate, async (c) => {
-    const user = c.get('user')
-    const refId = parseInt(c.req.param('refId') || '0')
-    const profileId = await getMyProfileId(user.userId)
-    await db.delete(referees).where(and(
-        eq(referees.id, refId),
-        eq(referees.applicantProfileId, profileId)
-    ))
-    return successResponse(c, null, 'Referee deleted successfully')
-})
-
-// ============ TRAINING COURSES ENDPOINTS ============
-
-// GET /api/applicant-profiles/:id/training-courses
-applicantProfilesRouter.get('/:id/training-courses', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const user = c.get('user')
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile) {
-        throw new NotFoundError('Profile not found')
-    }
-
-    if (user.role !== 'admin' && profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const courses = await db.query.trainingCourses.findMany({
-        where: eq(trainingCourses.applicantProfileId, profileId)
-    })
-
-    return successResponse(c, courses)
-})
-
-// POST /api/applicant-profiles/:id/training-courses
-applicantProfilesRouter.post('/:id/training-courses', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const user = c.get('user')
-    const body = await c.req.json()
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const validationResult = trainingCourseSchema.safeParse(body)
-
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid training course data', validationResult.error.flatten())
-    }
-
-    const [course] = await db
-        .insert(trainingCourses)
-        .values({
-            applicantProfileId: profileId,
-            ...validationResult.data
-        })
-        .returning()
-
-    return successResponse(c, course, 'Training course added successfully')
-})
-
-// PUT /api/applicant-profiles/:id/training-courses/:courseId
-applicantProfilesRouter.put('/:id/training-courses/:courseId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const courseId = parseInt(c.req.param('courseId') || '0')
-    const user = c.get('user')
-    const body = await c.req.json()
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const validationResult = updateTrainingCourseSchema.safeParse(body)
-
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid training course data', validationResult.error.flatten())
-    }
-
-    const [updated] = await db
-        .update(trainingCourses)
-        .set({
-            ...validationResult.data,
-            updatedAt: new Date()
-        })
-        .where(and(
-            eq(trainingCourses.id, courseId),
-            eq(trainingCourses.applicantProfileId, profileId)
-        ))
-        .returning()
-
-    if (!updated) {
-        throw new NotFoundError('Training course not found')
-    }
-
-    return successResponse(c, updated, 'Training course updated successfully')
-})
-
-// DELETE /api/applicant-profiles/:id/training-courses/:courseId
-applicantProfilesRouter.delete('/:id/training-courses/:courseId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const courseId = parseInt(c.req.param('courseId') || '0')
-    const user = c.get('user')
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    await db.delete(trainingCourses).where(and(
-        eq(trainingCourses.id, courseId),
-        eq(trainingCourses.applicantProfileId, profileId)
-    ))
-
-    return successResponse(c, null, 'Training course deleted successfully')
-})
-
-// ============ PROFESSIONAL MEMBERSHIPS ENDPOINTS ============
-
-// GET /api/applicant-profiles/:id/professional-memberships
-applicantProfilesRouter.get('/:id/professional-memberships', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const user = c.get('user')
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile) {
-        throw new NotFoundError('Profile not found')
-    }
-
-    if (user.role !== 'admin' && profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const memberships = await db.query.professionalMemberships.findMany({
-        where: eq(professionalMemberships.applicantProfileId, profileId)
-    })
-
-    return successResponse(c, memberships)
-})
-
-// POST /api/applicant-profiles/:id/professional-memberships
-applicantProfilesRouter.post('/:id/professional-memberships', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const user = c.get('user')
-    const body = await c.req.json()
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const validationResult = professionalMembershipSchema.safeParse(body)
-
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid professional membership data', validationResult.error.flatten())
-    }
-
-    const [membership] = await db
-        .insert(professionalMemberships)
-        .values({
-            applicantProfileId: profileId,
-            ...validationResult.data
-        })
-        .returning()
-
-    return successResponse(c, membership, 'Professional membership added successfully')
-})
-
-// PUT /api/applicant-profiles/:id/professional-memberships/:membershipId
-applicantProfilesRouter.put('/:id/professional-memberships/:membershipId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const membershipId = parseInt(c.req.param('membershipId') || '0')
-    const user = c.get('user')
-    const body = await c.req.json()
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const validationResult = updateProfessionalMembershipSchema.safeParse(body)
-
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid professional membership data', validationResult.error.flatten())
-    }
-
-    const [updated] = await db
-        .update(professionalMemberships)
-        .set({
-            ...validationResult.data,
-            updatedAt: new Date()
-        })
-        .where(and(
-            eq(professionalMemberships.id, membershipId),
-            eq(professionalMemberships.applicantProfileId, profileId)
-        ))
-        .returning()
-
-    if (!updated) {
-        throw new NotFoundError('Professional membership not found')
-    }
-
-    return successResponse(c, updated, 'Professional membership updated successfully')
-})
-
-// DELETE /api/applicant-profiles/:id/professional-memberships/:membershipId
-applicantProfilesRouter.delete('/:id/professional-memberships/:membershipId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const membershipId = parseInt(c.req.param('membershipId') || '0')
-    const user = c.get('user')
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    await db.delete(professionalMemberships).where(and(
-        eq(professionalMemberships.id, membershipId),
-        eq(professionalMemberships.applicantProfileId, profileId)
-    ))
-
-    return successResponse(c, null, 'Professional membership deleted successfully')
-})
-
-// ============ EMPLOYMENT HISTORY ENDPOINTS ============
-
-// GET /api/applicant-profiles/:id/employment-history
-applicantProfilesRouter.get('/:id/employment-history', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const user = c.get('user')
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile) {
-        throw new NotFoundError('Profile not found')
-    }
-
-    if (user.role !== 'admin' && profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const history = await db.query.employmentHistory.findMany({
-        where: eq(employmentHistory.applicantProfileId, profileId)
-    })
-
-    return successResponse(c, history)
-})
-
-// POST /api/applicant-profiles/:id/employment-history
-applicantProfilesRouter.post('/:id/employment-history', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const user = c.get('user')
-    const body = await c.req.json()
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const validationResult = employmentHistorySchema.safeParse(body)
-
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid employment history data', validationResult.error.flatten())
-    }
-
-    const [history] = await db
-        .insert(employmentHistory)
-        .values({
-            applicantProfileId: profileId,
-            ...validationResult.data
-        })
-        .returning()
-
-    return successResponse(c, history, 'Employment history added successfully')
-})
-
-// PUT /api/applicant-profiles/:id/employment-history/:historyId
-applicantProfilesRouter.put('/:id/employment-history/:historyId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const historyId = parseInt(c.req.param('historyId') || '0')
-    const user = c.get('user')
-    const body = await c.req.json()
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    const validationResult = updateEmploymentHistorySchema.safeParse(body)
-
-    if (!validationResult.success) {
-        throw new ValidationError('Invalid employment history data', validationResult.error.flatten())
-    }
-
-    const [updated] = await db
-        .update(employmentHistory)
-        .set({
-            ...validationResult.data,
-            updatedAt: new Date()
-        })
-        .where(and(
-            eq(employmentHistory.id, historyId),
-            eq(employmentHistory.applicantProfileId, profileId)
-        ))
-        .returning()
-
-    if (!updated) {
-        throw new NotFoundError('Employment history not found')
-    }
-
-    return successResponse(c, updated, 'Employment history updated successfully')
-})
-
-// DELETE /api/applicant-profiles/:id/employment-history/:historyId
-applicantProfilesRouter.delete('/:id/employment-history/:historyId', authenticate, async (c) => {
-    const profileId = parseInt(c.req.param('id') || '0')
-    const historyId = parseInt(c.req.param('historyId') || '0')
-    const user = c.get('user')
-
-    const profile = await db.query.applicantProfiles.findFirst({
-        where: eq(applicantProfiles.id, profileId)
-    })
-
-    if (!profile || profile.userId !== user.userId) {
-        throw new ForbiddenError('Access denied')
-    }
-
-    await db.delete(employmentHistory).where(and(
-        eq(employmentHistory.id, historyId),
-        eq(employmentHistory.applicantProfileId, profileId)
-    ))
-
-    return successResponse(c, null, 'Employment history deleted successfully')
+registerSubResourceRoutes({
+    subPath: 'referees',
+    table: referees,
+    schema: refereeSchema,
+    updateSchema: updateRefereeSchema,
+    fieldName: 'Referee',
+    paramName: 'refId'
 })
 
 // ============ ADMIN ENDPOINTS ============
 
-// GET /api/applicant-profiles/admin/all - Get all profiles (admin only) 
+// GET /api/applicant-profiles/admin/all - Get all profiles (admin only)
 applicantProfilesRouter.get('/admin/all', authenticate, requireAdmin, async (c) => {
     const query = c.req.query()
     const filters = profileFiltersSchema.safeParse(query)
@@ -1393,31 +606,36 @@ applicantProfilesRouter.get('/admin/all', authenticate, requireAdmin, async (c) 
             orderBy = sortDirection(applicantProfiles.fullName)
     }
 
-    const profiles = await db.query.applicantProfiles.findMany({
-        where: whereClause,
-        orderBy,
-        limit: limitNum,
-        offset: offsetNum
-    })
-
-    // Get total count for pagination
-    const totalCountResult = await db.select({ count: sql`count(*)::int` })
-        .from(applicantProfiles)
-        .where(whereClause)
-
-    const totalCount = totalCountResult[0].count
-
-    return successResponse(c, {
-        data: profiles,
-        pagination: {
-            total: totalCount,
-            page: pageNum,
+    try {
+        const profiles = await db.query.applicantProfiles.findMany({
+            where: whereClause,
+            orderBy,
             limit: limitNum,
-            totalPages: Math.ceil(totalCount / limitNum),
-            hasNext: offsetNum + limitNum < totalCount,
-            hasPrev: pageNum > 1
-        }
-    })
+            offset: offsetNum
+        })
+
+        // Get total count for pagination
+        const totalCountResult = await db.select({ count: sql<number>`count(*)::int` })
+            .from(applicantProfiles)
+            .where(whereClause)
+
+        const totalCount = totalCountResult[0].count
+
+        return successResponse(c, {
+            data: profiles,
+            pagination: {
+                total: totalCount,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(totalCount / limitNum),
+                hasNext: offsetNum + limitNum < totalCount,
+                hasPrev: pageNum > 1
+            }
+        })
+    } catch (error) {
+        logger.error({ err: error }, 'Failed to fetch admin profiles')
+        throw error
+    }
 })
 
 // GET /api/applicant-profiles/admin/export - Export profiles (admin only)
@@ -1447,51 +665,53 @@ applicantProfilesRouter.get('/admin/export', authenticate, requireAdmin, async (
 
     const whereClause = whereConditions.length > 0 ? and(...(whereConditions.filter(Boolean) as SQL[])) : undefined
 
-    const profiles = await db.query.applicantProfiles.findMany({
-        where: whereClause,
-        with: {
-            user: {
-                columns: {
-                    phoneNumber: true,
-                    email: true,
-                    fullName: true
-                }
-            },
-            qualifications: true,
-            professionalDetails: true,
-            trainingCourses: true,
-            professionalMemberships: true,
-            employmentHistory: true,
-            referees: true,
-            documents: true
-        }
-    })
+    try {
+        const profiles = await db.query.applicantProfiles.findMany({
+            where: whereClause,
+            with: {
+                user: {
+                    columns: {
+                        phoneNumber: true,
+                        email: true,
+                        fullName: true
+                    }
+                },
+                qualifications: true,
+                professionalDetails: true,
+                trainingCourses: true,
+                professionalMemberships: true,
+                employmentHistory: true,
+                referees: true,
+                documents: true
+            }
+        })
 
-    // Transform to flat structure for CSV export
-    const exportData = profiles.map(profile => ({
-        // Profile data
-        name: profile.fullName,
-        idNumber: profile.idNumber,
-        gender: profile.gender,
-        dateOfBirth: profile.dateOfBirth,
-        ethnicity: profile.ethnicityId,
-        phoneNumber: profile.phoneNumber,
-        email: profile.email,
-        county: profile.homeCountyId,
-        subCounty: profile.homeSubCountyId,
-        ward: profile.wardId,
-        impairment: profile.impairment,
-        // User data
-        userPhone: (profile.user as any)?.phoneNumber,
-        userEmail: (profile.user as any)?.email,
-        // Counts
-        qualificationsCount: profile.qualifications.length,
-        professionalDetailsCount: profile.professionalDetails.length,
-        trainingCoursesCount: profile.trainingCourses.length,
-        membershipCount: profile.professionalMemberships.length,
-        employmentHistoryCount: profile.employmentHistory.length,
-        refereesCount: (profile as any).referees?.length || 0
-    }))
+        // Transform to flat structure for CSV export
+        const exportData = profiles.map(profile => ({
+            name: profile.fullName,
+            idNumber: profile.idNumber,
+            gender: profile.gender,
+            dateOfBirth: profile.dateOfBirth,
+            ethnicity: profile.ethnicityId,
+            phoneNumber: profile.phoneNumber,
+            email: profile.email,
+            county: profile.homeCountyId,
+            subCounty: profile.homeSubCountyId,
+            ward: profile.wardId,
+            impairment: profile.impairment,
+            userPhone: (profile.user as any)?.phoneNumber,
+            userEmail: (profile.user as any)?.email,
+            qualificationsCount: profile.qualifications.length,
+            professionalDetailsCount: profile.professionalDetails.length,
+            trainingCoursesCount: profile.trainingCourses.length,
+            membershipCount: profile.professionalMemberships.length,
+            employmentHistoryCount: profile.employmentHistory.length,
+            refereesCount: profile.referees?.length || 0
+        }))
 
-    return successResponse(c, exportData)
+        return successResponse(c, exportData)
+    } catch (error) {
+        logger.error({ err: error }, 'Failed to export admin profiles')
+        throw error
+    }
 })

@@ -104,11 +104,6 @@ async function insertBatch(client: any, tableName: string, columns: string[], ro
     await client.query(query, flattened)
 }
 
-function chunk<T>(array: T[], size: number): T[][] {
-    const chunks = []
-    for (let i = 0; i < array.length; i += size) chunks.push(array.slice(i, i + size))
-    return chunks
-}
 
 async function main() {
     const sourcePath = resolveSourcePath(process.argv)
@@ -201,7 +196,7 @@ async function processPass(sourcePath: string, wantedTables: string[], client: a
     const rl = createInterface({ input: fileStream, crlfDelay: Infinity })
 
     let currentBlock: CopyBlock | null = null
-    let batch: any[][] = []
+    let batch: any[] = []
     let pendingLine = ''
     const BATCH_SIZE = 500
 

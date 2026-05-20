@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, text } from 'drizzle-orm/pg-core'
+import { pgTable, integer, varchar } from 'drizzle-orm/pg-core'
 import { timestamps } from './common'
 
 export const venueTags = pgTable('venue_tags', {

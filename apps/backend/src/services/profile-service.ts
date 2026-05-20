@@ -17,7 +17,11 @@ export class ProfileService {
                 professionalMemberships: true,
                 employmentHistory: true,
                 referees: true,
-                documents: true
+                documents: true,
+                homeCounty: true,
+                homeSubCounty: true,
+                ward: true,
+                ethnicity: true
             }
         })
     }

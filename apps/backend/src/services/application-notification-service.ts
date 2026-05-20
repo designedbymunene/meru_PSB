@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { NotificationService } from './notification-service'
 import { sendApplicationStatusEmail } from '../utils/mailer'
 import { getApplicationStatusLabel, isApplicationNotificationStatus } from '../utils/application-status'
+import { logger } from '../utils/logger'
 
 type ApplicationStatusNotificationInput = {
     applicantId: number
@@ -38,12 +39,12 @@ export class ApplicationNotificationService {
         ])
 
         if (!applicant) {
-            console.error(`[ApplicationNotificationService] Applicant ${input.applicantId} not found`)
+            logger.error({ applicantId: input.applicantId }, '[ApplicationNotificationService] Applicant not found')
             return { success: false, error: 'Applicant not found' }
         }
 
         if (!vacancy) {
-            console.error(`[ApplicationNotificationService] Vacancy ${input.vacancyId} not found`)
+            logger.error({ vacancyId: input.vacancyId }, '[ApplicationNotificationService] Vacancy not found')
             return { success: false, error: 'Vacancy not found' }
         }
 

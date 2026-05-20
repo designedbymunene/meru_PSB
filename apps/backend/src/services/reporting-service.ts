@@ -1,5 +1,5 @@
 import { db } from '../db'
-import { eq, and, inArray, gte, lte, SQL, or, count, desc, sql } from 'drizzle-orm'
+import { eq, and, inArray, gte, lte, SQL, count, desc, sql } from 'drizzle-orm'
 import { applications, auditLogs, vacancies, departments } from '../db/schema'
 
 export interface ReportFilters {
@@ -41,6 +41,8 @@ export class ReportingService {
             gender: sql<string>`${applications.profileSnapshot}->>'gender'`,
             ethnicityId: sql<string>`${applications.profileSnapshot}->>'ethnicityId'`,
             homeCountyId: sql<string>`${applications.profileSnapshot}->>'homeCountyId'`,
+            homeSubCountyId: sql<string>`${applications.profileSnapshot}->>'homeSubCountyId'`,
+            wardId: sql<string>`${applications.profileSnapshot}->>'wardId'`,
             impairment: sql<boolean>`(${applications.profileSnapshot}->>'impairment')::boolean`,
             count: sql<number>`count(*)::int`
         })
@@ -56,17 +58,27 @@ export class ReportingService {
                 sql`${applications.profileSnapshot}->>'gender'`,
                 sql`${applications.profileSnapshot}->>'ethnicityId'`,
                 sql`${applications.profileSnapshot}->>'homeCountyId'`,
+                sql`${applications.profileSnapshot}->>'homeSubCountyId'`,
+                sql`${applications.profileSnapshot}->>'wardId'`,
                 sql`(${applications.profileSnapshot}->>'impairment')::boolean`
             )
 
-        // Fetch all ethnicities and counties for mapping
-        const [allEthnicities, allCounties] = await Promise.all([
+        // Fetch all ethnicities, counties, sub-counties and wards for mapping
+        const [allEthnicities, allCounties, allSubCounties, allWards] = await Promise.all([
             db.query.ethnicities.findMany(),
-            db.query.counties.findMany()
+            db.query.counties.findMany(),
+            db.query.constituencies.findMany(),
+            db.query.wards.findMany()
         ])
         
         const ethnicityMap = Object.fromEntries(allEthnicities.map(e => [e.id.toString(), e.name])) as Record<string, string>
         const countyMap = Object.fromEntries(allCounties.map(c => [c.id.toString(), c.name])) as Record<string, string>
+        const subCountyMap = Object.fromEntries(allSubCounties.map(s => [s.id.toString(), s.name])) as Record<string, string>
+        const wardMap = Object.fromEntries(allWards.map(w => [w.id.toString(), w.name])) as Record<string, string>
+
+        // Identify Meru county ID
+        const meruCounty = allCounties.find(c => c.name.toLowerCase().includes('meru'))
+        const meruCountyIdStr = meruCounty?.id.toString() || ''
 
         const report = {
             period: { 
@@ -77,6 +89,8 @@ export class ReportingService {
             ethnicity: {} as Record<string, number>,
             disability: { hasImpairment: 0, noImpairment: 0, preferNotToSay: 0 },
             counties: {} as Record<string, number>,
+            meruSubCounties: {} as Record<string, number>,
+            meruWards: {} as Record<string, number>,
             totalApplicants: 0
         }
 
@@ -99,6 +113,17 @@ export class ReportingService {
             const cId = row.homeCountyId
             const countyName = cId ? (countyMap[cId] || 'Other') : 'Unknown'
             report.counties[countyName] = (report.counties[countyName] || 0) + row.count
+
+            // Meru sub-counties and wards distribution
+            if (cId && cId === meruCountyIdStr) {
+                const scId = row.homeSubCountyId
+                const subCountyName = scId ? (subCountyMap[scId] || 'Other') : 'Unknown'
+                report.meruSubCounties[subCountyName] = (report.meruSubCounties[subCountyName] || 0) + row.count
+
+                const wId = row.wardId
+                const wardName = wId ? (wardMap[wId] || 'Other') : 'Unknown'
+                report.meruWards[wardName] = (report.meruWards[wardName] || 0) + row.count
+            }
 
             // Disability
             if (row.impairment === true) {
@@ -259,6 +284,7 @@ export class ReportingService {
         .from(vacancies)
         .leftJoin(applications, eq(vacancies.id, applications.vacancyId))
         .leftJoin(departments, eq(vacancies.departmentId, departments.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
         .groupBy(vacancies.id, departments.name)
         .orderBy(desc(count(applications.id)))
         .limit(10)

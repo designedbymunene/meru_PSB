@@ -18,6 +18,7 @@ import { AuditService } from '../services/audit-service'
 import { ApplicationNotificationService } from '../services/application-notification-service'
 import { serializeApplication, serializeApplications } from '../utils/application-status'
 import { auditLog } from '../middleware/audit-logger'
+import { logger } from '../utils/logger'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -237,7 +238,7 @@ applicationsRouter.get('/:id', authenticate, async (c) => {
 // POST /api/applications - Apply for a vacancy
 applicationsRouter.post('/', authenticate, async (c) => {
     const user = c.get('user')
-    console.log(`[Applications] User ${user.userId} is applying for a vacancy`)
+    logger.info({ userId: user.userId }, 'User is applying for a vacancy')
 
     try {
         let vacancyId: number | undefined
@@ -272,7 +273,7 @@ applicationsRouter.post('/', authenticate, async (c) => {
             throw new ConflictError('You have already applied for this vacancy.')
         }
 
-        console.error('Application submission error:', error)
+        logger.error({ err: error, userId: user.userId }, 'Application submission error')
         const status = error.statusCode || 500
         const code = error.name || 'SERVER_ERROR'
         return c.json(
@@ -754,7 +755,11 @@ applicationsRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EX
                             employmentHistory: true,
                             professionalDetails: true,
                             trainingCourses: true,
-                            professionalMemberships: true
+                            professionalMemberships: true,
+                            homeCounty: true,
+                            homeSubCounty: true,
+                            ward: true,
+                            ethnicity: true
                         }
                     }
                 }
@@ -821,12 +826,12 @@ applicationsRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EX
             profile.idNumber,
             profile.gender,
             profile.birthYear,
-            profile.ethnicity,
+            profile.ethnicity?.name || profile.ethnicity,
             profile.phoneNumber || profile.phone,
             profile.email,
-            profile.homeCounty,
-            profile.homeSubCounty,
-            profile.ward,
+            profile.homeCounty?.name || profile.homeCounty,
+            profile.homeSubCounty?.name || profile.homeSubCounty,
+            profile.ward?.name || profile.ward,
             profile.impairment ? `YES: ${profile.impairmentDetails || ''}` : 'NO',
             profile.publicServiceInfo,
             profile.personalNumber,

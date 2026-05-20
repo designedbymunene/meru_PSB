@@ -1,5 +1,6 @@
 import { rateLimiter } from 'hono-rate-limiter'
 import { TooManyRequestsError } from '../utils/errors'
+import { logger } from '../utils/logger'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -30,7 +31,7 @@ const authLimiter = rateLimiter({
         return getClientIp(c)
     },
     handler: (c) => {
-        console.warn(`[RateLimit] Triggered for IP: ${getClientIp(c)} on path: ${c.req.path}`)
+        logger.warn({ ip: getClientIp(c), path: c.req.path }, '[RateLimit] Limit exceeded on auth endpoint')
         throw new TooManyRequestsError('Too many requests, please try again later')
     }
 })
@@ -41,7 +42,7 @@ const publicLimiter = rateLimiter({
     standardHeaders: 'draft-7',
     keyGenerator: (c) => getClientIp(c),
     handler: (c) => {
-        console.warn(`[RateLimit] Triggered for IP: ${getClientIp(c)} on path: ${c.req.path}`)
+        logger.warn({ ip: getClientIp(c), path: c.req.path }, '[RateLimit] Limit exceeded on public endpoint')
         throw new TooManyRequestsError('Too many requests, please try again later')
     }
 })

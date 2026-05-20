@@ -10,7 +10,13 @@ test('profile completion marks required sections separately from optional ones',
         dateOfBirth: '1990-01-01',
         phoneNumber: '0712345678',
         email: 'john@example.com',
+        homeCountyId: 1,
+        homeSubCountyId: 1,
+        wardId: 1,
+        ethnicityId: 1,
         qualifications: [{}],
+        hasNoExperience: true,
+        hasNoTrainings: true,
     }
 
     const completion = calculateProfileCompletion(profile)

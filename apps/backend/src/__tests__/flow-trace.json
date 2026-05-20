@@ -20,7 +20,7 @@
         "refreshToken": "mock-token"
       }
     },
-    "timestamp": "2026-05-13T17:20:13.456Z"
+    "timestamp": "2026-05-20T13:07:49.052Z"
   },
   {
     "step": "Step 2: Partial CV Submission",
@@ -38,7 +38,7 @@
         "details": null
       }
     },
-    "timestamp": "2026-05-13T17:20:13.469Z"
+    "timestamp": "2026-05-20T13:07:49.059Z"
   },
   {
     "step": "Step 3: Complete CV",
@@ -74,25 +74,26 @@
         "id": 1
       }
     },
-    "timestamp": "2026-05-13T17:20:13.474Z"
+    "timestamp": "2026-05-20T13:07:49.062Z"
   },
   {
     "step": "Step 4: Re-submit Application",
     "method": "POST",
     "path": "/api/applications",
-    "status": 400,
+    "status": 200,
     "reqPayload": {
       "vacancyId": 101
     },
     "resBody": {
-      "success": false,
-      "error": {
-        "code": "AppError",
-        "message": "Complete the required profile sections before applying. Missing: Location Details, Employment History, Training Courses",
-        "details": null
+      "success": true,
+      "message": "Application submitted successfully",
+      "data": {
+        "id": 501,
+        "vacancyId": 101,
+        "applicantId": 1
       }
     },
-    "timestamp": "2026-05-13T17:20:13.479Z"
+    "timestamp": "2026-05-20T13:07:49.064Z"
   },
   {
     "step": "Step 5: Admin Login",
@@ -115,7 +116,7 @@
         "refreshToken": "mock-token"
       }
     },
-    "timestamp": "2026-05-13T17:20:13.491Z"
+    "timestamp": "2026-05-20T13:07:49.066Z"
   },
   {
     "step": "Step 6: Fetch Application",
@@ -138,10 +139,11 @@
         "vacancy": {
           "id": 101,
           "title": "Mock Job"
-        }
+        },
+        "statusLabel": "Pending"
       }
     },
-    "timestamp": "2026-05-13T17:20:13.493Z"
+    "timestamp": "2026-05-20T13:07:49.067Z"
   },
   {
     "step": "Step 7: Export CSV",
@@ -149,6 +151,6 @@
     "path": "/api/applications/admin/export",
     "status": 200,
     "resBody": "CSV CONTENT TRUNCATED",
-    "timestamp": "2026-05-13T17:20:13.497Z"
+    "timestamp": "2026-05-20T13:07:49.070Z"
   }
 ]

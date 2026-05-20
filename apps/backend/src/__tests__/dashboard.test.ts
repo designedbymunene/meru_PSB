@@ -100,7 +100,7 @@ test('dashboard helpers - build combined payload', async () => {
                     jobGroup: { name: 'Job Group L' }
                 }
             }
-        ],
+        ] as any,
         [
             {
                 id: 301,
@@ -138,7 +138,7 @@ test('dashboard helpers - build combined payload', async () => {
                 department: { name: 'Administration' },
                 jobGroup: { name: 'Job Group H' }
             }
-        ]
+        ] as any
     )
 
     assert.deepStrictEqual(dashboard.quickStats, {

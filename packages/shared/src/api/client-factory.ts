@@ -4,7 +4,7 @@ import axios, {
     type AxiosInstance,
     type InternalAxiosRequestConfig,
 } from 'axios';
-import { hasRetryBudget, isRetryableApiError } from './retry-policy';
+
 
 export type ApiErrorCategory = 'network' | 'auth' | 'server' | 'client' | 'unknown';
 

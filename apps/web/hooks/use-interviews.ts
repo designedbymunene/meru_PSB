@@ -84,27 +84,6 @@ export function useSetInterviewCriteria() {
     })
 }
 
-export function useDownloadInterviewReport() {
-    return useMutation({
-        mutationFn: (vacancyId: number) => interviewsApi.downloadInterviewReport(vacancyId),
-        onSuccess: (blob, vacancyId) => {
-            const url = window.URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.setAttribute('download', `Interview_Report_#${vacancyId}.pdf`)
-            document.body.appendChild(link)
-            link.click()
-            link.remove()
-            toast.success('Report downloaded successfully')
-        },
-        onError: (error: unknown) => {
-            toast.error('Failed to download report', {
-                description: getErrorMessage(error, 'Could not generate PDF report'),
-            })
-        },
-    })
-}
-
 export function useSetDefaultPanel() {
     const queryClient = useQueryClient()
 
