@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Alert, Platform } from 'react-native';
-import { Settings2, Globe, Trash2, RotateCcw, Monitor, Database, Bell, Palette, Info } from 'lucide-react-native';
+import { Settings2, Trash2, RotateCcw, Monitor, Database, Bell, Palette, Info } from 'lucide-react-native';
 import { SectionCard, SettingRow } from '@/components/account';
 import { FormLayout } from '@/components/ui/form-layout';
 import { FormPicker } from '@/components/ui/form-picker';
@@ -10,7 +10,7 @@ import Constants from 'expo-constants';
 import { useColorScheme } from 'nativewind';
 
 export default function GeneralSettingsScreen() {
-    const [language, setLanguage] = useState('en');
+    // const [language, setLanguage] = useState('en');
     const { colorScheme, setColorScheme } = useColorScheme();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
@@ -78,7 +78,8 @@ export default function GeneralSettingsScreen() {
                     </SectionCard>
                 </View>
 
-                {/* Regional Section */}
+                {/* Regional Section disabled for applicant */}
+                {/*
                 <View>
                     <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-5 ml-2">Regional</Text>
                     <SectionCard title="Language & Locale" icon={<Globe size={18} color="#3b82f6" strokeWidth={2.5} />}>
@@ -95,6 +96,7 @@ export default function GeneralSettingsScreen() {
                         </View>
                     </SectionCard>
                 </View>
+                */}
 
                 {/* Storage Section */}
                 <View>

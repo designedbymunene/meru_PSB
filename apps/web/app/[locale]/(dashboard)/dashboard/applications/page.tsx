@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { ApplicationList } from '@/components/applications/application-list'
-import { ApplicationFilters } from '@/components/applications/application-filters'
+import { ApplicationListFilters } from '@/components/applications/application-filters'
 import { RequireAuth } from '@/components/auth/require-auth'
 
 export default function MyApplicationsPage() {
@@ -16,7 +16,7 @@ export default function MyApplicationsPage() {
 
                 <div className="space-y-8">
                     <Suspense fallback={<div className="h-10 w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" />}>
-                        <ApplicationFilters />
+                        <ApplicationListFilters />
                     </Suspense>
 
                     <Suspense fallback={<div className="h-64 w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-3xl" />}>

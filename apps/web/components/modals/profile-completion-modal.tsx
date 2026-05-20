@@ -40,44 +40,44 @@ export function ProfileCompletionModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-            <DialogContent showCloseButton={false} className="sm:max-w-md">
-                <DialogHeader className="text-center">
-                    <div className="flex justify-center mb-4">
-                        <div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-green-100">
-                            <CheckCircle2 className="w-8 h-8 text-green-600" />
+            <DialogContent showCloseButton={false} className="sm:max-w-md border-t-4 border-t-primary rounded-md p-6">
+                <DialogHeader className="text-center space-y-4">
+                    <div className="flex justify-center mb-2">
+                        <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100">
+                            <CheckCircle2 className="w-8 h-8 text-emerald-600" />
                         </div>
                     </div>
-                    <DialogTitle className="text-2xl">Profile Completed!</DialogTitle>
-                    <DialogDescription className="pt-2">
-                        Your profile has been successfully created. You're all set to start applying for positions.
+                    <DialogTitle className="text-xl font-bold text-slate-900">Registration Complete</DialogTitle>
+                    <DialogDescription className="text-base text-slate-600 pt-1">
+                        Your citizen profile has been successfully recorded. You may now proceed to apply for available opportunities.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
-                    <div className="p-4 bg-muted rounded-lg flex gap-3">
-                        <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div className="space-y-4 py-4 mt-2 border-t border-b border-slate-100">
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-md flex gap-3">
+                        <FileText className="w-5 h-5 text-slate-500 flex-shrink-0 mt-0.5" />
                         <div className="space-y-1">
-                            <p className="font-medium text-sm">Complete More Information</p>
-                            <p className="text-xs text-muted-foreground">
-                                Add qualifications, professional details, and training courses to strengthen your applications.
+                            <p className="font-semibold text-slate-800 text-sm">Enhance Your Profile</p>
+                            <p className="text-sm text-slate-600">
+                                Providing additional qualifications, professional experience, and supporting documents can strengthen your application.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-2">
                     <Button
                         variant="outline"
                         onClick={handleContinue}
-                        className="gap-2"
+                        className="rounded-md font-semibold border-slate-300"
                     >
                         Continue to Dashboard
                     </Button>
                     <Button
                         onClick={handleViewProfile}
-                        className="gap-2"
+                        className="rounded-md font-semibold gap-2"
                     >
-                        View Profile
+                        View Full Profile
                         <ArrowRight className="w-4 h-4" />
                     </Button>
                 </div>

@@ -14,11 +14,13 @@ import {
     MapPin,
     Mail,
     Phone,
-    Info
+    Info,
+    Users
 } from 'lucide-react'
 import type { ApplicantProfileWithRelations } from '@/types'
 import { formatNumber, formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { formatKNQFLevel } from '@meru/shared'
 
 // Profile Detail Component
 export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRelations }) {
@@ -49,10 +51,15 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                     <span className="hidden md:inline">Training</span>
                     <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1">{profile.trainingCourses.length}</Badge>
                 </TabsTrigger>
-                <TabsTrigger value="documents" className="py-2 gap-2">
+                {/* <TabsTrigger value="documents" className="py-2 gap-2">
                     <FileText className="h-4 w-4" />
                     <span className="hidden md:inline">Documents</span>
                     <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1">{profile.documents?.length || 0}</Badge>
+                </TabsTrigger> */}
+                <TabsTrigger value="referees" className="py-2 gap-2">
+                    <Users className="h-4 w-4" />
+                    <span className="hidden md:inline">Referees</span>
+                    <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1">{profile.referees?.length || 0}</Badge>
                 </TabsTrigger>
             </TabsList>
 
@@ -77,7 +84,7 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                     <InfoItem 
                         icon={<Phone className="h-4 w-4" />} 
                         label="Phone" 
-                        value={profile.phone} 
+                        value={profile.phone || profile.phoneNumber} 
                     />
                     <InfoItem 
                         label="Gender" 
@@ -85,22 +92,22 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                     />
                     <InfoItem 
                         label="Birth Year" 
-                        value={profile.birthYear?.toString() || 'Not specified'} 
+                        value={profile.birthYear?.toString() || (profile.dateOfBirth ? profile.dateOfBirth.split('-')[0] : null) || 'Not specified'} 
                     />
                     <InfoItem 
                         label="Ethnicity" 
-                        value={profile.ethnicity || 'Not specified'} 
+                        value={(profile.ethnicity as any)?.name || profile.ethnicity || 'Not specified'} 
                     />
                     <InfoItem 
                         icon={<MapPin className="h-4 w-4" />}
                         label="County" 
-                        value={profile.homeCounty || 'Not specified'} 
+                        value={(profile.homeCounty as any)?.name || profile.homeCounty || 'Not specified'} 
                     />
                     <InfoItem
                         label="Sub-County"
-                        value={profile.homeSubCounty || 'Not specified'}
+                        value={(profile.homeSubCounty as any)?.name || profile.homeSubCounty || 'Not specified'}
                     />
-                    <InfoItem label="Ward" value={profile.ward || 'Not specified'} />
+                    <InfoItem label="Ward" value={(profile.ward as any)?.name || profile.ward || 'Not specified'} />
                     <InfoItem
                         label="PWD Status"
                         value={profile.impairment ? 'Registered PWD' : 'None'}
@@ -132,14 +139,14 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {profile.qualifications.map((qual) => (
-                            <Card key={qual.id} className="overflow-hidden border-l-4 border-l-primary">
+                            <Card key={qual.id} className="overflow-hidden">
                                 <CardHeader className="pb-2">
                                     <div className="flex items-start justify-between gap-2">
                                         <CardTitle className="text-sm font-bold line-clamp-2 leading-tight">
                                             {qual.course}
                                         </CardTitle>
                                         <Badge variant="outline" className="shrink-0 text-[10px] h-5">
-                                            {qual.level}
+                                            {formatKNQFLevel(qual.level)}
                                         </Badge>
                                     </div>
                                     <CardDescription className="text-xs">{qual.institution}</CardDescription>
@@ -169,7 +176,7 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 ) : (
                     <div className="space-y-4">
                         {profile.employmentHistory.map((emp) => (
-                            <Card key={emp.id} className="overflow-hidden border-l-4 border-l-blue-500">
+                            <Card key={emp.id} className="overflow-hidden">
                                 <CardHeader className="pb-2">
                                     <div className="flex items-start justify-between gap-2">
                                         <div>
@@ -216,7 +223,7 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {profile.professionalDetails.map((detail) => (
-                            <Card key={detail.id} className="border-l-4 border-l-amber-500">
+                            <Card key={detail.id} className="overflow-hidden">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-sm font-bold">{detail.licenseType}</CardTitle>
                                     <CardDescription className="text-xs">{detail.issuingBody}</CardDescription>
@@ -246,7 +253,7 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {profile.trainingCourses.map((course) => (
-                            <Card key={course.id} className="border-l-4 border-l-purple-500">
+                            <Card key={course.id} className="overflow-hidden">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-sm font-bold">{course.courseName}</CardTitle>
                                     <CardDescription className="text-xs">{course.institution || 'N/A'}</CardDescription>
@@ -261,8 +268,40 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 )}
             </TabsContent>
 
-            {/* Documents */}
-            <TabsContent value="documents" className="pt-6">
+            {/* Referees */}
+            <TabsContent value="referees" className="pt-6">
+                {!profile.referees || profile.referees.length === 0 ? (
+                    <EmptyDetailState message="No referees added by this applicant" />
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {profile.referees.map((ref) => (
+                            <Card key={ref.id} className="overflow-hidden">
+                                <CardHeader className="pb-2">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div>
+                                            <CardTitle className="text-base font-bold">{ref.fullName}</CardTitle>
+                                            <CardDescription className="font-medium text-primary">
+                                                {ref.designation} at {ref.organization}
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="grid grid-cols-2 gap-4">
+                                    <InfoItem label="Phone" value={ref.phone} compact icon={<Phone className="h-3.5 w-3.5" />} />
+                                    <InfoItem label="Email" value={ref.email} compact icon={<Mail className="h-3.5 w-3.5" />} />
+                                    <InfoItem label="Relationship" value={ref.relationship || 'N/A'} compact />
+                                    {ref.address && (
+                                        <InfoItem label="Address" value={ref.address} compact fullWidth />
+                                    )}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </TabsContent>
+
+            {/* Documents - Commented out for now */}
+            {/* <TabsContent value="documents" className="pt-6">
                 {!profile.documents || profile.documents.length === 0 ? (
                     <EmptyDetailState message="No documents uploaded by this applicant" />
                 ) : (
@@ -289,7 +328,7 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                         ))}
                     </div>
                 )}
-            </TabsContent>
+            </TabsContent> */}
         </Tabs>
     )
 }
@@ -312,7 +351,7 @@ export function InfoItem({
     compact = false,
 }: {
     label: string
-    value: string
+    value?: string | null
     icon?: React.ReactNode
     fullWidth?: boolean
     compact?: boolean

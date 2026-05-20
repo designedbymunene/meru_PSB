@@ -20,6 +20,7 @@ export function ApplicationStatusBadge({ status, className }: ApplicationStatusB
             break
         case "reviewed":
         case "shortlisted":
+        case "interviewing":
         case "interviewed":
             variant = "outline"
             break
@@ -39,6 +40,7 @@ export function ApplicationStatusBadge({ status, className }: ApplicationStatusB
         switch (status) {
             case "pending": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80 dark:bg-yellow-900 dark:text-yellow-300"
             case "shortlisted": return "bg-blue-100 text-blue-800 hover:bg-blue-100/80 dark:bg-blue-900 dark:text-blue-300"
+            case "interviewing": return "bg-emerald-100 text-emerald-800 hover:bg-emerald-100/80 dark:bg-emerald-900 dark:text-emerald-300"
             case "interviewed": return "bg-purple-100 text-purple-800 hover:bg-purple-100/80 dark:bg-purple-900 dark:text-purple-300"
             case "accepted": return "bg-green-100 text-green-800 hover:bg-green-100/80 dark:bg-green-900 dark:text-green-300"
             case "rejected": return "bg-red-100 text-red-800 hover:bg-red-100/80 dark:bg-red-900 dark:text-red-300"
@@ -51,7 +53,7 @@ export function ApplicationStatusBadge({ status, className }: ApplicationStatusB
             variant={variant}
             className={cn("capitalize", getBadgeColor(normalizedStatus), className)}
         >
-            {status}
+            {normalizedStatus === 'rejected' ? 'Not Successful' : normalizedStatus === 'interviewing' ? 'Interview Scheduled' : status}
         </Badge>
     )
 }

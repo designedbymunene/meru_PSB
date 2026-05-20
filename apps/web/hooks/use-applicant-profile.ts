@@ -944,16 +944,24 @@ export function useDeleteReferee(profileId: number) {
 
 // ===== Admin Hooks =====
 
-export function useAllApplicantProfiles() {
+export function useAllApplicantProfiles(filters?: Partial<import('@meru/shared').ProfileFiltersInput>) {
     return useQuery({
-        queryKey: QUERY_KEYS.APPLICANT_PROFILES,
-        queryFn: () => applicantProfileApi.getAllProfiles(),
+        queryKey: [QUERY_KEYS.APPLICANT_PROFILES, filters],
+        queryFn: () => applicantProfileApi.getAllProfiles(filters),
+    })
+}
+
+export function useProfileStats() {
+    return useQuery({
+        queryKey: ['applicant-profiles-stats'],
+        queryFn: () => applicantProfileApi.getProfileStats(),
     })
 }
 
 export function useExportProfiles() {
     return useMutation({
-        mutationFn: () => applicantProfileApi.exportProfiles(),
+        mutationFn: (filters?: Partial<import('@meru/shared').ProfileFiltersInput>) => 
+            applicantProfileApi.exportProfiles(filters),
         onSuccess: (data) => {
             // Create a download link
             const url = window.URL.createObjectURL(data)

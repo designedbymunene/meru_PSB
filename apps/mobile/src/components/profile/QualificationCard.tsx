@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { GraduationCap } from 'lucide-react-native';
 import { SectionCard } from '@/components/account/SectionCard';
+import { formatKNQFLevel } from '@meru/shared';
 
 interface QualificationCardProps {
     qualification: {
@@ -26,7 +27,7 @@ export const QualificationCard: React.FC<QualificationCardProps> = ({
         <SectionCard
             title={qualification.institution}
             icon={<GraduationCap size={20} color="#004aad" />}
-            subtitle={qualification.level}
+            subtitle={formatKNQFLevel(qualification.level)}
             onEdit={onEdit}
             onDelete={onDelete}
         >

@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
-import { db, applications, users, auditLogs } from '../db'
-import { eq, and, desc, asc, inArray, SQL, or, ilike, exists, count, sql } from 'drizzle-orm'
+import { db, applications, users, auditLogs, vacancies } from '../db'
+import { eq, and, desc, asc, inArray, SQL, or, ilike, exists, sql } from 'drizzle-orm'
 import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
@@ -15,6 +15,8 @@ import {
 import { NotFoundError, ForbiddenError, successResponse, ConflictError, ValidationError } from '../utils/errors'
 import { ApplicationService } from '../services/application-service'
 import { AuditService } from '../services/audit-service'
+import { ApplicationNotificationService } from '../services/application-notification-service'
+import { serializeApplication, serializeApplications } from '../utils/application-status'
 import { auditLog } from '../middleware/audit-logger'
 import fs from 'fs'
 import path from 'path'
@@ -36,14 +38,30 @@ export const applicationsRouter = new Hono()
 // GET /api/applications/me - Get current user's applications
 applicationsRouter.get('/me', authenticate, async (c) => {
     const user = c.get('user')
-    const { vacancyId: vacancyIdRaw } = c.req.query()
+    const { vacancyId: vacancyIdRaw, departmentId, jobGroupId } = c.req.query()
     const vacancyId = vacancyIdRaw && !isNaN(parseInt(vacancyIdRaw)) ? parseInt(vacancyIdRaw) : undefined
 
+    const whereConditions: (SQL | undefined)[] = [eq(applications.applicantId, user.userId)]
+    if (vacancyId) whereConditions.push(eq(applications.vacancyId, vacancyId))
+
+    if (departmentId || jobGroupId) {
+        whereConditions.push(
+            exists(
+                db.select()
+                    .from(vacancies)
+                    .where(
+                        and(
+                            eq(vacancies.id, applications.vacancyId),
+                            departmentId ? eq(vacancies.departmentId, parseInt(departmentId)) : undefined,
+                            jobGroupId ? eq(vacancies.jobGroupId, parseInt(jobGroupId)) : undefined
+                        )
+                    )
+            )
+        )
+    }
+
     const apps = await db.query.applications.findMany({
-        where: and(
-            eq(applications.applicantId, user.userId),
-            vacancyId ? eq(applications.vacancyId, vacancyId) : undefined
-        ),
+        where: and(...whereConditions.filter((c): c is SQL => !!c)),
         with: {
             vacancy: {
                 with: {
@@ -58,25 +76,45 @@ applicationsRouter.get('/me', authenticate, async (c) => {
                     fullName: true,
                     email: true
                 }
-            }
+            },
+            interviews: true
         },
         orderBy: desc(applications.appliedAt)
     })
 
-    return successResponse(c, apps)
+    return successResponse(c, serializeApplications(apps))
 })
 
 // GET /api/applications - Get applications (applicants see own, admins see all)
 applicationsRouter.get('/', authenticate, async (c) => {
     const user = c.get('user')
-    const { vacancyId: vacancyIdRaw } = c.req.query()
+    const { vacancyId: vacancyIdRaw, departmentId, jobGroupId } = c.req.query()
     const vacancyId = vacancyIdRaw && !isNaN(parseInt(vacancyIdRaw)) ? parseInt(vacancyIdRaw) : undefined
 
     let allApplications
 
+    const whereConditions: (SQL | undefined)[] = []
+    if (vacancyId) whereConditions.push(eq(applications.vacancyId, vacancyId))
+
+    if (departmentId || jobGroupId) {
+        whereConditions.push(
+            exists(
+                db.select()
+                    .from(vacancies)
+                    .where(
+                        and(
+                            eq(vacancies.id, applications.vacancyId),
+                            departmentId ? eq(vacancies.departmentId, parseInt(departmentId)) : undefined,
+                            jobGroupId ? eq(vacancies.jobGroupId, parseInt(jobGroupId)) : undefined
+                        )
+                    )
+            )
+        )
+    }
+
     if (user.role === 'admin') {
         allApplications = await db.query.applications.findMany({
-            where: vacancyId ? eq(applications.vacancyId, vacancyId) : undefined,
+            where: whereConditions.length > 0 ? and(...whereConditions.filter((c): c is SQL => !!c)) : undefined,
             with: {
                 applicant: {
                     columns: {
@@ -91,16 +129,15 @@ applicationsRouter.get('/', authenticate, async (c) => {
                         department: true,
                         jobGroup: true
                     }
-                }
+                },
+                interviews: true
             },
             orderBy: desc(applications.appliedAt)
         })
     } else {
+        whereConditions.push(eq(applications.applicantId, user.userId))
         allApplications = await db.query.applications.findMany({
-            where: and(
-                eq(applications.applicantId, user.userId),
-                vacancyId ? eq(applications.vacancyId, vacancyId) : undefined
-            ),
+            where: and(...whereConditions.filter((c): c is SQL => !!c)),
             with: {
                 applicant: {
                     columns: {
@@ -115,13 +152,14 @@ applicationsRouter.get('/', authenticate, async (c) => {
                         department: true,
                         jobGroup: true
                     }
-                }
+                },
+                interviews: true
             },
             orderBy: desc(applications.appliedAt)
         })
     }
 
-    return successResponse(c, allApplications)
+    return successResponse(c, serializeApplications(allApplications))
 })
 
 // GET /api/applications/:id - Get single application
@@ -148,7 +186,11 @@ applicationsRouter.get('/:id', authenticate, async (c) => {
                             trainingCourses: true,
                             professionalMemberships: true,
                             referees: true,
-                            documents: true
+                            documents: true,
+                            homeCounty: true,
+                            homeSubCounty: true,
+                            ward: true,
+                            ethnicity: true
                         }
                     }
                 } : undefined
@@ -176,7 +218,8 @@ applicationsRouter.get('/:id', authenticate, async (c) => {
                     }
                 },
                 orderBy: desc(auditLogs.createdAt)
-            }
+            },
+            interviews: true
         }
     })
 
@@ -188,7 +231,7 @@ applicationsRouter.get('/:id', authenticate, async (c) => {
         throw new ForbiddenError('You can only view your own applications')
     }
 
-    return successResponse(c, application)
+    return successResponse(c, serializeApplication(application))
 })
 
 // POST /api/applications - Apply for a vacancy
@@ -326,6 +369,8 @@ applicationsRouter.get('/admin/search', authenticate, requireAdmin, async (c) =>
     const filters = applicationFiltersSchema.safeParse({
         status: query.status,
         vacancyId: query.vacancyId,
+        departmentId: query.departmentId,
+        jobGroupId: query.jobGroupId,
         applicantId: query.applicantId,
         searchTerm: query.searchTerm,
         sortBy: query.sortBy,
@@ -338,7 +383,7 @@ applicationsRouter.get('/admin/search', authenticate, requireAdmin, async (c) =>
         throw new Error(`Invalid filter parameters: ${filters.error.message}`)
     }
 
-    const { status, vacancyId, applicantId, searchTerm, sortBy, order, limit, offset } = filters.data
+    const { status, vacancyId, departmentId, jobGroupId, applicantId, searchTerm, sortBy, order, limit, offset } = filters.data
     const limitNum = Math.min(parseInt(limit), 100)
     const offsetNum = parseInt(offset)
 
@@ -347,7 +392,24 @@ applicationsRouter.get('/admin/search', authenticate, requireAdmin, async (c) =>
     if (status) whereConditions.push(eq(applications.status, status))
     if (vacancyId) whereConditions.push(eq(applications.vacancyId, parseInt(vacancyId)))
     if (applicantId) whereConditions.push(eq(applications.applicantId, parseInt(applicantId)))
-    
+
+    // Filter by department or job group through vacancy
+    if (departmentId || jobGroupId) {
+        whereConditions.push(
+            exists(
+                db.select()
+                    .from(vacancies)
+                    .where(
+                        and(
+                            eq(vacancies.id, applications.vacancyId),
+                            departmentId ? eq(vacancies.departmentId, parseInt(departmentId)) : undefined,
+                            jobGroupId ? eq(vacancies.jobGroupId, parseInt(jobGroupId)) : undefined
+                        )
+                    )
+            )
+        )
+    }
+
     // Search term in applicant name or email
     if (searchTerm) {
         whereConditions.push(
@@ -403,7 +465,8 @@ applicationsRouter.get('/admin/search', authenticate, requireAdmin, async (c) =>
                     phoneNumber: true,
                     fullName: true
                 }
-            }
+            },
+            interviews: true
         },
         orderBy,
         limit: limitNum,
@@ -413,12 +476,13 @@ applicationsRouter.get('/admin/search', authenticate, requireAdmin, async (c) =>
     // Optimize total count
     const totalCountResult = await db.select({ count: sql`count(*)::int` })
         .from(applications)
+        .leftJoin(vacancies, eq(applications.vacancyId, vacancies.id))
         .where(whereClause)
     
     const totalCount = Number(totalCountResult[0].count)
 
     return successResponse(c, {
-        data: result,
+        data: serializeApplications(result),
         pagination: {
             total: totalCount,
             limit: limitNum,
@@ -430,23 +494,53 @@ applicationsRouter.get('/admin/search', authenticate, requireAdmin, async (c) =>
 
 // GET /api/applications/admin/dashboard - Admin dashboard statistics
 applicationsRouter.get('/admin/dashboard', authenticate, requireAdmin, async (c) => {
-    const allApplications = await db.query.applications.findMany()
+    // Total and by status
+    const statusCounts = await db.select({
+        status: applications.status,
+        count: sql<number>`count(*)::int`
+    }).from(applications).groupBy(applications.status)
+
+    let total = 0;
+    let pending = 0;
+    let reviewed = 0;
+    let accepted = 0;
+    let rejected = 0;
+
+    statusCounts.forEach(row => {
+        total += row.count;
+        if (row.status === 'pending') pending += row.count;
+        if (row.status === 'reviewed') reviewed += row.count;
+        if (row.status === 'accepted') accepted += row.count;
+        if (row.status === 'rejected') rejected += row.count;
+    });
+
+    // Average rating
+    const ratingResult = await db.select({
+        avg: sql<number>`avg(${applications.rating})::float`
+    }).from(applications).where(sql`${applications.rating} IS NOT NULL`)
+    
+    const avgRating = ratingResult[0]?.avg || 0;
+
+    // By Vacancy
+    const vacancyCounts = await db.select({
+        vacancyId: applications.vacancyId,
+        count: sql<number>`count(*)::int`
+    }).from(applications).groupBy(applications.vacancyId)
+
+    const byVacancy: Record<number, number> = {}
+    vacancyCounts.forEach(row => {
+        byVacancy[row.vacancyId] = row.count
+    })
 
     const stats = {
-        total: allApplications.length,
-        pending: allApplications.filter(a => a.status === 'pending').length,
-        reviewed: allApplications.filter(a => a.status === 'reviewed').length,
-        accepted: allApplications.filter(a => a.status === 'accepted').length,
-        rejected: allApplications.filter(a => a.status === 'rejected').length,
-        avgRating: allApplications
-            .filter(a => a.rating)
-            .reduce((sum, a) => sum + (a.rating || 0), 0) / (allApplications.filter(a => a.rating).length || 1),
-        byVacancy: {} as Record<number, number>
+        total,
+        pending,
+        reviewed,
+        accepted,
+        rejected,
+        avgRating,
+        byVacancy
     }
-
-    allApplications.forEach(app => {
-        stats.byVacancy[app.vacancyId] = (stats.byVacancy[app.vacancyId] || 0) + 1
-    })
 
     return successResponse(c, stats)
 })
@@ -487,6 +581,15 @@ applicationsRouter.patch(
             .where(eq(applications.id, id))
             .returning()
 
+        await ApplicationNotificationService.notifyApplicationStatusChange({
+            applicantId: application.applicantId,
+            applicationId: application.id,
+            vacancyId: application.vacancyId,
+            status: data.status,
+            feedbackToApplicant: updatedApplication.feedbackToApplicant,
+            rejectionReason: updatedApplication.rejectionReason,
+        })
+
         await AuditService.logAction({
             adminId: user.userId,
             action: 'STATUS_UPDATE',
@@ -500,7 +603,7 @@ applicationsRouter.patch(
 
         return successResponse(
             c,
-            updatedApplication,
+            serializeApplication(updatedApplication),
             'Application status updated successfully'
         )
     }
@@ -544,6 +647,15 @@ applicationsRouter.post(
             .where(eq(applications.id, id))
             .returning()
 
+        await ApplicationNotificationService.notifyApplicationStatusChange({
+            applicantId: application.applicantId,
+            applicationId: application.id,
+            vacancyId: application.vacancyId,
+            status: data.status,
+            feedbackToApplicant: updatedApplication.feedbackToApplicant,
+            rejectionReason: updatedApplication.rejectionReason,
+        })
+
         await AuditService.logAction({
             adminId: user.userId,
             action: 'REVIEW_SUBMITTED',
@@ -557,8 +669,8 @@ applicationsRouter.post(
 
         return successResponse(
             c,
-            updatedApplication,
-            `Application marked as ${data.status} with feedback`,
+            serializeApplication(updatedApplication),
+            `Application marked as ${serializeApplication(updatedApplication).statusLabel} with feedback`,
             200
         )
     }
@@ -590,6 +702,18 @@ applicationsRouter.post(
             where: inArray(applications.id, data.applicationIds)
         })
 
+        await Promise.all(
+            updated.map((application) =>
+                ApplicationNotificationService.notifyApplicationStatusChange({
+                    applicantId: application.applicantId,
+                    applicationId: application.id,
+                    vacancyId: application.vacancyId,
+                    status: data.status,
+                    rejectionReason: application.rejectionReason,
+                })
+            )
+        )
+
         await AuditService.logAction({
             adminId: user.userId,
             action: 'BULK_STATUS_UPDATE',
@@ -602,7 +726,7 @@ applicationsRouter.post(
 
         return successResponse(
             c,
-            { updatedCount: updated.length, applications: updated },
+            { updatedCount: updated.length, applications: serializeApplications(updated) },
             `Updated ${updated.length} applications`
         )
     }

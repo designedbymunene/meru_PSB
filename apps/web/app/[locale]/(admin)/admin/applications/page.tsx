@@ -1,6 +1,6 @@
 "use client"
 
-import { useAllApplications, useExportApplications, useBulkUpdateStatus } from "@/hooks/use-applications"
+import { useAllApplications, useExportApplications, useBulkUpdateStatus, useApplicationStats } from "@/hooks/use-applications"
 import { DataTable } from "@/components/admin/data-table"
 import { TableSkeleton } from "@/components/shared/table-skeleton"
 import { ColumnDef } from "@tanstack/react-table"
@@ -9,33 +9,49 @@ import { ApplicationStatusBadge } from "@/components/admin/application-status-ba
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Eye, CheckCircle, Download, MoreHorizontal, Star, MapPin, User2 } from "lucide-react"
-import { ApplicationReviewDialog } from "@/components/admin/application-review-dialog"
-import { useState } from "react"
+import { Eye, Download, MapPin, User2, Calendar, Loader2, Inbox, CheckCircle2, XCircle, Clock } from "lucide-react"
+import { useState, Suspense } from "react"
 import { useQueryState } from "nuqs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { formatNumber, cn } from "@/lib/utils"
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
+    Card,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card'
 import { BulkActionsBar } from "@/components/admin/bulk-actions-bar"
 import { AdminApplicationFilters } from "@/components/admin/admin-application-filters"
 import { Badge } from "@/components/ui/badge"
+import { ScheduleInterviewDialog } from "@/components/admin/schedule-interview-dialog"
 
 
 const ApplicationActions = ({ application }: { application: ApplicationWithRelations }) => {
     return (
-        <div className="flex items-center justify-end">
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10" 
-                asChild 
+        <div className="flex items-center justify-end gap-2">
+            {(application.status === 'shortlisted' || application.status === 'interviewing') && (
+                <ScheduleInterviewDialog
+                    applicationId={application.id}
+                    vacancyId={application.vacancyId}
+                    existingInterview={application.interviews?.[0]}
+                    trigger={
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            title={application.interviews?.[0] ? "Update Interview Schedule" : "Schedule Interview"}
+                        >
+                            <Calendar className="h-4 w-4" />
+                            <span className="sr-only">Schedule</span>
+                        </Button>
+                    }
+                />
+            )}
+            <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                asChild
                 title="View Details"
             >
                 <Link href={`/admin/applications/${application.id}`}>
@@ -47,15 +63,19 @@ const ApplicationActions = ({ application }: { application: ApplicationWithRelat
     )
 }
 
-export default function ApplicationsPage() {
+function ApplicationsPageContent() {
     const [search] = useQueryState('search', { defaultValue: '', throttleMs: 500 })
     const [status] = useQueryState('status', { defaultValue: '' })
     const [vacancyId] = useQueryState('vacancyId', { defaultValue: '' })
+    const [departmentId] = useQueryState('departmentId', { defaultValue: '' })
+    const [jobGroupId] = useQueryState('jobGroupId', { defaultValue: '' })
 
     const [selectedRows, setSelectedRows] = useState<ApplicationWithRelations[]>([])
 
     const filters = {
         vacancyId: vacancyId && vacancyId !== '' ? vacancyId : undefined,
+        departmentId: departmentId && departmentId !== '' ? departmentId : undefined,
+        jobGroupId: jobGroupId && jobGroupId !== '' ? jobGroupId : undefined,
         status: status && status !== '' ? (status as any) : undefined,
         searchTerm: search || undefined,
         sortBy: 'appliedAt' as const,
@@ -66,6 +86,9 @@ export default function ApplicationsPage() {
 
     const { data, isLoading } = useAllApplications(filters)
     const applications = Array.isArray(data?.data) ? data.data : (data?.data as any)?.data || []
+
+    const { data: statsResponse, isLoading: isLoadingStats } = useApplicationStats()
+    const stats = statsResponse?.data
 
     const columns: ColumnDef<ApplicationWithRelations>[] = [
         {
@@ -149,27 +172,7 @@ export default function ApplicationsPage() {
                 </div>
             )
         },
-        {
-            accessorKey: "rating",
-            header: "Rating",
-            cell: ({ row }) => {
-                const rating = row.original.rating
-                if (!rating) return <span className="text-[10px] text-muted-foreground italic">Unrated</span>
-                return (
-                    <div className="flex items-center gap-0.5">
-                        {[...Array(5)].map((_, i) => (
-                            <Star 
-                                key={i} 
-                                className={cn(
-                                    "h-3 w-3",
-                                    i < rating ? "fill-amber-400 text-amber-400" : "text-slate-200"
-                                )} 
-                            />
-                        ))}
-                    </div>
-                )
-            }
-        },
+
         {
             accessorKey: "appliedAt",
             header: "Submitted",
@@ -221,7 +224,7 @@ export default function ApplicationsPage() {
     }
 
     return (
-        <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
@@ -243,12 +246,68 @@ export default function ApplicationsPage() {
                     </div>
                 </div>
 
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
+                    <Card className="bg-primary/5 border-primary/10">
+                        <CardHeader className="pb-2">
+                            <CardDescription className="text-primary/70 font-medium flex items-center gap-2">
+                                <Inbox className="h-4 w-4" />
+                                Total Applications
+                            </CardDescription>
+                            {isLoadingStats ? (
+                                <Loader2 className="h-8 w-8 animate-spin text-primary/40 mt-2" />
+                            ) : (
+                                <CardTitle className="text-3xl font-bold text-primary">{formatNumber(stats?.total || 0)}</CardTitle>
+                            )}
+                        </CardHeader>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardDescription className="font-medium flex items-center gap-2 text-amber-600">
+                                <Clock className="h-4 w-4" />
+                                Pending Review
+                            </CardDescription>
+                            {isLoadingStats ? (
+                                <Loader2 className="h-8 w-8 animate-spin text-amber-600/40 mt-2" />
+                            ) : (
+                                <CardTitle className="text-3xl font-bold">{formatNumber(stats?.pending || 0)}</CardTitle>
+                            )}
+                        </CardHeader>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardDescription className="font-medium flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                Accepted / Shortlisted
+                            </CardDescription>
+                            {isLoadingStats ? (
+                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mt-2" />
+                            ) : (
+                                <CardTitle className="text-3xl font-bold">{formatNumber(stats?.accepted || 0)}</CardTitle>
+                            )}
+                        </CardHeader>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardDescription className="font-medium flex items-center gap-2">
+                                <XCircle className="h-4 w-4 text-rose-500" />
+                                Rejected
+                            </CardDescription>
+                            {isLoadingStats ? (
+                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mt-2" />
+                            ) : (
+                                <CardTitle className="text-3xl font-bold">{formatNumber(stats?.rejected || 0)}</CardTitle>
+                            )}
+                        </CardHeader>
+                    </Card>
+                </div>
+
                 <AdminApplicationFilters />
             </div>
 
             <div className="hidden md:block">
                 {isLoading ? (
-                    <TableSkeleton columns={6} rows={10} />
+                    <TableSkeleton columnCount={6} rowCount={10} />
                 ) : (
                     <>
                         <DataTable
@@ -265,6 +324,18 @@ export default function ApplicationsPage() {
                 )}
             </div>
         </div>
+    )
+}
+
+export default function ApplicationsPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+                <TableSkeleton columnCount={6} rowCount={10} />
+            </div>
+        }>
+            <ApplicationsPageContent />
+        </Suspense>
     )
 }
 

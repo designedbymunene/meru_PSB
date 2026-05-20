@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useVacancies } from "@/hooks/use-vacancies"
-import { useShortlistCriteria } from "@/hooks/use-shortlisting"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -13,12 +12,11 @@ import {
     Search, 
     Check, 
     ChevronsUpDown,
-    ArrowRight,
     Sparkles,
     FileText
 } from "lucide-react"
 import { format } from "date-fns"
-import { formatNumber, cn } from "@/lib/utils"
+import { formatNumber } from "@/lib/utils"
 import {
     Command,
     CommandEmpty,
@@ -36,16 +34,14 @@ import {
 interface SelectVacancyStepProps {
     selectedVacancyId: number | null
     onVacancySelect: (vacancyId: number) => void
-    onNext: () => void
 }
 
 export function SelectVacancyStep({
     selectedVacancyId,
     onVacancySelect,
-    onNext,
 }: SelectVacancyStepProps) {
     const [open, setOpen] = useState(false)
-    const { data: vacancies, isLoading: isLoadingVacancies } = useVacancies()
+    const { data: vacancies } = useVacancies()
     const selectedVacancy = vacancies?.data?.find(v => v.id === selectedVacancyId)
 
     return (
@@ -184,9 +180,9 @@ export function SelectVacancyStep({
                         <Sparkles className="h-8 w-8 text-primary animate-pulse" />
                     </div>
                     <div className="space-y-1 max-w-sm">
-                        <h3 className="text-lg font-bold tracking-tight">Ready to shortlist?</h3>
+                        <h3 className="text-lg font-bold tracking-tight">Ready to process applicants?</h3>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            Search and select an active vacancy from the dropdown above to begin the automated evaluation process.
+                                Search and select an active vacancy from the dropdown above to begin the automated batch shortlisting process.
                         </p>
                     </div>
                 </div>

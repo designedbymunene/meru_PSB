@@ -16,6 +16,13 @@ export function useVacancies(filters?: VacancyFilters) {
     })
 }
 
+export function useVacancyStats() {
+    return useQuery({
+        queryKey: ['vacancy-stats'],
+        queryFn: () => vacancyApi.getVacancyStats(),
+    })
+}
+
 export function useVacancy(id: number) {
     return useQuery({
         queryKey: QUERY_KEYS.VACANCY(id),

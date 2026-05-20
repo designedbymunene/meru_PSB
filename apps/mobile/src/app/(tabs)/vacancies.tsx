@@ -1,5 +1,5 @@
 import { useVacancies, VacancyFilters } from '@/hooks/use-vacancies';
-import { useNetInfo } from '@react-community/netinfo';
+import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import { Briefcase, Calendar, ChevronRight, Filter, MapPin, Search, Users, X } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';

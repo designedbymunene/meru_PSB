@@ -27,8 +27,13 @@ export async function getSecuritySettings(): Promise<ApiResponse<SecuritySetting
 }
 
 export async function getActiveSessions(): Promise<ApiResponse<ActiveSession[]>> {
-    const { data } = await apiClient.get<ApiResponse<ActiveSession[]>>('/account/sessions')
-    return data
+    const { data } = await apiClient.get<ApiResponse<any>>('/account/sessions')
+    
+    if (data && data.data && Array.isArray((data.data as any).data)) {
+        return { ...data, data: (data.data as any).data } as ApiResponse<ActiveSession[]>
+    }
+    
+    return data as ApiResponse<ActiveSession[]>
 }
 
 export async function toggle2FA(enabled: boolean): Promise<ApiResponse<{ enabled: boolean }>> {

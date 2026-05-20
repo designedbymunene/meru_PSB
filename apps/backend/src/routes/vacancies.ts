@@ -12,12 +12,44 @@ import crypto from 'crypto'
 
 export const vacanciesRouter = new Hono()
 
+// ============ STATS ENDPOINT ============
+
+// GET /api/vacancies/stats - Get vacancy statistics (Admin only)
+vacanciesRouter.get('/stats', authenticate, requireAdmin, async (c) => {
+    try {
+        const [
+            totalResult,
+            openResult,
+            closedResult,
+            positionsResult
+        ] = await Promise.all([
+            db.select({ count: sql<number>`count(*)` }).from(vacancies),
+            db.select({ count: sql<number>`count(*)` }).from(vacancies).where(eq(vacancies.status, 'open')),
+            db.select({ count: sql<number>`count(*)` }).from(vacancies).where(eq(vacancies.status, 'closed')),
+            db.select({ sum: sql<number>`sum(${vacancies.openPositions})` }).from(vacancies).where(eq(vacancies.status, 'open'))
+        ])
+
+        return successResponse(c, {
+            totalVacancies: Number(totalResult[0].count) || 0,
+            openVacancies: Number(openResult[0].count) || 0,
+            closedVacancies: Number(closedResult[0].count) || 0,
+            totalOpenPositions: Number(positionsResult[0].sum) || 0
+        })
+    } catch (error) {
+        console.error('[ERROR] Failed to fetch vacancy stats', error)
+        throw error
+    }
+})
+
 // GET /api/vacancies - Get all vacancies (public)
 vacanciesRouter.get('/', async (c) => {
     const status = c.req.query('status')
     const departmentId = c.req.query('departmentId')
     const jobGroupId = c.req.query('jobGroupId')
     const search = c.req.query('search')
+    const page = parseInt(c.req.query('page') || '1')
+    const limit = Math.min(parseInt(c.req.query('limit') || '10'), 100)
+    const offset = (page - 1) * limit
 
     const conditions = []
     if (status === 'open' || status === 'closed') {
@@ -36,15 +68,33 @@ vacanciesRouter.get('/', async (c) => {
         ))
     }
 
-    // Use a simpler query approach to avoid lateral join issues with Drizzle 0.45.1
-    const vacancyList = await db
-        .select()
-        .from(vacancies)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(vacancies.createdAt))
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
+    // Fetch vacancies and total count in parallel
+    const [vacancyList, totalCountResult] = await Promise.all([
+        db.select()
+            .from(vacancies)
+            .where(whereClause)
+            .orderBy(desc(vacancies.createdAt))
+            .limit(limit)
+            .offset(offset),
+        db.select({ count: sql<number>`count(*)::int` })
+            .from(vacancies)
+            .where(whereClause)
+    ])
+
+    const totalCount = totalCountResult[0].count
 
     if (vacancyList.length === 0) {
-        return successResponse(c, [])
+        return successResponse(c, {
+            data: [],
+            pagination: {
+                total: totalCount,
+                page,
+                limit,
+                totalPages: Math.ceil(totalCount / limit)
+            }
+        })
     }
 
     // Get unique IDs for related data
@@ -60,7 +110,6 @@ vacanciesRouter.get('/', async (c) => {
         db.select().from(jobGroups).where(inArray(jobGroups.id, jobGroupIds)),
         db.select({
             id: users.id,
-            phoneNumber: users.phoneNumber,
             fullName: users.fullName,
             email: users.email
         }).from(users).where(inArray(users.id, creatorIds)),
@@ -88,7 +137,15 @@ vacanciesRouter.get('/', async (c) => {
         applicationsCount: applicationCountMap.get(vacancy.id) || 0
     }))
 
-    return successResponse(c, allVacancies)
+    return successResponse(c, {
+        data: allVacancies,
+        pagination: {
+            total: totalCount,
+            page,
+            limit,
+            totalPages: Math.ceil(totalCount / limit)
+        }
+    })
 })
 
 // GET /api/vacancies/:id - Get single vacancy (public)
@@ -102,7 +159,6 @@ vacanciesRouter.get('/:id', optionalAuthenticate, async (c) => {
             creator: {
                 columns: {
                     id: true,
-                    phoneNumber: true,
                     fullName: true,
                     email: true
                 }
@@ -360,4 +416,3 @@ vacanciesRouter.delete('/:id/pdf/:pdfId', authenticate, requireAdmin, async (c) 
 
     return successResponse(c, null, 'PDF deleted successfully')
 })
-

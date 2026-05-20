@@ -4,22 +4,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/auth-context';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Link, useRouter } from 'expo-router';
 import { Header } from '@/components/ui/header';
 import { User, Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, HelpCircle, Shield } from 'lucide-react-native';
 import { getApiErrorMessage } from '@/lib/api/client';
 import { FormField } from '@/components/ui/form-field';
+import { registerSchema } from '@meru/shared';
 
-const registerSchema = z.object({
-    fullName: z.string().min(3, 'Full name must be at least 3 characters'),
-    phoneNumber: z.string().min(10, 'Phone number must be at least 10 characters'),
-    nationalId: z.string().min(5, 'ID/Passport number is required'),
-    email: z.string().email('Invalid email address'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+type RegisterFormValues = {
+    email: string;
+    phoneNumber: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    nationalId: string;
+    role?: 'applicant' | 'admin';
+};
 
-type RegisterFormData = z.infer<typeof registerSchema>;
+type RegisterFormData = RegisterFormValues & {
+    role: 'applicant' | 'admin';
+};
 
 export default function RegisterScreen() {
     const { register: registerUser } = useAuth();
@@ -29,19 +33,22 @@ export default function RegisterScreen() {
     const [showPassword, setShowPassword] = useState(false);
 
     // Refs for keyboard navigation
+    const lastNameRef = useRef<TextInput>(null);
     const phoneRef = useRef<TextInput>(null);
     const idRef = useRef<TextInput>(null);
     const emailRef = useRef<TextInput>(null);
     const passwordRef = useRef<TextInput>(null);
 
-    const { control, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
+    const { control, handleSubmit, formState: { errors } } = useForm<RegisterFormValues, any, RegisterFormData>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
-            fullName: '',
+            firstName: '',
+            lastName: '',
             phoneNumber: '',
             nationalId: '',
             email: '',
             password: '',
+            role: 'applicant',
         },
     });
 
@@ -49,7 +56,7 @@ export default function RegisterScreen() {
         setIsLoading(true);
         setError(null);
         try {
-            await registerUser({ ...data, role: 'applicant' });
+            await registerUser(data);
         } catch (err: any) {
             setError(getApiErrorMessage(err, 'Registration failed. Please try again.'));
         } finally {
@@ -82,19 +89,38 @@ export default function RegisterScreen() {
                         )}
 
                         <View className="space-y-4">
-                            {/* Full Name */}
+                            {/* First Name */}
                             <Controller
                                 control={control}
-                                name="fullName"
+                                name="firstName"
                                 render={({ field: { onChange, onBlur, value } }) => (
                                     <FormField
-                                        label="Full Name"
-                                        placeholder="Enter your official names"
+                                        label="First Name"
+                                        placeholder="Enter your first name"
                                         icon={User}
                                         onBlur={onBlur}
                                         onChangeText={onChange}
                                         value={value}
-                                        error={errors.fullName?.message}
+                                        error={errors.firstName?.message}
+                                        nextFieldRef={lastNameRef}
+                                    />
+                                )}
+                            />
+
+                            {/* Last Name */}
+                            <Controller
+                                control={control}
+                                name="lastName"
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <FormField
+                                        ref={lastNameRef}
+                                        label="Last Name"
+                                        placeholder="Enter your last name"
+                                        icon={User}
+                                        onBlur={onBlur}
+                                        onChangeText={onChange}
+                                        value={value}
+                                        error={errors.lastName?.message}
                                         nextFieldRef={phoneRef}
                                     />
                                 )}

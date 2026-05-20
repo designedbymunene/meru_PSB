@@ -1,60 +1,60 @@
-import { db } from './index'
-import { 
-    departments, 
-    jobGroups, 
-    users, 
-    vacancies, 
-    applications, 
-    applicantProfiles, 
-    passwordResetSessions,
-    revokedTokens,
-    qualifications,
-    professionalDetails,
-    trainingCourses,
-    professionalMemberships,
-    employmentHistory,
-    vacancyDocuments
-} from './schema'
-import { not, eq } from 'drizzle-orm'
 import dotenv from 'dotenv'
+import { Pool, type PoolClient } from 'pg'
 
 dotenv.config()
 
+function quoteIdentifier(identifier: string) {
+    return `"${identifier.replace(/"/g, '""')}"`
+}
+
+async function getPublicTableNames(client: PoolClient) {
+    const result = await client.query(
+        `SELECT tablename
+         FROM pg_tables
+         WHERE schemaname = 'public'
+         ORDER BY tablename`
+    )
+
+    return result.rows.map((row: { tablename: string }) => row.tablename)
+}
+
 /**
  * Completely wipes the database for a fresh seed.
- * BE CAREFUL: This deletes ALL data in the specified tables except the admin user.
+ * BE CAREFUL: This deletes ALL data in the public schema tables.
  */
 export async function resetDatabase() {
+    const databaseUrl = process.env.DATABASE_URL
+    if (!databaseUrl) {
+        throw new Error('DATABASE_URL is required')
+    }
+
     console.warn('⚠️  WARNING: Resetting database...')
-    
+
+    const pool = new Pool({ connectionString: databaseUrl })
+    const client = await pool.connect()
+
     try {
-        // Delete in correct order to avoid foreign key violations
-        await db.delete(applications)
-        await db.delete(vacancyDocuments)
-        await db.delete(vacancies)
-        await db.delete(qualifications)
-        await db.delete(professionalDetails)
-        await db.delete(trainingCourses)
-        await db.delete(professionalMemberships)
-        await db.delete(employmentHistory)
-        await db.delete(applicantProfiles)
-        await db.delete(passwordResetSessions)
-        await db.delete(revokedTokens)
-        
-        // Delete all users except admin
-        await db.delete(users).where(not(eq(users.role, 'admin')))
-        
-        // Let's also not delete departments and job groups since they are reference data
-        // and might be needed by the admin or subsequent operations, unless you want them wiped.
-        // I'll wipe them if they were originally wiped. Wait, they might be needed. 
-        // I'll just wipe what was originally wiped, except users.
-        await db.delete(departments)
-        await db.delete(jobGroups)
-        
-        console.log('✅ Database wiped successfully (Admin users retained).')
+        await client.query('BEGIN')
+
+        const tableNames = await getPublicTableNames(client)
+        if (tableNames.length === 0) {
+            console.log('ℹ️ No public tables found to reset.')
+            await client.query('COMMIT')
+            return
+        }
+
+        const tables = tableNames.map((name: string) => `public.${quoteIdentifier(name)}`).join(', ')
+        await client.query(`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE`)
+
+        await client.query('COMMIT')
+        console.log('✅ Database wiped successfully.')
     } catch (error) {
+        await client.query('ROLLBACK')
         console.error('❌ Database wipe failed:', error)
         throw error
+    } finally {
+        client.release()
+        await pool.end()
     }
 }
 

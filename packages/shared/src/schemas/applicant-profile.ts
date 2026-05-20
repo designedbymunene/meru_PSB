@@ -41,6 +41,35 @@ export const LEGACY_LEVEL_MAP: Record<string, KNQFLevel> = {
     'KCPE': 'Level 1 (Primary Certificate / Basic Skills)',
 }
 
+export const KNQF_LEVEL_NAME_MAP: Record<string, string> = {
+    // KNQF Levels
+    'KNQF_LEVEL_10': 'Level 10 (Doctorate / PhD)',
+    'KNQF_LEVEL_9': 'Level 9 (Master\'s Degree)',
+    'KNQF_LEVEL_8': 'Level 8 (Postgrad Diploma / Professional Bachelor\'s)',
+    'KNQF_LEVEL_7': 'Level 7 (Bachelor\'s Degree / Professional Diploma)',
+    'KNQF_LEVEL_6': 'Level 6 (National Diploma / NSC V / HND)',
+    'KNQF_LEVEL_5': 'Level 5 (Craft Certificate / NSC IV)',
+    'KNQF_LEVEL_4': 'Level 4 (Artisan Certificate / NSC III / GTT I)',
+    'KNQF_LEVEL_3': 'Level 3 (Senior Secondary / KCSE / NSC II / GTT II)',
+    'KNQF_LEVEL_2': 'Level 2 (Junior Secondary / NSC I / GTT III)',
+    'KNQF_LEVEL_1': 'Level 1 (Primary Certificate / Basic Skills)',
+    // Legacy levels
+    'DOCTORATE': 'Level 10 (Doctorate / PhD)',
+    'MASTERS': 'Level 9 (Master\'s Degree)',
+    'POSTGRAD_DIPLOMA': 'Level 8 (Postgrad Diploma / Professional Bachelor\'s)',
+    'BACHELORS': 'Level 7 (Bachelor\'s Degree / Professional Diploma)',
+    'HIGHER_DIPLOMA': 'Level 6 (National Diploma / NSC V / HND)',
+    'DIPLOMA': 'Level 6 (National Diploma / NSC V / HND)',
+    'CERTIFICATE': 'Level 5 (Craft Certificate / NSC IV)',
+    'KCSE': 'Level 3 (Senior Secondary / KCSE / NSC II / GTT II)',
+    'KCPE': 'Level 1 (Primary Certificate / Basic Skills)',
+}
+
+export function formatKNQFLevel(level: string): string {
+    return KNQF_LEVEL_NAME_MAP[level] || level;
+}
+
+
 export const KCSE_GRADES = ['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'E'] as const
 export const TVET_GRADES = ['Distinction', 'Credit', 'Pass', 'Fail', 'Refer'] as const
 export const UNIVERSITY_GRADES = [
@@ -59,6 +88,20 @@ export const validateGradeForLevel = (level: string, grade: string | undefined |
 
     // Normalize level
     const normalizedLevel = LEGACY_LEVEL_MAP[level] || level;
+
+    // Level 1 to 4 grades should include A+, A, A-, B+, B, B-, C+, C, C-, D+, D, D-, E
+    if (
+        level === 'KNQF_LEVEL_1' ||
+        level === 'KNQF_LEVEL_2' ||
+        level === 'KNQF_LEVEL_3' ||
+        level === 'KNQF_LEVEL_4' ||
+        normalizedLevel.includes('Level 1') ||
+        normalizedLevel.includes('Level 2') ||
+        normalizedLevel.includes('Level 3') ||
+        normalizedLevel.includes('Level 4')
+    ) {
+        return ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'E'].includes(grade);
+    }
 
     // Level 3 / KCSE
     if (normalizedLevel.includes('Level 3') || level === 'KCSE') {
@@ -85,12 +128,12 @@ export const applicantProfileSchema = z.object({
     idNumber: z.string().min(1, 'ID number is required'), // Free text - no strict format
     gender: z.enum(['Male', 'Female', 'Other'], { required_error: 'Gender is required' }),
     dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format'),
-    ethnicityId: z.coerce.number({ required_error: 'Ethnicity is required' }),
+    ethnicityId: z.coerce.number({ required_error: 'Please select your ethnicity', invalid_type_error: 'Please select a valid ethnicity' }).min(1, 'Please select a valid ethnicity'),
     phoneNumber: z.string().min(1, 'Phone number is required'), // Free text - supports international
     email: z.string().email('Invalid email address'),
-    homeCountyId: z.coerce.number({ required_error: 'Home County is required' }),
-    homeSubCountyId: z.coerce.number({ required_error: 'Sub-County is required' }),
-    wardId: z.coerce.number({ required_error: 'Ward is required' }),
+    homeCountyId: z.coerce.number({ required_error: 'Please select your home county', invalid_type_error: 'Please select a valid home county' }).min(1, 'Please select a valid home county'),
+    homeSubCountyId: z.coerce.number({ required_error: 'Please select your sub-county', invalid_type_error: 'Please select a valid sub-county' }).min(1, 'Please select a valid sub-county'),
+    wardId: z.coerce.number({ required_error: 'Please select your ward', invalid_type_error: 'Please select a valid ward' }).min(1, 'Please select a valid ward'),
     impairment: z.boolean().default(false),
     impairmentDetails: z.string().optional(),
     publicServiceInfo: z.string().optional(),
@@ -327,6 +370,19 @@ export const refereeSchema = z.object({
 
 export const updateRefereeSchema = refereeSchema.partial()
 
+// Profile Filter Schema
+export const profileFiltersSchema = z.object({
+    searchTerm: z.string().optional(),
+    gender: z.enum(['Male', 'Female', 'Other']).optional(),
+    impairment: z.string().optional(), // "true" or "false" as string from query params
+    ethnicityId: z.string().optional(),
+    homeCountyId: z.string().optional(),
+    page: z.string().optional().default('1'),
+    limit: z.string().optional().default('50'),
+    sortBy: z.enum(['fullName', 'createdAt', 'idNumber']).optional().default('fullName'),
+    order: z.enum(['asc', 'desc']).optional().default('asc')
+})
+
 export type ApplicantProfileInput = z.infer<typeof applicantProfileSchema>
 export type UpdateApplicantProfileInput = z.infer<typeof updateApplicantProfileSchema>
 export type QualificationInput = z.infer<typeof qualificationSchema>
@@ -341,3 +397,4 @@ export type EmploymentHistoryInput = z.infer<typeof employmentHistorySchema>
 export type UpdateEmploymentHistoryInput = z.infer<typeof updateEmploymentHistorySchema>
 export type RefereeInput = z.infer<typeof refereeSchema>
 export type UpdateRefereeInput = z.infer<typeof updateRefereeSchema>
+export type ProfileFiltersInput = z.infer<typeof profileFiltersSchema>

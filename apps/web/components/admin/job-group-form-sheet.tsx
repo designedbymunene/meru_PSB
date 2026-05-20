@@ -114,115 +114,124 @@ export function JobGroupFormSheet({ open, onOpenChange, jobGroup }: JobGroupForm
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-                <SheetHeader>
-                    <SheetTitle>{jobGroup ? "Edit Job Group" : "Create Job Group"}</SheetTitle>
-                    <SheetDescription>
+            <SheetContent className="w-full sm:max-w-md p-0 flex flex-col h-full border-l border-slate-200 dark:border-l-slate-800 bg-white dark:bg-slate-950">
+                <SheetHeader className="p-6 border-b border-slate-100 dark:border-slate-800 text-left">
+                    <SheetTitle className="text-2xl font-bold tracking-tight">
+                        {jobGroup ? "Edit Job Group" : "Create Job Group"}
+                    </SheetTitle>
+                    <SheetDescription className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                         {jobGroup
                             ? "Update the job group details below."
                             : "Fill in the details to create a new job group."}
                     </SheetDescription>
                 </SheetHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1 mt-4">
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Name</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g. Group K" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <div className="grid grid-cols-2 gap-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
                             <FormField
                                 control={form.control}
-                                name="salaryMin"
+                                name="name"
                                 render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Min Salary</FormLabel>
+                                    <FormItem className="space-y-2">
+                                        <FormLabel className="text-xs font-semibold text-slate-600">Name</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g. 50000" type="number" {...field} />
+                                            <Input placeholder="e.g. Group K" className="h-12 rounded-xl" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="salaryMin"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-2">
+                                            <FormLabel className="text-xs font-semibold text-slate-600">Min Salary</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="e.g. 50000" type="number" className="h-12 rounded-xl" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="salaryMax"
+                                    render={({ field }) => (
+                                        <FormItem className="space-y-2">
+                                            <FormLabel className="text-xs font-semibold text-slate-600">Max Salary</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="e.g. 80000" type="number" className="h-12 rounded-xl" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
                             <FormField
                                 control={form.control}
-                                name="salaryMax"
+                                name="description"
                                 render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Max Salary</FormLabel>
+                                    <FormItem className="space-y-2">
+                                        <FormLabel className="text-xs font-semibold text-slate-600">Description</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g. 80000" type="number" {...field} />
+                                            <Textarea
+                                                placeholder="Brief description..."
+                                                className="resize-none rounded-xl"
+                                                rows={3}
+                                                {...field}
+                                            />
                                         </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="status"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-2">
+                                        <FormLabel className="text-xs font-semibold text-slate-600">Status</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="h-12 rounded-xl">
+                                                    <SelectValue placeholder="Select status" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="active">Active</SelectItem>
+                                                <SelectItem value="inactive">Inactive</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
                         </div>
 
-                        <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Description</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Brief description..."
-                                            className="resize-none"
-                                            rows={3}
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="status"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Status</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select status" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="active">Active</SelectItem>
-                                            <SelectItem value="inactive">Inactive</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <SheetFooter className="gap-2 sm:gap-0">
+                        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 flex gap-3 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] mt-auto">
                             <Button
                                 type="button"
                                 variant="outline"
+                                className="flex-1 h-13 rounded-2xl font-bold border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
                                 onClick={() => onOpenChange(false)}
                                 disabled={isSubmitting}
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={isSubmitting}>
+                            <Button
+                                type="submit"
+                                className="flex-[2] h-13 rounded-2xl font-bold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98] transition-all"
+                                disabled={isSubmitting}
+                            >
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {jobGroup ? "Save Changes" : "Create Job Group"}
                             </Button>
-                        </SheetFooter>
+                        </div>
                     </form>
                 </Form>
             </SheetContent>

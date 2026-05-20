@@ -11,18 +11,22 @@ export default function AdminDashboardPage() {
     const { data: vacanciesData, isLoading: isLoadingVacancies } = useVacancies()
     const { data: applicationsData, isLoading: isLoadingApplications } = useAllApplications()
 
-    const vacancies = vacanciesData?.data || []
-    // Handle both direct array and paginated response { data, pagination }
+    // Handle both direct array and paginated response { data, pagination } for vacancies
+    const vacancies = Array.isArray(vacanciesData?.data) 
+        ? vacanciesData.data 
+        : (vacanciesData?.data as any)?.data || []
+
+    // Handle both direct array and paginated response { data, pagination } for applications
     const applications = Array.isArray(applicationsData?.data) 
         ? applicationsData.data 
         : (applicationsData?.data as any)?.data || []
 
     // Calculate stats
     const totalVacancies = vacancies.length
-    const openVacancies = vacancies.filter(v => v.status === 'open').length
+    const openVacancies = vacancies.filter((v: any) => v.status === 'open').length
 
     const totalApplications = applications.length
-    const pendingApplications = applications.filter(a => a.status === 'pending').length
+    const pendingApplications = applications.filter((a: any) => a.status === 'pending').length
 
     const isLoading = isLoadingVacancies || isLoadingApplications
 

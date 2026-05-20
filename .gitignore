@@ -61,3 +61,7 @@ skills-lock.json
 app-example
 pnpm-lock.yaml.bak
 pnpm-workspace.yaml.bak
+
+# Backups and Dumps
+apps/backend/*.sql
+apps/backend/*.dump

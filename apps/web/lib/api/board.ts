@@ -1,5 +1,5 @@
 import apiClient from './client'
-import type { ApiResponse, BoardResolution, BoardResolutionInput } from '@meru/shared'
+import type { ApiResponse, BoardResolution, BoardResolutionInput, BoardResolutionWithRelations } from '@meru/shared'
 
 export async function generateBoardPack(vacancyId: number): Promise<Blob> {
     const { data } = await apiClient.get(`/board/pack/${vacancyId}`, {
@@ -13,7 +13,7 @@ export async function recordResolution(input: BoardResolutionInput): Promise<Api
     return data
 }
 
-export async function fetchResolutions(): Promise<ApiResponse<BoardResolution[]>> {
-    const { data } = await apiClient.get<ApiResponse<BoardResolution[]>>('/board/resolutions')
+export async function fetchResolutions(): Promise<ApiResponse<BoardResolutionWithRelations[]>> {
+    const { data } = await apiClient.get<ApiResponse<BoardResolutionWithRelations[]>>('/board/resolutions')
     return data
 }

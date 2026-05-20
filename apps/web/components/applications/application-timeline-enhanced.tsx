@@ -1,12 +1,12 @@
 "use client"
 
-import { CheckCircle2, Circle, Clock, AlertCircle, ChevronRight } from "lucide-react"
+import { CheckCircle2, Circle, Clock, AlertCircle, ChevronRight, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type ApplicationStatus = 'pending' | 'under_review' | 'reviewed' | 'shortlisted' | 'interviewed' | 'offered' | 'rejected'
+type ApplicationStatus = 'pending' | 'under_review' | 'reviewed' | 'shortlisted' | 'interviewing' | 'interviewed' | 'offered' | 'rejected'
 
 interface ApplicationTimelineEnhancedProps {
-    status: ApplicationStatus
+    status: ApplicationStatus | string
     lastUpdated?: string
     appliedAt?: string
 }
@@ -23,7 +23,7 @@ export function ApplicationTimelineEnhanced({
             description: 'Application received',
             detail: 'Your application has been successfully submitted',
             estimatedTime: 'Immediate',
-            statuses: ['pending', 'under_review', 'reviewed', 'shortlisted', 'interviewed', 'offered', 'rejected'],
+            statuses: ['pending', 'under_review', 'reviewed', 'shortlisted', 'interviewing', 'interviewed', 'offered', 'rejected'],
         },
         {
             id: 'reviewing',
@@ -31,7 +31,7 @@ export function ApplicationTimelineEnhanced({
             description: 'HR is checking requirements',
             detail: 'Our team is reviewing your qualifications',
             estimatedTime: '3-7 business days',
-            statuses: ['under_review', 'reviewed', 'shortlisted', 'interviewed', 'offered', 'rejected'],
+            statuses: ['under_review', 'reviewed', 'shortlisted', 'interviewing', 'interviewed', 'offered', 'rejected'],
         },
         {
             id: 'shortlisted',
@@ -39,7 +39,7 @@ export function ApplicationTimelineEnhanced({
             description: 'Qualified for next stage',
             detail: 'Congratulations! You\'ve made it to the shortlist',
             estimatedTime: '5-10 business days',
-            statuses: ['shortlisted', 'interviewed', 'offered'],
+            statuses: ['shortlisted', 'interviewing', 'interviewed', 'offered'],
         },
         {
             id: 'interview',
@@ -47,13 +47,13 @@ export function ApplicationTimelineEnhanced({
             description: 'Face-to-face assessment',
             detail: 'Interview scheduled with our hiring team',
             estimatedTime: '1-2 weeks',
-            statuses: ['interviewed', 'offered'],
+            statuses: ['interviewing', 'interviewed', 'offered'],
         },
         {
             id: 'final',
             label: 'Final Decision',
-            description: 'Offer or feedback',
-            detail: 'Final decision and next steps',
+            description: status === 'rejected' ? 'Application Concluded' : 'Offer or feedback',
+            detail: status === 'rejected' ? 'Unfortunately, your application was not successful on this occasion' : 'Final decision and next steps',
             estimatedTime: '2-3 business days',
             statuses: ['offered', 'rejected'],
         }
@@ -71,7 +71,7 @@ export function ApplicationTimelineEnhanced({
     }
 
     const calculateProgress = () => {
-        const statusOrder = ['pending', 'under_review', 'reviewed', 'shortlisted', 'interviewed', 'offered', 'rejected']
+        const statusOrder = ['pending', 'under_review', 'reviewed', 'shortlisted', 'interviewing', 'interviewed', 'offered', 'rejected']
         const currentIndex = statusOrder.indexOf(status)
         const totalSteps = steps.length
         return Math.min(Math.max((currentIndex / (totalSteps - 1)) * 100, 10), 100)
@@ -80,41 +80,42 @@ export function ApplicationTimelineEnhanced({
     const progress = calculateProgress()
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-10">
             {/* Overall Progress Bar */}
-            <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">Overall Progress</span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">{Math.round(progress)}% Complete</span>
+            <div className="space-y-3 p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 shadow-inner">
+                <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Overall Progress</span>
+                    <span className="text-xs font-black text-blue-650 dark:text-blue-400">{Math.round(progress)}% Complete</span>
                 </div>
-                <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-3 bg-slate-100 dark:bg-slate-950 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800 p-0.5">
                     <div
                         className={cn(
-                            "h-full rounded-full transition-all duration-700 ease-out",
+                            "h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:shadow-[0_0_15px_rgba(59,130,246,0.5)]",
                             status === 'rejected'
-                                ? "bg-rose-500"
-                                : "bg-gradient-to-r from-blue-500 to-blue-600"
+                                ? "bg-slate-400 dark:bg-slate-655"
+                                : "bg-gradient-to-r from-blue-600 via-blue-400 to-blue-500"
                         )}
                         style={{ width: `${progress}%` }}
                     />
                 </div>
+                {(lastUpdated || appliedAt) && (
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-widest pt-1">
+                        <Clock className="h-3 w-3" />
+                        <span>Last updated: {lastUpdated
+                            ? new Date(lastUpdated).toLocaleDateString()
+                            : appliedAt
+                                ? new Date(appliedAt).toLocaleDateString()
+                                : 'Recently'
+                        }</span>
+                    </div>
+                )}
             </div>
 
-            {/* Last Updated */}
-            {(lastUpdated || appliedAt) && (
-                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                    <Clock className="h-3 w-3" />
-                    <span>Last updated: {lastUpdated
-                        ? new Date(lastUpdated).toLocaleDateString()
-                        : appliedAt
-                            ? new Date(appliedAt).toLocaleDateString()
-                            : 'Recently'
-                    }</span>
-                </div>
-            )}
-
             {/* Timeline Steps */}
-            <div className="space-y-4">
+            <div className="relative space-y-6">
+                {/* Vertical Line */}
+                <div className="absolute left-10 top-5 bottom-5 w-0.5 bg-gradient-to-b from-blue-500/50 via-slate-200 dark:via-slate-800 to-slate-200 dark:to-slate-800 hidden sm:block" />
+
                 {steps.map((step, index) => {
                     const stepStatus = getStepStatus(step.statuses)
                     const isComplete = stepStatus === 'complete' || (stepStatus === 'current' && step.id !== 'final')
@@ -125,84 +126,80 @@ export function ApplicationTimelineEnhanced({
                         <div
                             key={step.id}
                             className={cn(
-                                "relative flex gap-4 p-4 rounded-xl transition-all duration-300",
-                                isCurrent && "bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-900/50 shadow-sm",
-                                isError && "bg-rose-50 dark:bg-rose-950/20 border-2 border-rose-200 dark:border-rose-900/50",
+                                "relative flex gap-6 p-6 rounded-2xl transition-all duration-500 border group",
+                                isCurrent ? "bg-blue-50/70 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.05)] dark:shadow-[0_0_20px_rgba(59,130,246,0.1)] scale-[1.02]" :
+                                isError ? "bg-slate-50/80 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/80" :
+                                "bg-slate-50/50 dark:bg-[#0d0f16] border-slate-200 dark:border-slate-800/50 opacity-65 hover:opacity-100 hover:border-slate-300 dark:hover:border-slate-700",
                             )}
                         >
-                            {/* Icon */}
-                            <div className={cn(
-                                "flex items-center justify-center w-12 h-12 rounded-full border-2 border-white dark:border-slate-900 shadow-lg shrink-0 transition-all duration-500",
-                                isComplete ? "bg-emerald-500 border-emerald-200 dark:border-emerald-800" :
-                                isCurrent ? "bg-blue-500 border-blue-200 dark:border-blue-800 animate-pulse" :
-                                isError ? "bg-rose-500 border-rose-200 dark:border-rose-800" :
-                                "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-                            )}>
-                                {isComplete ? <CheckCircle2 className="h-6 w-6 text-white" /> :
-                                 isError ? <AlertCircle className="h-6 w-6 text-white" /> :
-                                 isCurrent ? <Clock className="h-6 w-6 text-white" /> :
-                                 <Circle className="h-6 w-6 fill-current opacity-20 text-slate-400" />}
+                            {/* Icon Wrapper */}
+                            <div className="relative z-10 shrink-0">
+                                <div className={cn(
+                                    "flex items-center justify-center w-12 h-12 rounded-2xl border-2 shadow-2xl transition-all duration-700",
+                                    isComplete ? "bg-emerald-500 border-emerald-400/50 text-white" :
+                                    isCurrent ? "bg-blue-600 border-blue-400/50 text-white animate-pulse" :
+                                    isError ? "bg-slate-500 border-slate-400/50 text-white" :
+                                    "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600"
+                                )}>
+                                    {isComplete ? <CheckCircle2 className="h-6 w-6" /> :
+                                     isError ? <XCircle className="h-6 w-6" /> :
+                                     isCurrent ? <Clock className="h-6 w-6" /> :
+                                     <Circle className="h-4 w-4 fill-current opacity-20" />}
+                                </div>
                             </div>
 
                             {/* Content */}
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2 mb-1">
-                                    <div>
-                                        <div className={cn(
-                                            "text-sm font-bold uppercase tracking-wider mb-1",
-                                            isCurrent ? "text-blue-600 dark:text-blue-400" :
-                                            isError ? "text-rose-600 dark:text-rose-400" :
-                                            "text-slate-400"
-                                        )}>
-                                            {step.label}
-                                        </div>
-                                        <div className={cn(
-                                            "text-base font-semibold",
-                                            isCurrent || isError ? "text-slate-900 dark:text-slate-100" : "text-slate-600 dark:text-slate-400"
-                                        )}>
-                                            {step.description}
-                                        </div>
+                                <div className="flex items-center justify-between gap-4 mb-2">
+                                    <div className={cn(
+                                        "text-[10px] font-black uppercase tracking-[0.2em]",
+                                        isCurrent ? "text-blue-600 dark:text-blue-400" :
+                                        isError ? "text-slate-500 dark:text-slate-400" :
+                                        "text-slate-400 dark:text-slate-500"
+                                    )}>
+                                        {step.label}
                                     </div>
                                     {isCurrent && !isError && (
-                                        <span className="flex h-2 w-2 rounded-full bg-blue-500 mt-2 shrink-0" />
+                                        <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-ping" />
                                     )}
                                 </div>
 
+                                <h4 className={cn(
+                                    "text-lg font-bold mb-1",
+                                    isCurrent ? "text-slate-950 dark:text-white" : 
+                                    isError ? "text-slate-700 dark:text-slate-300" : 
+                                    "text-slate-500 dark:text-slate-400"
+                                )}>
+                                    {step.description}
+                                </h4>
+
                                 <p className={cn(
-                                    "text-sm mb-2",
-                                    isCurrent || isError ? "text-slate-700 dark:text-slate-300" : "text-slate-500 dark:text-slate-500"
+                                    "text-sm leading-relaxed mb-4",
+                                    isCurrent ? "text-slate-750 dark:text-slate-300" : 
+                                    isError ? "text-slate-600 dark:text-slate-405" : 
+                                    "text-slate-400 dark:text-slate-500"
                                 )}>
                                     {step.detail}
                                 </p>
 
-                                {/* Estimated Time */}
-                                <div className={cn(
-                                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
-                                    isComplete
-                                        ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
-                                        : isCurrent
-                                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                                )}>
-                                    <Clock className="h-3 w-3" />
-                                    <span>{step.estimatedTime}</span>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <div className={cn(
+                                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border",
+                                        isComplete ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400" :
+                                        isCurrent ? "bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20 text-blue-600 dark:text-blue-400" :
+                                        isError ? "bg-slate-50 dark:bg-slate-950/20 border-slate-205 dark:border-slate-800/50 text-slate-500" :
+                                        "bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500"
+                                    )}>
+                                        <Clock className="h-3 w-3" />
+                                        {step.estimatedTime}
+                                    </div>
+
+                                    {isCurrent && !isError && (
+                                        <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-500 group-hover:translate-x-1 transition-transform cursor-pointer">
+                                            In progress <ChevronRight className="h-4 w-4" />
+                                        </div>
+                                    )}
                                 </div>
-
-                                {/* Current Stage Message */}
-                                {isCurrent && status === 'rejected' && step.id === 'final' && (
-                                    <div className="mt-3 p-3 bg-rose-100 dark:bg-rose-950/30 rounded-lg border border-rose-200 dark:border-rose-900/30">
-                                        <p className="text-sm font-medium text-rose-800 dark:text-rose-200">
-                                            This application was not successful. Check the feedback section below for details.
-                                        </p>
-                                    </div>
-                                )}
-
-                                {isCurrent && !isError && (
-                                    <div className="mt-3 flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
-                                        <span className="font-medium">In progress</span>
-                                        <ChevronRight className="h-4 w-4" />
-                                    </div>
-                                )}
                             </div>
                         </div>
                     )

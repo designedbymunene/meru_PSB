@@ -11,7 +11,7 @@ declare module 'hono' {
             email: string
             role: 'applicant' | 'admin'
         }
-        validatedData: any
+        validatedData: unknown
     }
 }
 

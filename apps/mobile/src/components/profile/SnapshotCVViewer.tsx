@@ -4,6 +4,7 @@ import {
     User, MapPin, GraduationCap, Briefcase, Award, Users, 
     Calendar, Mail, Phone, Hash, ShieldCheck, Globe
 } from 'lucide-react-native';
+import { formatKNQFLevel } from '@meru/shared';
 
 interface SnapshotCVViewerProps {
     snapshot: any;
@@ -76,7 +77,7 @@ export function SnapshotCVViewer({ snapshot }: SnapshotCVViewerProps) {
                                 <Text className="text-gray-500 font-bold text-xs mt-1">{q.institutionName}</Text>
                             </View>
                             <View className="bg-white px-3 py-1 rounded-full border border-gray-100">
-                                <Text className="text-[#004aad] text-[10px] font-black uppercase">{q.level}</Text>
+                                <Text className="text-[#004aad] text-[10px] font-black uppercase">{formatKNQFLevel(q.level)}</Text>
                             </View>
                         </View>
                         <View className="flex-row items-center mt-3 pt-3 border-t border-gray-100">

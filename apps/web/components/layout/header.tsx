@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { UserNav } from "@/components/layout/user-nav"
-import { LanguageSwitcher } from "@/components/layout/language-switcher"
+// import { LanguageSwitcher } from "@/components/layout/language-switcher"
+import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { Logo } from "@/components/shared/logo"
 import { Menu, LayoutDashboard, Briefcase, FileText } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -58,7 +59,8 @@ export function Header() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <LanguageSwitcher />
+                    <ThemeToggle />
+                    {/* <LanguageSwitcher /> */}
                     <div className="hidden md:block">
                         <UserNav />
                     </div>

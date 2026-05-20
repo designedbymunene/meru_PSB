@@ -7,10 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ApplicationStatusBadge } from "@/components/admin/application-status-badge"
-import { ApplicationReviewDialog } from "@/components/admin/application-review-dialog"
 import { format } from "date-fns"
 import { Separator } from "@/components/ui/separator"
-import { Mail, Phone, Calendar, User, CheckCircle, Loader2, Layout, X, FileText, Clock, Tag as TagIcon, Briefcase } from "lucide-react"
+import { Mail, Phone, Calendar, User, CheckCircle, Loader2, Layout, X, FileText, Clock, Tag as TagIcon, Briefcase, Video, MapPin, Users } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
 import { ProfileDetailView } from "@/components/admin/profile-detail-view"
@@ -20,6 +19,7 @@ import { cn } from "@/lib/utils"
 import { APPLICATION_STATUS } from "@/lib/constants"
 import { ApplicationStatusPipeline } from "@/components/admin/application-status-pipeline"
 import { ApplicationReviewSheet } from "@/components/admin/application-review-sheet"
+import { ScheduleInterviewDialog } from "@/components/admin/schedule-interview-dialog"
 
 type ReviewAction = "review" | "shortlist" | "interview" | "accept" | "reject"
 
@@ -44,10 +44,16 @@ const reviewActions: Record<string, ReviewActionConfig> = {
         description: "Move to shortlist for interviews"
     },
     [APPLICATION_STATUS.SHORTLISTED]: {
-        label: "Schedule Interview",
-        icon: Clock,
+        label: "Review / Transition",
+        icon: CheckCircle,
+        variant: "outline",
+        description: "Move to interviewed or reject"
+    },
+    [APPLICATION_STATUS.INTERVIEWING]: {
+        label: "Make Decision",
+        icon: CheckCircle,
         variant: "default",
-        description: "Schedule an interview"
+        description: "Accept or reject candidate"
     },
     [APPLICATION_STATUS.INTERVIEWED]: {
         label: "Make Decision",
@@ -154,6 +160,25 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                             <><Layout className="h-4 w-4" /> Quick Review</>
                         )}
                     </Button>
+
+                    {(application.status === APPLICATION_STATUS.SHORTLISTED || application.status === APPLICATION_STATUS.INTERVIEWING) && (
+                        <ScheduleInterviewDialog
+                            applicationId={application.id}
+                            vacancyId={application.vacancyId}
+                            existingInterview={application.interviews?.[0]}
+                            trigger={
+                                <Button 
+                                    size="sm" 
+                                    variant={application.interviews?.[0] ? "outline" : "default"} 
+                                    className="gap-2"
+                                >
+                                    <Calendar className="h-4 w-4" />
+                                    {application.interviews?.[0] ? "Reschedule Interview" : "Schedule Interview"}
+                                </Button>
+                            }
+                        />
+                    )}
+
                     <ApplicationReviewSheet
                         applicationId={application.id}
                         vacancyId={application.vacancyId}
@@ -168,7 +193,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                         trigger={
                             <Button size="sm" variant={reviewConfig.variant} className="gap-2">
                                 <ReviewIcon className="h-4 w-4" />
-                                Review
+                                {reviewConfig.label}
                             </Button>
                         }
                     />
@@ -209,7 +234,7 @@ function QuickReviewMode({
 }: {
     vacancy: any
     profile: any
-    applicantName: string
+    applicantName?: string
     isProfileLoading: boolean
 }) {
     return (
@@ -309,6 +334,84 @@ function StandardView({
             {/* Sidebar */}
             <aside className="lg:col-span-4 space-y-4">
                 <div className="sticky top-4 space-y-4">
+                    {/* Interview Schedule Card */}
+                    {application.interviews?.[0] && (
+                        <Card className="border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/10 shadow-sm overflow-hidden">
+                            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-3 text-white flex items-center justify-between">
+                                <div className="flex items-center gap-2 font-semibold text-sm">
+                                    <Clock className="h-4 w-4" />
+                                    <span>Scheduled Interview</span>
+                                </div>
+                                <Badge variant="secondary" className="bg-white/20 text-white border-none text-[10px] uppercase tracking-wider font-bold">
+                                    {application.interviews[0].virtualLink ? "Virtual / Online" : "Physical Venue"}
+                                </Badge>
+                            </div>
+                            <CardContent className="p-4 space-y-3">
+                                <div className="flex items-start gap-2.5 text-xs">
+                                    <Calendar className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                                    <div>
+                                        <p className="font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Date & Time</p>
+                                        <p className="font-semibold text-foreground mt-0.5">
+                                            {format(new Date(application.interviews[0].scheduledAt), "PPP p")}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <Separator className="bg-emerald-500/10" />
+
+                                {application.interviews[0].virtualLink ? (
+                                    <div className="space-y-2.5">
+                                        <div className="flex items-start gap-2.5 text-xs">
+                                            <Video className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Virtual Meeting</p>
+                                                <p className="font-medium text-foreground mt-0.5 truncate">
+                                                    {application.interviews[0].venue || "Online Video Call"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Button 
+                                            size="sm" 
+                                            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm gap-2"
+                                            asChild
+                                        >
+                                            <a href={application.interviews[0].virtualLink} target="_blank" rel="noopener noreferrer">
+                                                <Video className="h-3.5 w-3.5" /> Join Virtual Interview
+                                            </a>
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-start gap-2.5 text-xs">
+                                        <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                                        <div>
+                                            <p className="font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Physical Venue</p>
+                                            <p className="font-semibold text-foreground mt-0.5">
+                                                {application.interviews[0].venue || "Boardroom / Main Office"}
+                                              </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <Separator className="bg-emerald-500/10" />
+
+                                <ScheduleInterviewDialog
+                                    applicationId={application.id}
+                                    vacancyId={application.vacancyId}
+                                    existingInterview={application.interviews[0]}
+                                    trigger={
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="w-full text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 gap-1.5 h-8 font-semibold"
+                                        >
+                                            <Calendar className="h-3.5 w-3.5" /> Reschedule Interview
+                                        </Button>
+                                    }
+                                />
+                            </CardContent>
+                        </Card>
+                    )}
+
                     {/* Internal Notes, Tags & Status Pipeline */}
                     <Card className="border-primary/20 bg-primary/5">
                         <CardHeader className="pb-3">
@@ -352,7 +455,7 @@ function StandardView({
                                         <ContactItem icon={Mail} value={application.applicant?.email} />
                                         <ContactItem
                                             icon={Phone}
-                                            value={isProfileLoading ? undefined : profile?.phone}
+                                            value={isProfileLoading ? undefined : (profile?.phone || profile?.phoneNumber)}
                                             fallback="No phone"
                                         />
                                     </div>

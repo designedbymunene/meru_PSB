@@ -1,14 +1,14 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import dotenv from 'dotenv'
 import { randomInt } from 'node:crypto'
+import { getAuthConfig } from './env'
 
-dotenv.config()
-
-const JWT_ACCESS_SECRET: jwt.Secret = process.env.JWT_ACCESS_SECRET || 'default-access-secret'
-const JWT_REFRESH_SECRET: jwt.Secret = process.env.JWT_REFRESH_SECRET || 'default-refresh-secret'
-const JWT_ACCESS_EXPIRY = process.env.JWT_ACCESS_EXPIRY || '15m'
-const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d'
+const {
+    JWT_ACCESS_SECRET,
+    JWT_REFRESH_SECRET,
+    JWT_ACCESS_EXPIRY,
+    JWT_REFRESH_EXPIRY
+} = getAuthConfig()
 
 export interface TokenPayload {
     userId: number

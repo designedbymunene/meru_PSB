@@ -14,6 +14,8 @@ import type {
     CreateProfessionalMembershipInput,
     EmploymentHistory,
     CreateEmploymentHistoryInput,
+    ProfileFiltersInput,
+    PaginatedResponse,
 } from '@/types'
 
 // ===== Profile Endpoints =====
@@ -541,17 +543,33 @@ export async function deleteReferee(
 
 // ===== Admin Endpoints =====
 
-export async function getAllProfiles(): Promise<
-    ApiResponse<ApplicantProfileWithRelations[]>
-> {
-    const { data } = await apiClient.get<ApiResponse<ApplicantProfileWithRelations[]>>(
-        '/applicant-profiles/admin/all'
+export async function getProfileStats(): Promise<ApiResponse<{ totalProfiles: number; pwdProfiles: number; maleProfiles: number; femaleProfiles: number; }>> {
+    const { data } = await apiClient.get<ApiResponse<{ totalProfiles: number; pwdProfiles: number; maleProfiles: number; femaleProfiles: number; }>>(
+        '/applicant-profiles/stats'
     )
     return data
 }
 
-export async function exportProfiles(): Promise<Blob> {
+export async function getAllProfiles(
+    filters?: Partial<ProfileFiltersInput>
+): Promise<PaginatedResponse<ApplicantProfileWithRelations>> {
+    const { data } = await apiClient.get<ApiResponse<{ data: ApplicantProfileWithRelations[], pagination: any }>>(
+        '/applicant-profiles/admin/all',
+        { params: filters }
+    )
+    return {
+        success: data.success,
+        message: data.message,
+        data: data.data?.data || [],
+        pagination: data.data?.pagination
+    }
+}
+
+export async function exportProfiles(
+    filters?: Partial<ProfileFiltersInput>
+): Promise<Blob> {
     const { data } = await apiClient.get('/applicant-profiles/admin/export', {
+        params: filters,
         responseType: 'blob',
     })
     return data

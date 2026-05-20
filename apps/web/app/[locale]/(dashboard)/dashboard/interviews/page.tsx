@@ -1,5 +1,3 @@
-import { Suspense } from 'react'
-import { MyInterviewsList } from '@/components/interviews/my-interviews-list'
 import { RequireAuth } from '@/components/auth/require-auth'
 
 export default function MyInterviewsPage() {
@@ -15,9 +13,9 @@ export default function MyInterviewsPage() {
                     </p>
                 </div>
 
-                <Suspense fallback={<div className="h-64 w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-3xl" />}>
-                    <MyInterviewsList />
-                </Suspense>
+                <div className="flex items-center justify-center h-64 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
+                    <span className="text-muted-foreground">No interviews scheduled.</span>
+                </div>
             </div>
         </RequireAuth>
     )

@@ -6,13 +6,10 @@ import { apiClient } from '@/lib/api/client';
 import { 
     Lock, 
     ShieldAlert, 
-    Smartphone, 
     Key, 
     History, 
     ShieldCheck,
-    Fingerprint,
-    LogOut,
-    Trash2
+    Fingerprint
 } from 'lucide-react-native';
 import { SectionCard, SettingRow } from '@/components/account';
 import { FormLayout } from '@/components/ui/form-layout';
@@ -68,13 +65,13 @@ export default function SecuritySettingsScreen() {
         },
     });
 
-    const { data: sessions, isLoading: isSessionsLoading } = useQuery({
-        queryKey: ['active-sessions'],
-        queryFn: async () => {
-            const response = await apiClient.get('/account/sessions');
-            return response.data.data;
-        },
-    });
+    // const { data: sessions, isLoading: isSessionsLoading } = useQuery({
+    //     queryKey: ['active-sessions'],
+    //     queryFn: async () => {
+    //         const response = await apiClient.get('/account/sessions');
+    //         return response.data.data;
+    //     },
+    // });
 
     const toggle2faMutation = useMutation({
         mutationFn: async (enabled: boolean) => {
@@ -86,20 +83,20 @@ export default function SecuritySettingsScreen() {
         }
     });
 
-    const revokeSessionMutation = useMutation({
-        mutationFn: async (id?: number) => {
-            if (id) {
-                await apiClient.delete(`/account/sessions/${id}`);
-            } else {
-                await apiClient.delete('/account/sessions');
-            }
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['active-sessions'] });
-            queryClient.invalidateQueries({ queryKey: ['security-settings'] });
-            toast.success('Session(s) revoked');
-        }
-    });
+    // const revokeSessionMutation = useMutation({
+    //     mutationFn: async (id?: number) => {
+    //         if (id) {
+    //             await apiClient.delete(`/account/sessions/${id}`);
+    //         } else {
+    //             await apiClient.delete('/account/sessions');
+    //         }
+    //     },
+    //     onSuccess: () => {
+    //         queryClient.invalidateQueries({ queryKey: ['active-sessions'] });
+    //         queryClient.invalidateQueries({ queryKey: ['security-settings'] });
+    //         toast.success('Session(s) revoked');
+    //     }
+    // });
 
     const handleToggleBiometrics = async (value: boolean) => {
         const LocalAuthentication = getLocalAuth();
@@ -135,22 +132,22 @@ export default function SecuritySettingsScreen() {
         }
     };
 
-    const handleLogoutAll = () => {
-        Alert.alert(
-            'Sign out from all devices?',
-            'This will sign you out from all other active sessions except this one.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { 
-                    text: 'Logout All', 
-                    style: 'destructive', 
-                    onPress: () => revokeSessionMutation.mutate() 
-                },
-            ]
-        );
-    };
+    // const handleLogoutAll = () => {
+    //     Alert.alert(
+    //         'Sign out from all devices?',
+    //         'This will sign you out from all other active sessions except this one.',
+    //         [
+    //             { text: 'Cancel', style: 'cancel' },
+    //             { 
+    //                 text: 'Logout All', 
+    //                 style: 'destructive', 
+    //                 onPress: () => revokeSessionMutation.mutate() 
+    //             },
+    //         ]
+    //     );
+    // };
 
-    if (isSecurityLoading || isSessionsLoading) {
+    if (isSecurityLoading) {
         return <ProfileFormLoadingState title="Security" />;
     }
 
@@ -218,7 +215,8 @@ export default function SecuritySettingsScreen() {
                     </SectionCard>
                 </View>
 
-                {/* Session Management */}
+                {/* Session Management disabled for applicant */}
+                {/*
                 <View>
                     <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-5 ml-2">Active Sessions</Text>
                     <SectionCard title="Devices & Activity" icon={<Smartphone size={18} color="#ec4899" strokeWidth={2.5} />}>
@@ -264,6 +262,7 @@ export default function SecuritySettingsScreen() {
                         )}
                     </SectionCard>
                 </View>
+                */}
 
                 {/* Security Tips */}
                 <View className="bg-white dark:bg-gray-900 p-6 rounded-[32px] border border-gray-100 dark:border-gray-800 flex-row items-start shadow-sm">

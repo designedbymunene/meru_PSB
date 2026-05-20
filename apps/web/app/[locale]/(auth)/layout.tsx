@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             </header>
 
             {/* Content */}
-            <main className="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted/20">
+            <main className="flex-1 flex items-start justify-center p-4 pt-12 bg-gradient-to-br from-background to-muted/20">
                 {children}
             </main>
 

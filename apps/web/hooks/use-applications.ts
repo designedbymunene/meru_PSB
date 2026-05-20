@@ -50,6 +50,13 @@ export function useAllApplications(filters?: ApplicationFilters) {
 // Alias for useAllApplications for consistency
 export const useApplications = useAllApplications
 
+export function useApplicationStats() {
+    return useQuery({
+        queryKey: ['application-stats'],
+        queryFn: () => applicationApi.getApplicationStats(),
+    })
+}
+
 // --- Mutations ---
 
 export function useCreateApplication() {

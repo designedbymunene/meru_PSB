@@ -6,50 +6,60 @@ import { ShortlistWizard } from "@/components/shortlisting/shortlist-wizard"
 import { SelectVacancyStep } from "@/components/shortlisting/steps/select-vacancy-step"
 import { ConfigureCriteriaStep } from "@/components/shortlisting/steps/configure-criteria-step"
 import { ProcessingStep } from "@/components/shortlisting/steps/processing-step"
-import { ShortlistResultsModal } from "@/components/shortlisting/results-modal"
-import { WeightDistributionBar } from "@/components/shortlisting/weight-distribution-bar"
 import { useSetShortlistCriteria, useRunShortlisting } from "@/hooks/use-shortlisting"
-import { useVacancies } from "@/hooks/use-vacancies"
-import { useApplications } from "@/hooks/use-applications"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Briefcase, TrendingUp } from "lucide-react"
-import { formatNumber } from "@/lib/utils"
+import { useAllApplications } from "@/hooks/use-applications"
 import { useAuthContext } from "@/providers"
 
-const DEFAULT_WEIGHTS = {
-    qualifications: 30,
-    experience: 25,
-    skills: 20,
-    education: 15,
-    certifications: 10,
+type ShortlistWeights = {
+    education: number
+    experience: number
+    memberships: number
+}
+
+const DEFAULT_WEIGHTS: ShortlistWeights = {
+    education: 40,
+    experience: 40,
+    memberships: 20,
 }
 
 export default function ShortlistingPage() {
     const [currentStep, setCurrentStep] = useState(1)
     const [selectedVacancyId, setSelectedVacancyId] = useState<number | null>(null)
-    const [weights, setWeights] = useState(DEFAULT_WEIGHTS)
+    const [weights, setWeights] = useState<ShortlistWeights>(DEFAULT_WEIGHTS)
     const [minScore, setMinScore] = useState(50)
-    const [showResults, setShowResults] = useState(false)
-    const [shortlistResults, setShortlistResults] = useState<any>(null)
+    const [runResults, setRunResults] = useState<{ processed: number; shortlisted: number } | null>(null)
     const [criteriaSaved, setCriteriaSaved] = useState(false)
 
     const { user } = useAuthContext()
     const setCriteria = useSetShortlistCriteria()
     const runShortlisting = useRunShortlisting()
-    const { data: vacancies } = useVacancies()
-    const { data: applicationsData } = useApplications(
-        selectedVacancyId ? { vacancyId: selectedVacancyId.toString() } : undefined
+    const { data: applicationsData } = useAllApplications(
+        selectedVacancyId
+            ? {
+                vacancyId: selectedVacancyId.toString(),
+                sortBy: "appliedAt",
+                order: "desc",
+                limit: "1000",
+                offset: "0",
+            }
+            : undefined
     )
 
-    const selectedVacancy = vacancies?.data?.find(v => v.id === selectedVacancyId)
-    const totalApplications = (Array.isArray(applicationsData?.data) ? applicationsData.data : (applicationsData?.data as any)?.data || []).length
+    const applicationsPayload: { data?: Array<{ status?: string }> } | Array<{ status?: string }> | undefined = applicationsData?.data
+    const allApplications = Array.isArray(applicationsPayload)
+        ? applicationsPayload
+        : applicationsPayload?.data || []
+    const queueApplications = allApplications.filter((application: { status?: string }) =>
+        application.status === "pending" || application.status === "reviewed"
+    )
+    const totalApplications = queueApplications.length
 
     const handleVacancySelect = (vacancyId: number) => {
         setSelectedVacancyId(vacancyId)
         setCriteriaSaved(false)
         setWeights(DEFAULT_WEIGHTS)
         setMinScore(50)
+        setRunResults(null)
     }
 
     const handleSaveCriteria = () => {
@@ -59,7 +69,6 @@ export default function ShortlistingPage() {
                 vacancyId: selectedVacancyId,
                 weights,
                 minScore,
-                configuredBy: user.userId,
             },
             {
                 onSuccess: () => {
@@ -76,8 +85,10 @@ export default function ShortlistingPage() {
             setCurrentStep(3)
             runShortlisting.mutate(selectedVacancyId, {
                 onSuccess: (data) => {
-                    setShortlistResults(data.data)
-                    setShowResults(true)
+                    setRunResults({
+                        processed: data.data?.processed || 0,
+                        shortlisted: data.data?.shortlisted || 0,
+                    })
                 },
                 onError: () => {
                     setCurrentStep(2)
@@ -91,7 +102,6 @@ export default function ShortlistingPage() {
                     vacancyId: selectedVacancyId,
                     weights,
                     minScore,
-                    configuredBy: user.userId,
                 },
                 {
                     onSuccess: () => {
@@ -103,11 +113,6 @@ export default function ShortlistingPage() {
         } else {
             runAction()
         }
-    }
-
-    const handleResultsComplete = (results: any) => {
-        setShortlistResults(results)
-        setShowResults(true)
     }
 
     const canGoNext = () => {
@@ -128,10 +133,14 @@ export default function ShortlistingPage() {
             <div className="flex-1 space-y-4 p-8 pt-6">
                 <div className="flex flex-col gap-4">
                     <div>
-                        <h2 className="text-3xl font-bold tracking-tight">Shortlisting Management</h2>
+                        <h2 className="text-3xl font-bold tracking-tight">Batch Shortlisting</h2>
                         <p className="text-muted-foreground">
-                            Configure criteria and run automated shortlisting for vacancies
+                            Select a vacancy, set the scoring weights, and process pending applications in one run.
                         </p>
+                    </div>
+                    <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                        This workflow processes applications that are still pending or already reviewed, then moves matching
+                        candidates to shortlisted status automatically.
                     </div>
                 </div>
 
@@ -146,7 +155,6 @@ export default function ShortlistingPage() {
                         <SelectVacancyStep
                             selectedVacancyId={selectedVacancyId}
                             onVacancySelect={handleVacancySelect}
-                            onNext={() => setCurrentStep(2)}
                         />
                     )}
 
@@ -168,9 +176,12 @@ export default function ShortlistingPage() {
                         <ProcessingStep
                             isRunning={runShortlisting.isPending}
                             totalApplications={totalApplications}
-                            results={shortlistResults}
+                            results={runResults}
                             vacancyId={selectedVacancyId || 0}
-                            onReset={() => setCurrentStep(1)}
+                            onReset={() => {
+                                setRunResults(null)
+                                setCurrentStep(1)
+                            }}
                         />
                     )}
                 </ShortlistWizard>

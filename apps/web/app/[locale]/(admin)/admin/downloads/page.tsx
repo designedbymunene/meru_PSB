@@ -336,8 +336,8 @@ export default function DownloadsPage() {
                                 : 'Create a new category to organize your downloads.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSaveCategory}>
-                        <div className="grid gap-4 py-4">
+                    <form onSubmit={handleSaveCategory} className="w-full min-w-0">
+                        <div className="grid gap-4 py-4 w-full min-w-0">
                             <div className="grid gap-2">
                                 <Label htmlFor="title">Title</Label>
                                 <Input
@@ -420,8 +420,8 @@ export default function DownloadsPage() {
                                 : 'Add a new downloadable file to a category.'}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSaveFile}>
-                        <div className="grid gap-4 py-4">
+                    <form onSubmit={handleSaveFile} className="w-full min-w-0">
+                        <div className="grid gap-4 py-4 w-full min-w-0">
                             <div className="grid gap-2">
                                 <Label htmlFor="categoryId">Category</Label>
                                 <select

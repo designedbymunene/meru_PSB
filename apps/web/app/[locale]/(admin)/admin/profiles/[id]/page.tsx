@@ -89,7 +89,7 @@ export default function AdminProfileDetailPage({ params }: { params: Promise<{ i
                                 </div>
                                 <div className="flex flex-col">
                                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Phone Number</span>
-                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{profile.phone || 'Not provided'}</span>
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{profile.phone || profile.phoneNumber || 'Not provided'}</span>
                                 </div>
                             </div>
 

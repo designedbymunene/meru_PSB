@@ -62,57 +62,62 @@ export default function ApplicationsScreen() {
                         </View>
                     </View>
                 }
-                renderItem={({ item }) => (
-                    <TouchableOpacity 
-                        onPress={() => router.push(`/applications/${item.id}`)}
-                        activeOpacity={0.7}
-                        className="bg-white dark:bg-gray-900 p-5 rounded-[32px] mb-4 border border-gray-100 dark:border-gray-800 shadow-sm"
-                    >
-                        <View className="flex-row justify-between items-start">
-                            <View className="flex-1 mr-4">
-                                <View className="flex-row items-center mb-1.5">
-                                    <View className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-500 mr-2" />
-                                    <Text className="text-gray-400 dark:text-gray-600 text-[10px] font-black uppercase tracking-[1.5px]">
-                                        REF: {item.vacancy?.advertisementNumber || 'N/A'}
-                                    </Text>
-                                </View>
-                                
-                                <Text className="text-xl font-bold text-gray-900 dark:text-white leading-tight mb-2">
-                                    {item.vacancy?.title}
-                                </Text>
-                                
-                                <View className="flex-row items-center">
-                                    <View className="w-6 h-6 rounded-lg bg-gray-50 dark:bg-gray-800 items-center justify-center mr-2">
-                                        <Building2 size={12} color={isDarkMode ? '#94a3b8' : '#64748b'} />
+                renderItem={({ item }) => {
+                    const statusValue = (item.status || '').toLowerCase();
+                    const statusLabel = item.statusLabel || item.status || 'Pending';
+
+                    return (
+                        <TouchableOpacity
+                            onPress={() => router.push(`/applications/${item.id}`)}
+                            activeOpacity={0.7}
+                            className="bg-white dark:bg-gray-900 p-5 rounded-[32px] mb-4 border border-gray-100 dark:border-gray-800 shadow-sm"
+                        >
+                            <View className="flex-row justify-between items-start">
+                                <View className="flex-1 mr-4">
+                                    <View className="flex-row items-center mb-1.5">
+                                        <View className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-500 mr-2" />
+                                        <Text className="text-gray-400 dark:text-gray-600 text-[10px] font-black uppercase tracking-[1.5px]">
+                                            REF: {item.vacancy?.advertisementNumber || 'N/A'}
+                                        </Text>
                                     </View>
-                                    <Text className="text-gray-500 dark:text-gray-400 text-xs font-medium" numberOfLines={1}>
-                                        {item.vacancy?.department?.name || 'Public Service Board'}
+
+                                    <Text className="text-xl font-bold text-gray-900 dark:text-white leading-tight mb-2">
+                                        {item.vacancy?.title}
+                                    </Text>
+
+                                    <View className="flex-row items-center">
+                                        <View className="w-6 h-6 rounded-lg bg-gray-50 dark:bg-gray-800 items-center justify-center mr-2">
+                                            <Building2 size={12} color={isDarkMode ? '#94a3b8' : '#64748b'} />
+                                        </View>
+                                        <Text className="text-gray-500 dark:text-gray-400 text-xs font-medium" numberOfLines={1}>
+                                            {item.vacancy?.department?.name || 'Public Service Board'}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <View className={`px-3 py-1.5 rounded-2xl border ${getStatusStyles(statusValue)}`}>
+                                    <Text className={`text-[10px] font-black tracking-widest ${getStatusStyles(statusValue).split(' ').find(c => c.startsWith('text-'))}`}>
+                                        {statusLabel}
                                     </Text>
                                 </View>
                             </View>
 
-                            <View className={`px-3 py-1.5 rounded-2xl border ${getStatusStyles(item.status)}`}>
-                                <Text className={`text-[10px] font-black uppercase tracking-widest ${getStatusStyles(item.status).split(' ').find(c => c.startsWith('text-'))}`}>
-                                    {item.status}
-                                </Text>
-                            </View>
-                        </View>
+                            <View className="mt-5 pt-4 border-t border-gray-50 dark:border-gray-800 flex-row justify-between items-center">
+                                <View className="flex-row items-center bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-full">
+                                    <Calendar size={12} color="#64748b" />
+                                    <Text className="text-gray-500 dark:text-gray-400 text-[10px] font-bold ml-1.5 uppercase">
+                                        {new Date(item.appliedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </Text>
+                                </View>
 
-                        <View className="mt-5 pt-4 border-t border-gray-50 dark:border-gray-800 flex-row justify-between items-center">
-                            <View className="flex-row items-center bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-full">
-                                <Calendar size={12} color="#64748b" />
-                                <Text className="text-gray-500 dark:text-gray-400 text-[10px] font-bold ml-1.5 uppercase">
-                                    {new Date(item.appliedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                </Text>
+                                <View className="flex-row items-center">
+                                    <Text className="text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase mr-1">Details</Text>
+                                    <ChevronRight size={14} color={isDarkMode ? '#60a5fa' : '#004aad'} />
+                                </View>
                             </View>
-                            
-                            <View className="flex-row items-center">
-                                <Text className="text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase mr-1">Details</Text>
-                                <ChevronRight size={14} color={isDarkMode ? '#60a5fa' : '#004aad'} />
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                )}
+                        </TouchableOpacity>
+                    );
+                }}
                 ListEmptyComponent={
                     <View className="items-center justify-center py-20 px-10">
                         <View className="bg-gray-100 dark:bg-gray-900 p-6 rounded-full mb-4">

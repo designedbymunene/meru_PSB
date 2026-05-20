@@ -117,13 +117,15 @@ POST /api/auth/register
 Content-Type: application/json
 
 {
-  "username": "john_doe",
   "email": "john@example.com",
   "password": "SecurePassword123",
-  "fullName": "John Doe",
+  "firstName": "John",
+  "lastName": "Doe",
   "role": "applicant"
 }
 ```
+
+`firstName` and `lastName` are combined into `fullName` before the user row is saved.
 
 #### Login
 ```http

@@ -21,18 +21,26 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 import { createEmploymentHistorySchema } from '@meru/shared'
 import {
     useMyEmploymentHistory,
     useAddMyEmploymentHistory,
     useUpdateMyEmploymentHistory,
     useDeleteMyEmploymentHistory,
+    useMyProfile,
+    useCreateOrUpdateProfile,
 } from '@/hooks/use-applicant-profile'
 import type { EmploymentHistory } from '@/types'
 
 export function EmploymentHistoryManager() {
     const { data: response, isLoading } = useMyEmploymentHistory()
     const employmentHistory = response?.data || []
+    const { data: profileResponse } = useMyProfile()
+    const profile = profileResponse?.data
+    const updateProfile = useCreateOrUpdateProfile()
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingEmployment, setEditingEmployment] = useState<EmploymentHistory | null>(null)
     const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -135,13 +143,71 @@ export function EmploymentHistoryManager() {
                         </form>
                     </Form>
                 </ResponsiveDialog>
-                <Button size="sm" className="bg-primary shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all" onClick={() => {
-                    setEditingEmployment(null)
-                    form.reset()
-                    setIsDialogOpen(true)
-                }}>
+                <Button 
+                    size="sm" 
+                    className="bg-primary shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all" 
+                    disabled={profile?.hasNoExperience || false}
+                    onClick={() => {
+                        setEditingEmployment(null)
+                        form.reset()
+                        setIsDialogOpen(true)
+                    }}
+                >
                     <Plus className="mr-2 h-4 w-4" /> Add Experience
                 </Button>
+            </div>
+
+            {/* Not Included Toggle */}
+            <div className="flex items-center space-x-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                <Checkbox
+                    id="hasNoExperience"
+                    checked={profile?.hasNoExperience || false}
+                    onCheckedChange={async (checked) => {
+                        if (!profile) return
+                        await updateProfile.mutateAsync({
+                            fullName: profile.fullName || '',
+                            idNumber: profile.idNumber || '',
+                            gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
+                            dateOfBirth: profile.dateOfBirth || '',
+                            ethnicityId: profile.ethnicityId || 0,
+                            phoneNumber: profile.phoneNumber || '',
+                            email: profile.email || '',
+                            homeCountyId: profile.homeCountyId || 0,
+                            homeSubCountyId: profile.homeSubCountyId || 0,
+                            wardId: profile.wardId || 0,
+                            impairment: profile.impairment || false,
+                            impairmentDetails: profile.impairmentDetails || '',
+                            publicServiceInfo: profile.publicServiceInfo || '',
+                            personalNumber: profile.personalNumber || '',
+                            hasNoExperience: Boolean(checked),
+                            hasNoCertificates: profile.hasNoCertificates || false,
+                            hasNoMemberships: profile.hasNoMemberships || false,
+                            hasNoTrainings: profile.hasNoTrainings || false,
+                            hasNoReferees: profile.hasNoReferees || false,
+                        })
+                    }}
+                    disabled={updateProfile.isPending || employmentHistory.length > 0}
+                    className="h-5 w-5 rounded-md"
+                />
+                <div className="grid gap-1.5 leading-none">
+                    <Label
+                        htmlFor="hasNoExperience"
+                        className={cn(
+                            "text-sm font-semibold cursor-pointer select-none",
+                            employmentHistory.length > 0 ? "text-slate-400 cursor-not-allowed" : "text-slate-700 dark:text-slate-300"
+                        )}
+                    >
+                        I have no employment history to add
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                        {employmentHistory.length > 0 
+                            ? "Remove existing experience records first to mark this section as Not Applicable."
+                            : "Check this if you do not hold any professional work experience."}
+                    </p>
+                </div>
+                {updateProfile.isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary ml-auto" />
+                )}
             </div>
 
             <div className="space-y-4">

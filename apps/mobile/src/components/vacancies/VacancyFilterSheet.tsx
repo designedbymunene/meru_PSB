@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDepartments } from '@/lib/api/departments';
 import { useJobGroups } from '@/lib/api/job-groups';
 import RNPickerSelect from 'react-native-picker-select';
+import { useColorScheme } from 'nativewind';
 
 interface VacancyFilterSheetProps {
     isVisible: boolean;
@@ -26,9 +27,18 @@ export function VacancyFilterSheet({
     onReset
 }: VacancyFilterSheetProps) {
     const insets = useSafeAreaInsets();
+    const { colorScheme } = useColorScheme();
+    const isDarkMode = colorScheme === 'dark';
     const [localFilters, setLocalFilters] = useState(initialFilters);
     const { data: departments } = useDepartments();
     const { data: jobGroups } = useJobGroups();
+
+    // Sync local state when modal opens
+    React.useEffect(() => {
+        if (isVisible) {
+            setLocalFilters(initialFilters);
+        }
+    }, [isVisible, initialFilters]);
 
     const departmentItems = (departments || []).map((d: any) => ({ label: d.name, value: d.id }));
     const jobGroupItems = (jobGroups || []).map((jg: any) => ({ label: jg.name, value: jg.id }));
@@ -48,6 +58,18 @@ export function VacancyFilterSheet({
         const resetFilters = { status: 'open', departmentId: null, jobGroupId: null };
         setLocalFilters(resetFilters);
         onReset();
+    };
+
+    const dynamicPickerStyles = {
+        ...pickerStyles,
+        inputIOS: {
+            ...pickerStyles.inputIOS,
+            color: isDarkMode ? '#ffffff' : '#0f172a',
+        },
+        inputAndroid: {
+            ...pickerStyles.inputAndroid,
+            color: isDarkMode ? '#ffffff' : '#0f172a',
+        },
     };
 
     return (
@@ -122,7 +144,7 @@ export function VacancyFilterSheet({
                                     items={departmentItems}
                                     placeholder={{ label: 'All Departments', value: null }}
                                     useNativeAndroidPickerStyle={false}
-                                    style={pickerStyles}
+                                    style={dynamicPickerStyles}
                                     Icon={() => <ChevronDown size={18} color="#94a3b8" style={{ marginTop: 18, marginRight: 16 }} />}
                                 />
                             </View>
@@ -141,7 +163,7 @@ export function VacancyFilterSheet({
                                     items={jobGroupItems}
                                     placeholder={{ label: 'All Job Groups', value: null }}
                                     useNativeAndroidPickerStyle={false}
-                                    style={pickerStyles}
+                                    style={dynamicPickerStyles}
                                     Icon={() => <ChevronDown size={18} color="#94a3b8" style={{ marginTop: 18, marginRight: 16 }} />}
                                 />
                             </View>

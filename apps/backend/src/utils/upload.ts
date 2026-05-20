@@ -2,6 +2,7 @@ import multer from 'multer'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
+import { getUploadConfig } from './env'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -19,13 +20,19 @@ if (!fs.existsSync(vacanciesUploadDir)) {
 }
 
 // Configure multer storage for CVs
+const allowedCvTypes = new Map<string, string>([
+    ['application/pdf', '.pdf'],
+    ['application/msword', '.doc'],
+    ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.docx']
+])
+
 const cvStorage = multer.diskStorage({
     destination: (_req, _file, cb) => {
         cb(null, uploadDir)
     },
     filename: (_req, _file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
-        const ext = path.extname(_file.originalname)
+        const ext = allowedCvTypes.get(_file.mimetype) ?? path.extname(_file.originalname).toLowerCase()
         cb(null, `cv-${uniqueSuffix}${ext}`)
     }
 })
@@ -36,13 +43,7 @@ const cvFileFilter = (
     file: Express.Multer.File,
     cb: multer.FileFilterCallback
 ) => {
-    const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ]
-
-    if (allowedTypes.includes(file.mimetype)) {
+    if (allowedCvTypes.has(file.mimetype)) {
         cb(null, true)
     } else {
         cb(new Error('Only PDF, DOC, and DOCX files are allowed'))
@@ -54,6 +55,6 @@ export const uploadCV = multer({
     storage: cvStorage,
     fileFilter: cvFileFilter,
     limits: {
-        fileSize: parseInt(process.env.MAX_FILE_SIZE || '5242880') // 5MB default
+        fileSize: getUploadConfig().MAX_FILE_SIZE
     }
 })

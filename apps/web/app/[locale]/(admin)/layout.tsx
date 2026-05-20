@@ -14,6 +14,8 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { UserNav } from "@/components/layout/user-nav"
+import { ThemeToggle } from "@/components/layout/theme-toggle"
+// import { LanguageSwitcher } from "@/components/layout/language-switcher"
 
 export default function AdminLayout({
     children,
@@ -40,7 +42,11 @@ export default function AdminLayout({
                             </BreadcrumbList>
                         </Breadcrumb>
                     </div>
-                    <UserNav />
+                    <div className="flex items-center gap-4">
+                        <ThemeToggle />
+                        {/* <LanguageSwitcher /> */}
+                        <UserNav />
+                    </div>
                 </header>
                 <main className="flex flex-1 flex-col gap-4 p-4 pt-0 w-full">
                     <div className="w-full py-4">

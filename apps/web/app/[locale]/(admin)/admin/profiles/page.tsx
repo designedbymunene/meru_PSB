@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo, Suspense } from 'react'
 import { 
     Loader2, 
     Download, 
@@ -14,10 +14,13 @@ import {
     Phone,
     ShieldAlert,
     UserCircle,
-    ArrowUpDown
+    ArrowUpDown,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react'
 import Link from 'next/link'
 import { ColumnDef } from '@tanstack/react-table'
+import { useQueryState, parseAsInteger, parseAsString } from 'nuqs'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,7 +41,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { DataTable } from '@/components/admin/data-table'
-import { useAllApplicantProfiles, useExportProfiles } from '@/hooks/use-applicant-profile'
+import { useAllApplicantProfiles, useExportProfiles, useProfileStats } from '@/hooks/use-applicant-profile'
 import type { ApplicantProfileWithRelations, Qualification, EmploymentHistory } from '@/types'
 import { formatNumber } from '@/lib/utils'
 
@@ -86,14 +89,27 @@ const getCurrentEmployment = (employment: EmploymentHistory[]) => {
     return employment.find((e) => !e.endDate) || [...employment].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0]
 }
 
-export default function AdminProfilesPage() {
-    const { data: response, isLoading } = useAllApplicantProfiles()
-    const profiles = response?.data || []
-    const exportMutation = useExportProfiles()
+function AdminProfilesPageContent() {
+    const [search, setSearch] = useQueryState('search', parseAsString.withDefault('').withOptions({ shallow: false, throttleMs: 500 }))
+    const [gender, setGender] = useQueryState('gender', parseAsString.withDefault('all').withOptions({ shallow: false }))
+    const [impairment, setImpairment] = useQueryState('impairment', parseAsString.withDefault('all').withOptions({ shallow: false }))
+    const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1).withOptions({ shallow: false }))
+    const [limit, setLimit] = useQueryState('limit', parseAsInteger.withDefault(10).withOptions({ shallow: false }))
 
-    const [searchQuery, setSearchQuery] = useState('')
-    const [genderFilter, setGenderFilter] = useState<string>('all')
-    const [impairmentFilter, setImpairmentFilter] = useState<string>('all')
+    const filters = useMemo(() => ({
+        searchTerm: search || undefined,
+        gender: gender === 'all' ? undefined : gender as any,
+        impairment: impairment === 'all' ? undefined : (impairment === 'yes' ? 'true' : 'false'),
+        page: page.toString(),
+        limit: limit.toString()
+    }), [search, gender, impairment, page, limit])
+
+    const { data: response, isLoading } = useAllApplicantProfiles(filters)
+    const profiles = response?.data || []
+    const pagination = response?.pagination
+    const { data: statsResponse, isLoading: isLoadingStats } = useProfileStats()
+    const stats = statsResponse?.data
+    const exportMutation = useExportProfiles()
 
     const columns: ColumnDef<ApplicantProfileWithRelations>[] = [
         {
@@ -111,7 +127,7 @@ export default function AdminProfilesPage() {
                 )
             },
             cell: ({ row }) => {
-                const name = row.original.applicantName || (row.original as any).fullName
+                const name = row.original.fullName || (row.original as any).applicantName
                 return (
                     <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9 border">
@@ -145,7 +161,7 @@ export default function AdminProfilesPage() {
                     </div>
                     <div className="flex items-center gap-1.5 text-xs">
                         <Phone className="h-3 w-3 text-muted-foreground" />
-                        <span>{row.original.phone}</span>
+                        <span>{row.original.phoneNumber}</span>
                     </div>
                 </div>
             )
@@ -158,46 +174,12 @@ export default function AdminProfilesPage() {
                     <Badge variant="secondary" className="w-fit text-[10px] h-4 px-1.5">
                         {row.original.gender}
                     </Badge>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
-                        <span>{row.original.homeCounty || 'N/A'}</span>
+                        <span>{row.original.dateOfBirth}</span>
                     </div>
                 </div>
             )
-        },
-        {
-            id: 'qualification',
-            header: 'Top Qualification',
-            cell: ({ row }) => {
-                const qual = getHighestQualification(row.original.qualifications)
-                if (!qual) return <span className="text-muted-foreground text-xs italic">None listed</span>
-                return (
-                    <div className="flex flex-col gap-0.5 max-w-[200px]">
-                        <div className="flex items-center gap-1.5">
-                            <GraduationCap className="h-3.5 w-3.5 text-primary/70" />
-                            <span className="text-xs font-medium truncate">{qual.course}</span>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground truncate">{qual.level}</span>
-                    </div>
-                )
-            }
-        },
-        {
-            id: 'employment',
-            header: 'Current/Last Job',
-            cell: ({ row }) => {
-                const emp = getCurrentEmployment(row.original.employmentHistory)
-                if (!emp) return <span className="text-muted-foreground text-xs italic">None listed</span>
-                return (
-                    <div className="flex flex-col gap-0.5 max-w-[200px]">
-                        <div className="flex items-center gap-1.5">
-                            <Briefcase className="h-3.5 w-3.5 text-primary/70" />
-                            <span className="text-xs font-medium truncate">{emp.jobTitle}</span>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground truncate">{emp.organization}</span>
-                    </div>
-                )
-            }
         },
         {
             id: 'actions',
@@ -206,13 +188,13 @@ export default function AdminProfilesPage() {
                 <div className="flex items-center justify-end gap-1">
                     <Button
                         variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                        size="sm"
+                        className="h-8 gap-1.5 text-primary hover:bg-primary/10"
                         asChild
-                        title="Full Profile"
                     >
-                        <Link href={`/admin/profiles/${(row.original as any).userId || row.original.applicantId}`}>
+                        <Link href={`/admin/profiles/${(row.original as any).userId || row.original.id}`}>
                             <UserCircle className="h-4 w-4" />
+                            View Profile
                         </Link>
                     </Button>
                 </div>
@@ -220,33 +202,12 @@ export default function AdminProfilesPage() {
         }
     ]
 
-    // Filter profiles based on search and filters
-    const filteredProfiles = useMemo(() => {
-        return profiles.filter((profile) => {
-            const query = searchQuery.toLowerCase()
-            const name = (profile.applicantName || (profile as any).fullName || '').toLowerCase()
-            const email = (profile.email || '').toLowerCase()
-            const idNumber = (profile.idNumber || '').toLowerCase()
-
-            const matchesSearch =
-                name.includes(query) ||
-                email.includes(query) ||
-                idNumber.includes(query)
-
-            const matchesGender = genderFilter === 'all' || profile.gender === genderFilter
-            const matchesImpairment = impairmentFilter === 'all' || 
-                (impairmentFilter === 'yes' ? profile.impairment : !profile.impairment)
-
-            return matchesSearch && matchesGender && matchesImpairment
-        })
-    }, [profiles, searchQuery, genderFilter, impairmentFilter])
-
     const handleExport = () => {
-        exportMutation.mutate()
+        exportMutation.mutate(filters)
     }
 
     return (
-        <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -279,35 +240,54 @@ export default function AdminProfilesPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="bg-primary/5 border-primary/10">
                     <CardHeader className="pb-2">
-                        <CardDescription className="text-primary/70 font-medium">Total Profiles</CardDescription>
-                        <CardTitle className="text-3xl font-bold text-primary">{formatNumber(profiles.length)}</CardTitle>
+                        <CardDescription className="text-primary/70 font-medium flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            Total Profiles
+                        </CardDescription>
+                        {isLoadingStats ? (
+                            <Loader2 className="h-8 w-8 animate-spin text-primary/40 mt-2" />
+                        ) : (
+                            <CardTitle className="text-3xl font-bold text-primary">{formatNumber(stats?.totalProfiles || 0)}</CardTitle>
+                        )}
                     </CardHeader>
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardDescription className="font-medium">With Qualifications</CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {formatNumber(profiles.filter((p) => p.qualifications?.length > 0).length)}
-                        </CardTitle>
+                        <CardDescription className="font-medium flex items-center gap-2">
+                            <UserCircle className="h-4 w-4 text-blue-500" />
+                            Male Applicants
+                        </CardDescription>
+                        {isLoadingStats ? (
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mt-2" />
+                        ) : (
+                            <CardTitle className="text-3xl font-bold">{formatNumber(stats?.maleProfiles || 0)}</CardTitle>
+                        )}
                     </CardHeader>
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardDescription className="font-medium">With Employment</CardDescription>
-                        <CardTitle className="text-3xl font-bold">
-                            {formatNumber(profiles.filter((p) => p.employmentHistory?.length > 0).length)}
-                        </CardTitle>
+                        <CardDescription className="font-medium flex items-center gap-2">
+                            <UserCircle className="h-4 w-4 text-pink-500" />
+                            Female Applicants
+                        </CardDescription>
+                        {isLoadingStats ? (
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mt-2" />
+                        ) : (
+                            <CardTitle className="text-3xl font-bold">{formatNumber(stats?.femaleProfiles || 0)}</CardTitle>
+                        )}
                     </CardHeader>
                 </Card>
                 <Card className="border-amber-200 bg-amber-50/50">
                     <CardHeader className="pb-2">
                         <CardDescription className="text-amber-700 font-medium flex items-center gap-1.5">
-                            <ShieldAlert className="h-3.5 w-3.5" />
-                            PWD Profiles
+                            <ShieldAlert className="h-4 w-4" />
+                            PWD Applicants
                         </CardDescription>
-                        <CardTitle className="text-3xl font-bold text-amber-700">
-                            {formatNumber(profiles.filter((p) => p.impairment).length)}
-                        </CardTitle>
+                        {isLoadingStats ? (
+                            <Loader2 className="h-8 w-8 animate-spin text-amber-700/40 mt-2" />
+                        ) : (
+                            <CardTitle className="text-3xl font-bold text-amber-700">{formatNumber(stats?.pwdProfiles || 0)}</CardTitle>
+                        )}
                     </CardHeader>
                 </Card>
             </div>
@@ -321,14 +301,20 @@ export default function AdminProfilesPage() {
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Search by name, email, or ID number..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    value={search}
+                                    onChange={(e) => {
+                                        setSearch(e.target.value)
+                                        setPage(1)
+                                    }}
                                     className="pl-10 h-10"
                                 />
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Select value={genderFilter} onValueChange={setGenderFilter}>
+                            <Select value={gender} onValueChange={(val) => {
+                                setGender(val)
+                                setPage(1)
+                            }}>
                                 <SelectTrigger className="w-[150px] h-10">
                                     <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
                                     <SelectValue placeholder="Gender" />
@@ -341,7 +327,10 @@ export default function AdminProfilesPage() {
                                 </SelectContent>
                             </Select>
 
-                            <Select value={impairmentFilter} onValueChange={setImpairmentFilter}>
+                            <Select value={impairment} onValueChange={(val) => {
+                                setImpairment(val)
+                                setPage(1)
+                            }}>
                                 <SelectTrigger className="w-[150px] h-10">
                                     <ShieldAlert className="mr-2 h-4 w-4 text-muted-foreground" />
                                     <SelectValue placeholder="PWD Status" />
@@ -358,19 +347,86 @@ export default function AdminProfilesPage() {
             </Card>
 
             {/* Profiles Table */}
-            <div className="mt-4">
+            <div className="mt-4 space-y-4">
                 {isLoading ? (
                     <div className="flex justify-center py-20 bg-card border rounded-lg">
                         <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
                     </div>
                 ) : (
-                    <DataTable 
-                        columns={columns} 
-                        data={filteredProfiles} 
-                        className="border rounded-lg bg-card"
-                    />
+                    <>
+                        <DataTable 
+                            columns={columns} 
+                            data={profiles} 
+                            className="border rounded-lg bg-card"
+                            manualPagination
+                        />
+                        {/* Pagination Controls */}
+                        <div className="flex items-center justify-between px-2 py-4">
+                            <div className="text-sm text-muted-foreground">
+                                Showing {formatNumber((page - 1) * limit + 1)} to {formatNumber(Math.min(page * limit, pagination?.total || 0))} of {formatNumber(pagination?.total || 0)} entries
+                            </div>
+                            <div className="flex items-center space-x-6 lg:space-x-8">
+                                <div className="flex items-center space-x-2">
+                                    <p className="text-sm font-medium">Rows per page</p>
+                                    <Select
+                                        value={limit.toString()}
+                                        onValueChange={(value) => {
+                                            setLimit(Number(value))
+                                            setPage(1)
+                                        }}
+                                    >
+                                        <SelectTrigger className="h-8 w-[70px]">
+                                            <SelectValue placeholder={limit.toString()} />
+                                        </SelectTrigger>
+                                        <SelectContent side="top">
+                                            {[10, 20, 30, 40, 50].map((pageSize) => (
+                                                <SelectItem key={pageSize} value={`${pageSize}`}>
+                                                    {pageSize}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                                    Page {page} of {pagination?.totalPages || 1}
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                                        disabled={!pagination?.hasPrev}
+                                    >
+                                        <ChevronLeft className="h-4 w-4 mr-1" />
+                                        Previous
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage(p => p + 1)}
+                                        disabled={!pagination?.hasNext}
+                                    >
+                                        Next
+                                        <ChevronRight className="h-4 w-4 ml-1" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </>
                 )}
             </div>
         </div>
+    )
+}
+
+export default function AdminProfilesPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 flex justify-center py-20">
+                <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
+            </div>
+        }>
+            <AdminProfilesPageContent />
+        </Suspense>
     )
 }

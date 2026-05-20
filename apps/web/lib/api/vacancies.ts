@@ -13,9 +13,26 @@ import type {
 export async function getVacancies(
     filters?: VacancyFilters
 ): Promise<ApiResponse<VacancyWithRelations[]>> {
-    const { data } = await apiClient.get<ApiResponse<VacancyWithRelations[]>>(
+    const { data } = await apiClient.get<ApiResponse<any>>(
         '/vacancies',
         { params: filters }
+    )
+    
+    // Normalize paginated response if necessary
+    if (data.data && !Array.isArray(data.data) && Array.isArray(data.data.data)) {
+        return {
+            ...data,
+            data: data.data.data
+        }
+    }
+    
+    return data
+}
+
+// Get vacancy stats
+export async function getVacancyStats(): Promise<ApiResponse<{ totalVacancies: number; openVacancies: number; closedVacancies: number; totalOpenPositions: number; }>> {
+    const { data } = await apiClient.get<ApiResponse<{ totalVacancies: number; openVacancies: number; closedVacancies: number; totalOpenPositions: number; }>>(
+        '/vacancies/stats'
     )
     return data
 }

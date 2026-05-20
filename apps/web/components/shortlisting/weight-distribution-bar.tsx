@@ -8,19 +8,15 @@ interface WeightDistributionBarProps {
 }
 
 const WEIGHT_COLORS: Record<string, string> = {
-    qualifications: "bg-primary",
+    education: "bg-primary",
     experience: "bg-primary/70",
-    skills: "bg-primary/60",
-    education: "bg-primary/50",
-    certifications: "bg-primary/40",
+    memberships: "bg-primary/40",
 }
 
 const WEIGHT_LABELS: Record<string, string> = {
-    qualifications: "Qualifications",
-    experience: "Experience",
-    skills: "Skills",
     education: "Education",
-    certifications: "Certifications",
+    experience: "Experience",
+    memberships: "Memberships",
 }
 
 export function WeightDistributionBar({ weights, className }: WeightDistributionBarProps) {

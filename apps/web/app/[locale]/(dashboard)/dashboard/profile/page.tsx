@@ -114,7 +114,7 @@ export default function ProfilePage() {
             disabled: !profile,
             required: false
         },
-        {
+        /* {
             id: 'uploads',
             title: 'Uploads',
             description: 'ID, CV and other supporting documents',
@@ -123,7 +123,7 @@ export default function ProfilePage() {
             summary: profile ? `${documentsCount} documents uploaded` : 'Complete personal info first',
             disabled: !profile,
             required: false
-        }
+        } */
     ]
 
     return (

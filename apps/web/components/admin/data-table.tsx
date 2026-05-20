@@ -34,6 +34,7 @@ interface DataTableProps<TData, TValue> {
     toolbar?: ReactNode
     onRowSelectionChange?: (selectedRows: TData[]) => void
     className?: string
+    manualPagination?: boolean
 }
 
 export function DataTable<TData, TValue>({
@@ -43,7 +44,8 @@ export function DataTable<TData, TValue>({
     searchPlaceholder = "Filter...",
     toolbar,
     onRowSelectionChange,
-    className
+    className,
+    manualPagination = false
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -53,12 +55,13 @@ export function DataTable<TData, TValue>({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
+        getPaginationRowModel: manualPagination ? undefined : getPaginationRowModel(),
         onSortingChange: setSorting,
         getSortedRowModel: getSortedRowModel(),
         onColumnFiltersChange: setColumnFilters,
         getFilteredRowModel: getFilteredRowModel(),
         onRowSelectionChange: setRowSelection,
+        manualPagination: manualPagination,
         state: {
             sorting,
             columnFilters,
@@ -143,32 +146,34 @@ export function DataTable<TData, TValue>({
                     </TableBody>
                 </Table>
             </div>
-            <div className="flex items-center justify-between space-x-2 py-4">
-                <div className="flex-1 text-sm text-muted-foreground">
-                    {formatNumber(table.getFilteredSelectedRowModel().rows.length)} of{" "}
-                    {formatNumber(table.getFilteredRowModel().rows.length)} row(s) selected.
+            {!manualPagination && (
+                <div className="flex items-center justify-between space-x-2 py-4">
+                    <div className="flex-1 text-sm text-muted-foreground">
+                        {formatNumber(table.getFilteredSelectedRowModel().rows.length)} of{" "}
+                        {formatNumber(table.getFilteredRowModel().rows.length)} row(s) selected.
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => table.previousPage()}
+                            disabled={!table.getCanPreviousPage()}
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => table.nextPage()}
+                            disabled={!table.getCanNextPage()}
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        <ChevronLeft className="h-4 w-4" />
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
+            )}
         </div>
     )
 }

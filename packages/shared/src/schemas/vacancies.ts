@@ -27,10 +27,10 @@ export const createVacancySchema = z.object({
     advertisementNumber: z.string().min(1).max(100).optional(),
     title: z.string().min(1).max(200),
     description: z.string().min(10),
-    departmentId: z.number().int().positive(),
-    jobGroupId: z.number().int().positive(),
+    departmentId: z.number({ required_error: 'Department is required', invalid_type_error: 'Please select a valid department' }).int().positive('Please select a valid department'),
+    jobGroupId: z.number({ required_error: 'Job group is required', invalid_type_error: 'Please select a valid job group' }).int().positive('Please select a valid job group'),
     closingDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)), // ISO datetime or YYYY-MM-DD
-    openPositions: z.number().int().positive().optional().default(1),
+    openPositions: z.number({ required_error: 'Number of positions is required', invalid_type_error: 'Please enter a valid number of positions' }).int().positive('Number of positions must be at least 1').optional().default(1),
     jobRequirements: z.array(z.string().min(1)).optional().default([]),
     jobResponsibilities: z.array(z.string().min(1)).optional().default([]),
     status: z.enum(['open', 'closed']).optional().default('open')

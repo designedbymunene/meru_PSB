@@ -15,7 +15,8 @@ import { Separator } from "@/components/ui/separator"
 import { DataTable } from "@/components/admin/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { ApplicationWithRelations } from "@/types"
-import { ApplicationReviewDialog } from "@/components/admin/application-review-dialog"
+import { ApplicationReviewSheet } from "@/components/admin/application-review-sheet"
+import { ScheduleInterviewDialog } from "@/components/admin/schedule-interview-dialog"
 import { useState } from "react"
 
 export default function VacancyDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,11 +26,14 @@ export default function VacancyDetailPage({ params }: { params: Promise<{ id: st
     const { data: vacancyData, isLoading: isLoadingVacancy, error } = useVacancy(vacancyId)
     const { data: applicationsData, isLoading: isLoadingApplications } = useAllApplications({ 
         vacancyId: id,
-        limit: '100'
+        limit: '100',
+        sortBy: 'appliedAt',
+        order: 'desc',
+        offset: '0'
     })
 
     const vacancy = vacancyData?.data
-    const applications = Array.isArray(applicationsData?.data) ? applicationsData.data : (applicationsData?.data as any)?.data || []
+    const applications = applicationsData?.data?.data || []
 
     const columns: ColumnDef<ApplicationWithRelations>[] = [
         {
@@ -80,8 +84,28 @@ export default function VacancyDetailPage({ params }: { params: Promise<{ id: st
                             </Link>
                         </Button>
 
-                        <ApplicationReviewDialog
+                        {(application.status === 'shortlisted' || application.status === 'interviewing') && vacancy?.id && (
+                            <ScheduleInterviewDialog
+                                applicationId={application.id}
+                                vacancyId={vacancy.id}
+                                existingInterview={application.interviews?.[0]}
+                                trigger={
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                        title={application.interviews?.[0] ? "Update Interview Schedule" : "Schedule Interview"}
+                                    >
+                                        <Calendar className="h-4 w-4" />
+                                        <span className="sr-only">Schedule</span>
+                                    </Button>
+                                }
+                            />
+                        )}
+
+                        <ApplicationReviewSheet
                             applicationId={application.id}
+                            vacancyId={vacancy?.id}
                             currentStatus={application.status}
                             open={showReviewDialog}
                             onOpenChange={setShowReviewDialog}

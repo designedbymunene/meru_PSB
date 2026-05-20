@@ -3,7 +3,8 @@ import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { db, users } from '../db'
 import { successResponse } from '../utils/errors'
-import { ne } from 'drizzle-orm'
+import { ne, sql } from 'drizzle-orm'
+import { buildPagination, parsePagination } from '../utils/pagination'
 
 export const usersRouter = new Hono()
 
@@ -13,13 +14,22 @@ export const usersRouter = new Hono()
  * Restricted to admins.
  */
 usersRouter.get('/', authenticate, requireAdmin, async (c) => {
-    const allUsers = await db.select({
-        id: users.id,
-        email: users.email,
-        fullName: users.fullName,
-        role: users.role,
-        createdAt: users.createdAt,
-    }).from(users).where(ne(users.role, 'applicant'))
+    const { page, limit, offset } = parsePagination(c.req.query('page'), c.req.query('limit'))
+    const whereClause = ne(users.role, 'applicant')
 
-    return successResponse(c, allUsers, 'Users retrieved successfully')
+    const [allUsers, totalResult] = await Promise.all([
+        db.select({
+            id: users.id,
+            email: users.email,
+            fullName: users.fullName,
+            role: users.role,
+            createdAt: users.createdAt
+        }).from(users).where(whereClause).orderBy(users.fullName).limit(limit).offset(offset),
+        db.select({ count: sql<number>`count(*)::int` }).from(users).where(whereClause)
+    ])
+
+    return successResponse(c, {
+        data: allUsers,
+        pagination: buildPagination(totalResult[0]?.count ?? 0, page, limit)
+    }, 'Users retrieved successfully')
 })

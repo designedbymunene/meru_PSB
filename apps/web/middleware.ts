@@ -81,7 +81,7 @@ export const config = {
         // - /api (API routes)
         // - /_next (Next.js internals)
         // - /_static (inside /public)
-        // - all root files inside /public (e.g. /favicon.ico)
-        '/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
+        // - all static files inside /public (e.g. /favicon.ico, /logo/merucountylogo.png)
+        '/((?!api|_next|_static|_vercel|.*\\..*).*)',
     ],
 }

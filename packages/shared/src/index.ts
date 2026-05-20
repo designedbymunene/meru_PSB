@@ -37,7 +37,8 @@ import type {
     ProfessionalMembershipInput,
     UpdateProfessionalMembershipInput,
     EmploymentHistoryInput,
-    UpdateEmploymentHistoryInput
+    UpdateEmploymentHistoryInput,
+    ProfileFiltersInput
 } from './schemas/applicant-profile'
 
 export * from './schemas/venues'
@@ -50,7 +51,8 @@ export type {
     CreateVenueInput, UpdateVenueInput,
     CreateVenueTagInput, UpdateVenueTagInput,
     CreateApplicationInput, UpdateApplicationStatusInput, ApplicationFiltersInput, BulkApplicationStatusInput, ApplicationReviewInput,
-    ApplicantProfileInput, UpdateApplicantProfileInput, QualificationInput, UpdateQualificationInput, ProfessionalDetailInput, UpdateProfessionalDetailInput, TrainingCourseInput, UpdateTrainingCourseInput, ProfessionalMembershipInput, UpdateProfessionalMembershipInput, EmploymentHistoryInput, UpdateEmploymentHistoryInput
+    ApplicantProfileInput, UpdateApplicantProfileInput, QualificationInput, UpdateQualificationInput, ProfessionalDetailInput, UpdateProfessionalDetailInput, TrainingCourseInput, UpdateTrainingCourseInput, ProfessionalMembershipInput, UpdateProfessionalMembershipInput, EmploymentHistoryInput, UpdateEmploymentHistoryInput,
+    ProfileFiltersInput
 }
 
 // --- COMPATIBILITY ALIASES ---
@@ -216,7 +218,7 @@ export interface Application {
     id: number
     vacancyId: number
     applicantId: number
-    status: 'pending' | 'reviewed' | 'shortlisted' | 'interviewed' | 'accepted' | 'rejected'
+    status: 'pending' | 'reviewed' | 'shortlisted' | 'interviewing' | 'interviewed' | 'accepted' | 'rejected'
     appliedAt: string
     reviewedAt: string | null
     reviewedBy: number | null
@@ -225,6 +227,7 @@ export interface Application {
     feedbackToApplicant: string | null
     rating: number | null
     profileSnapshot: any | null
+    applicantProfileSnapshot?: any | null
     createdAt: string
     updatedAt: string
 }
@@ -261,6 +264,7 @@ export interface ApplicationWithRelations extends Application {
     }
     reviewer?: User | null
     auditLogs?: AuditLogWithRelations[]
+    interviews?: Interview[]
 }
 
 export interface Qualification {
@@ -433,10 +437,13 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> extends ApiResponse<T[]> {
-    meta: {
+    pagination?: {
         total: number
+        page: number
         limit: number
-        offset: number
+        totalPages: number
+        hasNext?: boolean
+        hasPrev?: boolean
     }
 }
 
@@ -446,11 +453,13 @@ export interface ShortlistCriteria {
     id: number
     vacancyId: number
     weights: {
-        qualifications?: number
-        experience?: number
-        skills?: number
         education?: number
+        experience?: number
+        memberships?: number
+        qualifications?: number
+        skills?: number
         certifications?: number
+        professionalMemberships?: number
     }
     minScore: number
     configuredBy: number
@@ -462,6 +471,7 @@ export interface ShortlistResult {
     vacancyId: number
     processed: number
     shortlisted: number
+    fallbackShortlisted?: number
     failed: number
     results: Array<{
         applicationId: number
@@ -608,7 +618,7 @@ export interface ConversionTrendPoint {
 // Input types
 export interface CreateShortlistCriteriaInput {
     vacancyId: number
-    weights: Record<string, number>
+    weights: ShortlistCriteria['weights']
     minScore: number
 }
 
@@ -618,7 +628,17 @@ export interface ScheduleInterviewInput {
     scheduledAt: string
     venue: string
     virtualLink?: string
-    panelMembers: number[]
+    panelMembers?: number[]
+}
+
+export interface RescheduleInterviewInput {
+    scheduledAt: string
+    venue: string
+    virtualLink?: string
+}
+
+export interface UpdateInterviewStatusInput {
+    status: 'scheduled' | 'completed' | 'cancelled'
 }
 
 export interface SubmitInterviewScoreInput {

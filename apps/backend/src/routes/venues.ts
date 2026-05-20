@@ -6,13 +6,24 @@ import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
 import { createVenueSchema, updateVenueSchema } from '@meru/shared'
 import { NotFoundError, successResponse } from '../utils/errors'
+import { buildPagination, parsePagination } from '../utils/pagination'
+import { sql } from 'drizzle-orm'
 
 export const venuesRouter = new Hono()
 
 // GET /api/venues - Get all venues
 venuesRouter.get('/', async (c) => {
-    const allVenues = await db.select().from(venues).orderBy(desc(venues.createdAt))
-    return successResponse(c, allVenues)
+    const { page, limit, offset } = parsePagination(c.req.query('page'), c.req.query('limit'))
+
+    const [allVenues, totalResult] = await Promise.all([
+        db.select().from(venues).orderBy(desc(venues.createdAt)).limit(limit).offset(offset),
+        db.select({ count: sql<number>`count(*)::int` }).from(venues)
+    ])
+
+    return successResponse(c, {
+        data: allVenues,
+        pagination: buildPagination(totalResult[0]?.count ?? 0, page, limit)
+    })
 })
 
 // GET /api/venues/:id - Get single venue

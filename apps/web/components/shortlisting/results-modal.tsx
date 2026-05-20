@@ -40,11 +40,6 @@ export function ShortlistResultsModal({
     const rejectedCount = results.processed - results.shortlisted
     const successRate = results.processed > 0 ? (results.shortlisted / results.processed) * 100 : 0
 
-    const handleScheduleInterviews = () => {
-        onOpenChange(false)
-        router.push(`/admin/interviews/schedule?vacancyId=${vacancyId}`)
-    }
-
     const handleViewShortlisted = () => {
         onOpenChange(false)
         router.push(`/admin/applications?vacancyId=${vacancyId}&status=shortlisted`)
@@ -118,17 +113,7 @@ export function ShortlistResultsModal({
                     <div className="space-y-4">
                         <h3 className="text-sm font-bold uppercase text-muted-foreground tracking-widest">Next Steps</h3>
                         <div className="grid gap-3">
-                            {results.shortlisted > 0 && (
-                                <Button 
-                                    onClick={handleScheduleInterviews} 
-                                    size="lg"
-                                    className="w-full h-16 text-lg font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
-                                >
-                                    <Calendar className="mr-3 h-6 w-6" />
-                                    Schedule Interviews Now
-                                    <ArrowRight className="ml-2 h-5 w-5" />
-                                </Button>
-                            )}
+
                             
                             <div className="flex gap-3">
                                 <Button

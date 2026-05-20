@@ -1,4 +1,8 @@
+import { LogBox } from "react-native";
 import { Stack } from "expo-router";
+
+LogBox.ignoreAllLogs();
+
 import "../global.css";
 import { AuthProvider } from "../context/auth-context";
 import { Toaster } from "sonner-native";
@@ -8,7 +12,8 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native
 import { useColorScheme } from "nativewind";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
+import { subscribeToForegroundNotifications } from "@/lib/notifications/push";
 
 // Custom themes to match our Digital CV aesthetic
 const CustomDefaultTheme = {
@@ -46,6 +51,11 @@ export default function RootLayout() {
     flex: 1, 
     backgroundColor: colorScheme === 'dark' ? '#0f172a' : '#ffffff' 
   }), [colorScheme]);
+
+  useEffect(() => {
+    const subscription = subscribeToForegroundNotifications();
+    return () => subscription.remove();
+  }, []);
 
   return (
     <GestureHandlerRootView style={bgStyle}>

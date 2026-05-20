@@ -42,7 +42,6 @@ export function Logo({
                 height={height}
                 className={cn(
                     "object-contain drop-shadow-md",
-                    "dark:brightness-0 dark:invert",
                     className
                 )}
                 priority

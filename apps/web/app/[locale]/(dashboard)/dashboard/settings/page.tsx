@@ -4,11 +4,8 @@ import { useState } from 'react'
 import { useAuthContext } from '@/providers'
 import {
     useSecuritySettings,
-    useActiveSessions,
     useToggle2FA,
-    useRevokeSession,
     useUpdatePassword,
-    useAuditLogs
 } from '@/hooks/use-account'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,8 +35,7 @@ import {
     History,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { UserAuditLogs } from '@/components/settings/user-audit-logs'
-import { useState } from 'react'
+// import { UserAuditLogs } from '@/components/settings/user-audit-logs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import {
@@ -68,20 +64,11 @@ const passwordSchema = z.object({
 export default function SettingsPage() {
     const { user } = useAuthContext()
     const { data: security, isLoading: isSecurityLoading } = useSecuritySettings()
-    const { data: sessions, isLoading: isSessionsLoading } = useActiveSessions()
+    // const { data: sessions, isLoading: isSessionsLoading } = useActiveSessions()
     const toggle2fa = useToggle2FA()
-    const revokeSession = useRevokeSession()
+    // const revokeSession = useRevokeSession()
     const updatePassword = useUpdatePassword()
     const { theme, setTheme } = useTheme()
-
-    // Audit logs state
-    const [auditPage, setAuditPage] = useState(1)
-    const [auditActionFilter, setAuditActionFilter] = useState<string | undefined>()
-    const { data: auditLogs, isLoading: isAuditLogsLoading } = useAuditLogs({
-        page: auditPage,
-        limit: 20,
-        action: auditActionFilter
-    })
 
     const form = useForm<z.infer<typeof passwordSchema>>({
         resolver: zodResolver(passwordSchema),
@@ -104,7 +91,7 @@ export default function SettingsPage() {
         }
     }
 
-    if (isSecurityLoading || isSessionsLoading) {
+    if (isSecurityLoading) {
         return (
             <div className="space-y-8 animate-pulse pb-12">
                 <div className="space-y-2">
@@ -156,10 +143,7 @@ export default function SettingsPage() {
                         <Palette className="h-4 w-4 mr-2" />
                         Appearance
                     </TabsTrigger>
-                    <TabsTrigger value="audit-logs" className="rounded-lg px-6 py-2 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">
-                        <History className="h-4 w-4 mr-2" />
-                        Activity Logs
-                    </TabsTrigger>
+                    {/* Activity Logs (audit logs) removed for applicant */}
                 </TabsList>
 
                 <TabsContent value="account" className="space-y-8 outline-none">
@@ -297,8 +281,9 @@ export default function SettingsPage() {
                             </Card>
                         </div>
 
-                        {/* Sessions Management */}
+                        {/* Sessions Management disabled for applicant */}
                         <div className="space-y-8">
+                            {/*
                             <Card className="border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden bg-white dark:bg-slate-900/40 h-full">
                                 <CardHeader className="border-b border-slate-50 dark:border-slate-800/60 pb-6">
                                     <div className="flex items-center gap-3 mb-1">
@@ -360,6 +345,7 @@ export default function SettingsPage() {
                                     )}
                                 </CardContent>
                             </Card>
+                            */}
 
                             <div className="p-6 rounded-[2.5rem] bg-primary/5 dark:bg-primary/10 border border-primary/10 dark:border-primary/20 space-y-4">
                                 <div className="bg-primary/20 p-2.5 rounded-2xl w-fit">
@@ -454,25 +440,7 @@ export default function SettingsPage() {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="audit-logs" className="space-y-8 outline-none">
-                    <UserAuditLogs
-                        logs={auditLogs?.data?.logs || []}
-                        pagination={auditLogs?.data?.pagination || {
-                            page: 1,
-                            limit: 20,
-                            total: 0,
-                            totalPages: 0,
-                            hasNext: false,
-                            hasPrev: false
-                        }}
-                        onPageChange={(page) => setAuditPage(page)}
-                        onFilterChange={(action) => {
-                            setAuditActionFilter(action)
-                            setAuditPage(1)
-                        }}
-                        isLoading={isAuditLogsLoading}
-                    />
-                </TabsContent>
+                {/* Activity Logs (audit logs) content removed for applicant */}
             </Tabs>
         </div>
     )

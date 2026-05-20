@@ -19,11 +19,15 @@ interface ApplicationListProps {
 export function ApplicationList({ filters: manualFilters }: ApplicationListProps) {
     const [search] = useQueryState('search', { defaultValue: '', throttleMs: 500 })
     const [status] = useQueryState('status', { defaultValue: '' })
+    const [departmentId] = useQueryState('departmentId', { defaultValue: '' })
+    const [jobGroupId] = useQueryState('jobGroupId', { defaultValue: '' })
     const [view, setView] = useState<'grid' | 'table'>('table')
 
     const activeFilters: ApplicationFilters = manualFilters || {
         searchTerm: search && search.trim() !== '' ? search : undefined,
         status: status && status.trim() !== '' ? (status as any) : undefined,
+        departmentId: departmentId && departmentId !== '' ? departmentId : undefined,
+        jobGroupId: jobGroupId && jobGroupId !== '' ? jobGroupId : undefined,
         sortBy: 'appliedAt' as const,
         order: 'desc' as const,
         limit: '100',

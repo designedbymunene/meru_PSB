@@ -109,7 +109,7 @@ export default function AdminSettingsPage() {
     }
 
     const securityData = security?.data
-    const adminUsers = usersData?.data || []
+    const adminUsers = (usersData as any)?.data || []
 
     return (
         <div className="flex-1 space-y-8 p-8 pt-6">

@@ -7,9 +7,10 @@ import {
     trainingCourses,
     professionalMemberships,
     employmentHistory,
-    referees
+    referees,
+    users
 } from '../db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, or, ilike, desc, asc, sql, SQL } from 'drizzle-orm'
 import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { successResponse, NotFoundError, ForbiddenError, ValidationError, ConflictError } from '../utils/errors'
@@ -28,10 +29,40 @@ import {
     employmentHistorySchema,
     updateEmploymentHistorySchema,
     refereeSchema,
-    updateRefereeSchema
+    updateRefereeSchema,
+    profileFiltersSchema
 } from '@meru/shared'
 
 export const applicantProfilesRouter = new Hono()
+
+// ============ STATS ENDPOINT ============
+
+// GET /api/applicant-profiles/stats - Get applicant profile statistics (Admin only)
+applicantProfilesRouter.get('/stats', authenticate, requireAdmin, async (c) => {
+    try {
+        const [
+            totalProfilesResult,
+            pwdProfilesResult,
+            maleProfilesResult,
+            femaleProfilesResult
+        ] = await Promise.all([
+            db.select({ count: sql<number>`count(*)` }).from(applicantProfiles),
+            db.select({ count: sql<number>`count(*)` }).from(applicantProfiles).where(eq(applicantProfiles.impairment, true)),
+            db.select({ count: sql<number>`count(*)` }).from(applicantProfiles).where(eq(applicantProfiles.gender, 'Male')),
+            db.select({ count: sql<number>`count(*)` }).from(applicantProfiles).where(eq(applicantProfiles.gender, 'Female'))
+        ])
+
+        return successResponse(c, {
+            totalProfiles: Number(totalProfilesResult[0].count),
+            pwdProfiles: Number(pwdProfilesResult[0].count),
+            maleProfiles: Number(maleProfilesResult[0].count),
+            femaleProfiles: Number(femaleProfilesResult[0].count)
+        })
+    } catch (error) {
+        console.error('[ERROR] Failed to fetch profile stats', error)
+        throw error
+    }
+})
 
 // ============ APPLICANT PROFILE ENDPOINTS ============
 
@@ -497,7 +528,13 @@ applicantProfilesRouter.get('/:id', authenticate, async (c) => {
             professionalDetails: true,
             trainingCourses: true,
             professionalMemberships: true,
-            employmentHistory: true
+            employmentHistory: true,
+                homeCounty: true,
+                homeSubCounty: true,
+                ward: true,
+                ethnicity: true,
+                referees: true,
+                documents: true
         }
     })
 
@@ -538,7 +575,13 @@ applicantProfilesRouter.get('/user/:userId', authenticate, async (c) => {
             professionalDetails: true,
             trainingCourses: true,
             professionalMemberships: true,
-            employmentHistory: true
+            employmentHistory: true,
+                homeCounty: true,
+                homeSubCounty: true,
+                ward: true,
+                ethnicity: true,
+                referees: true,
+                documents: true
         }
     })
 
@@ -1283,32 +1326,129 @@ applicantProfilesRouter.delete('/:id/employment-history/:historyId', authenticat
 
 // GET /api/applicant-profiles/admin/all - Get all profiles (admin only) 
 applicantProfilesRouter.get('/admin/all', authenticate, requireAdmin, async (c) => {
+    const query = c.req.query()
+    const filters = profileFiltersSchema.safeParse(query)
+
+    if (!filters.success) {
+        throw new ValidationError('Invalid filter parameters', filters.error.flatten())
+    }
+
+    const {
+        searchTerm,
+        gender,
+        impairment,
+        ethnicityId,
+        homeCountyId,
+        page,
+        limit,
+        sortBy,
+        order
+    } = filters.data
+
+    const limitNum = Math.min(parseInt(limit), 50)
+    const pageNum = parseInt(page)
+    const offsetNum = (pageNum - 1) * limitNum
+
+    const whereConditions: (SQL | undefined)[] = []
+
+    if (searchTerm) {
+        whereConditions.push(
+            or(
+                ilike(applicantProfiles.fullName, `%${searchTerm}%`),
+                ilike(applicantProfiles.idNumber, `%${searchTerm}%`),
+                ilike(applicantProfiles.email, `%${searchTerm}%`)
+            )
+        )
+    }
+
+    if (gender) {
+        whereConditions.push(eq(applicantProfiles.gender, gender))
+    }
+
+    if (impairment !== undefined) {
+        whereConditions.push(eq(applicantProfiles.impairment, impairment === 'true'))
+    }
+
+    if (ethnicityId) {
+        whereConditions.push(eq(applicantProfiles.ethnicityId, parseInt(ethnicityId)))
+    }
+
+    if (homeCountyId) {
+        whereConditions.push(eq(applicantProfiles.homeCountyId, parseInt(homeCountyId)))
+    }
+
+    const whereClause = whereConditions.length > 0 ? and(...(whereConditions.filter(Boolean) as SQL[])) : undefined
+
+    const sortDirection = order === 'desc' ? desc : asc
+    let orderBy: SQL
+    switch (sortBy) {
+        case 'idNumber':
+            orderBy = sortDirection(applicantProfiles.idNumber)
+            break
+        case 'createdAt':
+            orderBy = sortDirection(applicantProfiles.createdAt)
+            break
+        case 'fullName':
+        default:
+            orderBy = sortDirection(applicantProfiles.fullName)
+    }
+
     const profiles = await db.query.applicantProfiles.findMany({
-        with: {
-            user: {
-                columns: {
-                    id: true,
-                    phoneNumber: true,
-                    email: true,
-                    fullName: true
-                }
-            },
-            qualifications: true,
-            professionalDetails: true,
-            trainingCourses: true,
-            professionalMemberships: true,
-            employmentHistory: true,
-            referees: true,
-            documents: true
-        }
+        where: whereClause,
+        orderBy,
+        limit: limitNum,
+        offset: offsetNum
     })
 
-    return successResponse(c, profiles)
+    // Get total count for pagination
+    const totalCountResult = await db.select({ count: sql`count(*)::int` })
+        .from(applicantProfiles)
+        .where(whereClause)
+
+    const totalCount = totalCountResult[0].count
+
+    return successResponse(c, {
+        data: profiles,
+        pagination: {
+            total: totalCount,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(totalCount / limitNum),
+            hasNext: offsetNum + limitNum < totalCount,
+            hasPrev: pageNum > 1
+        }
+    })
 })
 
 // GET /api/applicant-profiles/admin/export - Export profiles (admin only)
 applicantProfilesRouter.get('/admin/export', authenticate, requireAdmin, async (c) => {
+    const query = c.req.query()
+    const filters = profileFiltersSchema.safeParse(query)
+
+    const whereConditions: (SQL | undefined)[] = []
+
+    if (filters.success) {
+        const { searchTerm, gender, impairment, ethnicityId, homeCountyId } = filters.data
+
+        if (searchTerm) {
+            whereConditions.push(
+                or(
+                    ilike(applicantProfiles.fullName, `%${searchTerm}%`),
+                    ilike(applicantProfiles.idNumber, `%${searchTerm}%`),
+                    ilike(applicantProfiles.email, `%${searchTerm}%`)
+                )
+            )
+        }
+        if (gender) whereConditions.push(eq(applicantProfiles.gender, gender))
+        if (impairment !== undefined) whereConditions.push(eq(applicantProfiles.impairment, impairment === 'true'))
+        if (ethnicityId) whereConditions.push(eq(applicantProfiles.ethnicityId, parseInt(ethnicityId)))
+        if (homeCountyId) whereConditions.push(eq(applicantProfiles.homeCountyId, parseInt(homeCountyId)))
+    }
+
+    const whereClause = whereConditions.length > 0 ? and(...(whereConditions.filter(Boolean) as SQL[])) : undefined
+
     const profiles = await db.query.applicantProfiles.findMany({
+        where: whereClause,
         with: {
             user: {
                 columns: {

@@ -1,7 +1,7 @@
 "use client"
 
 import { Activity, CheckCircle, Eye, Calendar, FileText, XCircle, Mail, Shield } from "lucide-react"
-import { cn, format } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import type { AuditLogWithRelations } from "@meru/shared"
 
 interface ActivityItem {
@@ -38,7 +38,7 @@ function getActivityInfo(action: string, newState?: any): { title: string; descr
         case 'STATUS_UPDATE':
             return {
                 title: 'Status Updated',
-                description: `Status changed to ${newState?.status || 'updated'}`
+                description: `Status changed to ${newState?.status === 'rejected' ? 'Not Successful' : (newState?.status || 'updated')}`
             }
         case 'REVIEW_SUBMITTED':
             return {
@@ -90,65 +90,65 @@ const activityConfig = {
     submitted: {
         icon: FileText,
         color: 'blue',
-        bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-        borderColor: 'border-blue-200 dark:border-blue-900/50',
-        textColor: 'text-blue-700 dark:text-blue-300'
+        bgColor: 'bg-blue-500/5',
+        borderColor: 'border-blue-500/10',
+        textColor: 'text-blue-400'
     },
     viewed: {
         icon: Eye,
         color: 'purple',
-        bgColor: 'bg-purple-50 dark:bg-purple-950/30',
-        borderColor: 'border-purple-200 dark:border-purple-900/50',
-        textColor: 'text-purple-700 dark:text-purple-300'
+        bgColor: 'bg-purple-500/5',
+        borderColor: 'border-purple-500/10',
+        textColor: 'text-purple-400'
     },
     reviewed: {
         icon: CheckCircle,
         color: 'emerald',
-        bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
-        borderColor: 'border-emerald-200 dark:border-emerald-900/50',
-        textColor: 'text-emerald-700 dark:text-emerald-300'
+        bgColor: 'bg-emerald-500/5',
+        borderColor: 'border-emerald-500/10',
+        textColor: 'text-emerald-400'
     },
     shortlisted: {
         icon: CheckCircle,
         color: 'green',
-        bgColor: 'bg-green-50 dark:bg-green-950/30',
-        borderColor: 'border-green-200 dark:border-green-900/50',
-        textColor: 'text-green-700 dark:text-green-300'
+        bgColor: 'bg-green-500/5',
+        borderColor: 'border-green-500/10',
+        textColor: 'text-green-400'
     },
     interviewed: {
         icon: Calendar,
         color: 'orange',
-        bgColor: 'bg-orange-50 dark:bg-orange-950/30',
-        borderColor: 'border-orange-200 dark:border-orange-900/50',
-        textColor: 'text-orange-700 dark:text-orange-300'
+        bgColor: 'bg-orange-500/5',
+        borderColor: 'border-orange-500/10',
+        textColor: 'text-orange-400'
     },
     offered: {
         icon: CheckCircle,
         color: 'green',
-        bgColor: 'bg-green-50 dark:bg-green-950/30',
-        borderColor: 'border-green-200 dark:border-green-900/50',
-        textColor: 'text-green-700 dark:text-green-300'
+        bgColor: 'bg-green-500/5',
+        borderColor: 'border-green-500/10',
+        textColor: 'text-green-400'
     },
     rejected: {
         icon: XCircle,
         color: 'rose',
-        bgColor: 'bg-rose-50 dark:bg-rose-950/30',
-        borderColor: 'border-rose-200 dark:border-rose-900/50',
-        textColor: 'text-rose-700 dark:text-rose-300'
+        bgColor: 'bg-rose-500/5',
+        borderColor: 'border-rose-500/10',
+        textColor: 'text-rose-400'
     },
     email_sent: {
         icon: Mail,
         color: 'slate',
-        bgColor: 'bg-slate-50 dark:bg-slate-900/30',
-        borderColor: 'border-slate-200 dark:border-slate-800',
-        textColor: 'text-slate-700 dark:text-slate-300'
+        bgColor: 'bg-slate-500/5',
+        borderColor: 'border-slate-500/10',
+        textColor: 'text-slate-400'
     },
     status_update: {
         icon: Shield,
         color: 'amber',
-        bgColor: 'bg-amber-50 dark:bg-amber-950/30',
-        borderColor: 'border-amber-200 dark:border-amber-900/50',
-        textColor: 'text-amber-700 dark:text-amber-300'
+        bgColor: 'bg-amber-500/5',
+        borderColor: 'border-amber-500/10',
+        textColor: 'text-amber-400'
     }
 }
 
@@ -165,9 +165,9 @@ export function ApplicationActivityFeed({ activities, auditLogs, appliedAt }: Ap
     if (displayActivities.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <Activity className="h-12 w-12 text-slate-300 dark:text-slate-700 mb-3" />
-                <p className="text-sm text-slate-500 dark:text-slate-400">No activity yet</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                <Activity className="h-12 w-12 text-slate-800 mb-3" />
+                <p className="text-sm font-bold text-slate-500">No activity yet</p>
+                <p className="text-xs text-slate-600 mt-1">
                     Activity will appear here as your application progresses
                 </p>
             </div>
@@ -189,37 +189,34 @@ export function ApplicationActivityFeed({ activities, auditLogs, appliedAt }: Ap
                     <div
                         key={activity.id}
                         className={cn(
-                            "flex gap-3 p-4 rounded-lg border transition-all duration-200 hover:shadow-md",
+                            "flex gap-4 p-5 rounded-xl border transition-all duration-300 hover:border-slate-700 hover:bg-slate-800/20",
                             config.bgColor,
                             config.borderColor
                         )}
                     >
                         {/* Icon */}
                         <div className={cn(
-                            "flex items-center justify-center w-10 h-10 rounded-full shrink-0",
+                            "flex items-center justify-center w-12 h-12 rounded-xl shrink-0 bg-slate-900 border border-slate-800 shadow-xl",
                             config.textColor
                         )}>
-                            <Icon className="h-5 w-5" />
+                            <Icon className="h-6 w-6" />
                         </div>
 
                         {/* Content */}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-1">
                                 <div>
-                                    <p className={cn(
-                                        "text-sm font-semibold",
-                                        config.textColor
-                                    )}>
+                                    <p className="text-base font-bold text-slate-100">
                                         {activity.title}
                                     </p>
-                                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+                                    <p className="text-sm text-slate-400 mt-1">
                                         {activity.description}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Timestamp */}
-                            <time className="text-xs text-slate-500 dark:text-slate-500">
+                            <time className="text-xs font-bold text-slate-600 uppercase tracking-widest">
                                 {formatRelativeTime(activity.timestamp)}
                             </time>
                         </div>

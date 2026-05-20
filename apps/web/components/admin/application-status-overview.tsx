@@ -17,11 +17,11 @@ export function ApplicationStatusOverview() {
         { key: 'shortlisted', label: 'Shortlisted', color: 'bg-blue-500', badgeVariant: 'default' as const },
         { key: 'interviewed', label: 'Interviewed', color: 'bg-purple-500', badgeVariant: 'default' as const },
         { key: 'accepted', label: 'Accepted', color: 'bg-green-500', badgeVariant: 'default' as const },
-        { key: 'rejected', label: 'Rejected', color: 'bg-red-500', badgeVariant: 'destructive' as const },
+        { key: 'rejected', label: 'Not Successful', color: 'bg-red-500', badgeVariant: 'destructive' as const },
     ]
 
     const stats = statuses.map(status => {
-        const count = applications.filter(a => a.status === status.key).length
+        const count = applications.filter((a: any) => a.status === status.key).length
         const percentage = total > 0 ? (count / total) * 100 : 0
         return { ...status, count, percentage }
     })

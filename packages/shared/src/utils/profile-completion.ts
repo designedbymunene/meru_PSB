@@ -121,7 +121,8 @@ export function calculateProfileCompletion(profile: any): ProfileCompletionSumma
             'Academic History',
             'At least one qualification',
             'required',
-            'qualifications'
+            'qualifications',
+            ['hasNoCertificates']
         ),
         sectionFromCollection(
             profile,
@@ -138,8 +139,7 @@ export function calculateProfileCompletion(profile: any): ProfileCompletionSumma
             'Professional Details',
             'Licenses and registrations',
             'optional',
-            'professionalDetails',
-            ['hasNoCertificates']
+            'professionalDetails'
         ),
         sectionFromCollection(
             profile,
@@ -168,14 +168,14 @@ export function calculateProfileCompletion(profile: any): ProfileCompletionSumma
             'referees',
             ['hasNoReferees']
         ),
-        sectionFromCollection(
+        /* sectionFromCollection(
             profile,
             'documents',
             'Uploads',
             'ID, CV and other supporting documents',
             'optional',
             'documents'
-        ),
+        ), */
     ]
 
     const sectionMap = sections.reduce((acc, section) => {

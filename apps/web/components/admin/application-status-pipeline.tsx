@@ -30,6 +30,9 @@ export function ApplicationStatusPipeline({
         if (currentStatus === APPLICATION_STATUS.REJECTED) {
             return steps.findIndex(s => s.id === APPLICATION_STATUS.ACCEPTED)
         }
+        if (currentStatus === APPLICATION_STATUS.INTERVIEWING) {
+            return steps.findIndex(s => s.id === APPLICATION_STATUS.INTERVIEWED)
+        }
         return steps.findIndex(s => s.id === currentStatus)
     }
 
@@ -90,7 +93,7 @@ export function ApplicationStatusPipeline({
                                 )}
                             >
                                 {isFinal && currentStatus === APPLICATION_STATUS.ACCEPTED ? "Accepted" : 
-                                 isFinal && currentStatus === APPLICATION_STATUS.REJECTED ? "Rejected" : 
+                                 isFinal && currentStatus === APPLICATION_STATUS.REJECTED ? "Not Successful" : 
                                  step.label}
                             </span>
                         </button>

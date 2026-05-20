@@ -46,7 +46,7 @@ export function BoardResolutionForm({ vacancies }: { vacancies: VacancyWithRelat
     const { data: interviewResultsData } = useInterviewResults(
         selectedVacancyId ? parseInt(selectedVacancyId) : 0
     )
-    const interviewResults = interviewResultsData?.data || []
+    const interviewResults = interviewResultsData?.data?.interviews || []
     
     const vacancyOptions = vacancies.map((v) => ({
         label: v.title,

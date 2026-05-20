@@ -12,6 +12,7 @@ export * from './venues'
 export * from './vacancy-documents'
 export * from './applicant-profiles'
 export * from './password-reset-sessions'
+export * from './login-otp-sessions'
 export * from './qualifications'
 export * from './professional-details'
 export * from './training-courses'
@@ -40,6 +41,7 @@ import { venueTags } from './venue-tags'
 import { vacancyDocuments } from './vacancy-documents'
 import { applicantProfiles } from './applicant-profiles'
 import { passwordResetSessions } from './password-reset-sessions'
+import { loginOtpSessions } from './login-otp-sessions'
 import { qualifications } from './qualifications'
 import { professionalDetails } from './professional-details'
 import { trainingCourses } from './training-courses'
@@ -58,7 +60,7 @@ import {
 import { auditLogs } from './audit-logs'
 import { applicantDocuments } from './applicant-documents'
 import { shortlistCriteria } from './shortlisting'
-import { interviews, interviewScores } from './interviews'
+import { interviews, interviewScores, vacancyPanelMembers, interviewCriteria, interviewCriteriaScores } from './interviews'
 import { boardResolutions } from './board'
 import { downloadCategories, downloadFiles } from './downloads'
 
@@ -74,6 +76,7 @@ import {
     vacancyDocumentsRelations,
     applicantProfilesRelations,
     passwordResetSessionsRelations,
+    loginOtpSessionsRelations,
     qualificationsRelations,
     employmentHistoryRelations,
     professionalDetailsRelations,
@@ -83,6 +86,9 @@ import {
     applicantDocumentsRelations,
     interviewsRelations,
     interviewScoresRelations,
+    interviewCriteriaRelations,
+    interviewCriteriaScoresRelations,
+    vacancyPanelMembersRelations,
     boardResolutionsRelations,
     auditLogsRelations,
     downloadCategoriesRelations,
@@ -103,6 +109,7 @@ export const schema = {
     vacancyDocuments,
     applicantProfiles,
     passwordResetSessions,
+    loginOtpSessions,
     qualifications,
     professionalDetails,
     trainingCourses,
@@ -123,6 +130,9 @@ export const schema = {
     shortlistCriteria,
     interviews,
     interviewScores,
+    vacancyPanelMembers,
+    interviewCriteria,
+    interviewCriteriaScores,
     boardResolutions,
     downloadCategories,
     downloadFiles,
@@ -135,6 +145,7 @@ export const schema = {
     vacancyDocumentsRelations,
     applicantProfilesRelations,
     passwordResetSessionsRelations,
+    loginOtpSessionsRelations,
     qualificationsRelations,
     employmentHistoryRelations,
     professionalDetailsRelations,
@@ -144,6 +155,9 @@ export const schema = {
     applicantDocumentsRelations,
     interviewsRelations,
     interviewScoresRelations,
+    interviewCriteriaRelations,
+    interviewCriteriaScoresRelations,
+    vacancyPanelMembersRelations,
     boardResolutionsRelations,
     auditLogsRelations,
     downloadCategoriesRelations,

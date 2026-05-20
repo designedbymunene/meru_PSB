@@ -71,7 +71,7 @@ export default function SitemapPage() {
                         <ul className="space-y-3">
                             {section.links.map((link, linkIndex) => (
                                 <li key={linkIndex}>
-                                    {link.external ? (
+                                    {(link as any).external ? (
                                         <a
                                             href={link.href}
                                             target="_blank"

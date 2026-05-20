@@ -8,13 +8,13 @@ import { Plus, Edit2, Trash2, Loader2, GraduationCap, Calendar, Award, School, C
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog'
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from '@/components/ui/sheet'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -56,13 +56,18 @@ import {
     KCSE_GRADES,
     TVET_GRADES,
     UNIVERSITY_GRADES,
-    LEGACY_LEVEL_MAP
+    LEGACY_LEVEL_MAP,
+    formatKNQFLevel
 } from '@meru/shared'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import {
     useMyQualifications,
     useAddMyQualification,
     useUpdateMyQualification,
     useDeleteMyQualification,
+    useMyProfile,
+    useCreateOrUpdateProfile,
 } from '@/hooks/use-applicant-profile'
 import { 
     useEducationLevels, 
@@ -71,9 +76,24 @@ import {
     useCourses 
 } from '@/hooks/use-reference-data'
 
+const LEGACY_CODE_TO_KNQF_CODE: Record<string, string> = {
+    'DOCTORATE': 'KNQF_LEVEL_10',
+    'MASTERS': 'KNQF_LEVEL_9',
+    'POSTGRAD_DIPLOMA': 'KNQF_LEVEL_8',
+    'BACHELORS': 'KNQF_LEVEL_7',
+    'HIGHER_DIPLOMA': 'KNQF_LEVEL_6',
+    'DIPLOMA': 'KNQF_LEVEL_6',
+    'CERTIFICATE': 'KNQF_LEVEL_5',
+    'KCSE': 'KNQF_LEVEL_3',
+    'KCPE': 'KNQF_LEVEL_1',
+}
+
 export function QualificationsManager() {
     const { data: response, isLoading } = useMyQualifications()
     const qualifications = response?.data || []
+    const { data: profileResponse } = useMyProfile()
+    const profile = profileResponse?.data
+    const updateProfile = useCreateOrUpdateProfile()
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingQualification, setEditingQualification] = useState<Qualification | null>(null)
     const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -83,6 +103,8 @@ export function QualificationsManager() {
 
     const { data: levelsResponse } = useEducationLevels()
     const levels = (levelsResponse?.data as any[]) || []
+    const filteredLevels = levels.filter(l => l.name.toLowerCase().includes('level'))
+
     const { data: institutionsResponse } = useInstitutions()
     const institutions = (institutionsResponse?.data as any[]) || []
     const { data: coursesResponse } = useCourses()
@@ -95,7 +117,7 @@ export function QualificationsManager() {
     const form = useForm<any>({
         resolver: zodResolver(createQualificationSchema),
         defaultValues: {
-            level: 'BACHELORS',
+            level: 'KNQF_LEVEL_7',
             course: '',
             institution: '',
             grade: '',
@@ -107,7 +129,12 @@ export function QualificationsManager() {
 
 
     const selectedLevelCode = form.watch('level')
-    const isSchoolLevel = selectedLevelCode === 'KCPE' || selectedLevelCode === 'KCSE'
+    
+    const isLevel1To4 = (levelCode: string) => {
+        return ['KNQF_LEVEL_1', 'KNQF_LEVEL_2', 'KNQF_LEVEL_3', 'KNQF_LEVEL_4'].includes(levelCode)
+    }
+
+    const isSchoolLevel = selectedLevelCode === 'KCPE' || selectedLevelCode === 'KCSE' || isLevel1To4(selectedLevelCode)
     const isOtherLevel = selectedLevelCode === 'OTHER' || (!levels.some(l => l.code === selectedLevelCode) && selectedLevelCode !== '')
 
     const selectedLevelId = levels.find(l => l.code === selectedLevelCode)?.id
@@ -132,11 +159,13 @@ export function QualificationsManager() {
     }
 
     // Ensure displayGrades are unique to prevent React key errors
-    const displayGrades = Array.from(new Set(
-        grades.length > 0 
-            ? grades.map((g: any) => g.grade) 
-            : getFallbackGrades(selectedLevelCode)
-    )) as string[]
+    const displayGrades = (isLevel1To4(selectedLevelCode)
+        ? ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'E']
+        : Array.from(new Set(
+            grades.length > 0 
+                ? grades.map((g: any) => g.grade) 
+                : getFallbackGrades(selectedLevelCode)
+        )) as string[]).filter(g => !['1', '2', '3', '4', '5', '6', '7'].includes(String(g).trim()))
 
     const onSubmit = async (data: QualificationInput) => {
         try {
@@ -157,11 +186,12 @@ export function QualificationsManager() {
 
     const handleEdit = (qualification: Qualification) => {
         setEditingQualification(qualification)
-        const isStandardLevel = levels.some(l => l.code === qualification.level)
+        const levelCode = LEGACY_CODE_TO_KNQF_CODE[qualification.level] || qualification.level
+        const isStandardLevel = filteredLevels.some(l => l.code === levelCode)
         setShowOtherLevelInput(!isStandardLevel)
         
         form.reset({
-            level: qualification.level,
+            level: levelCode,
             course: qualification.course,
             courseId: qualification.courseId || undefined,
             institution: qualification.institution,
@@ -194,7 +224,7 @@ export function QualificationsManager() {
                         </p>
                     </div>
                 </div>
-                <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                <Sheet open={isDialogOpen} onOpenChange={(open) => {
                     setIsDialogOpen(open)
                     if (!open) { 
                         setEditingQualification(null)
@@ -202,162 +232,187 @@ export function QualificationsManager() {
                         form.reset() 
                     }
                 }}>
-                    <DialogTrigger asChild>
-                        <Button size="sm" className="bg-primary shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                    <SheetTrigger asChild>
+                        <Button 
+                            size="sm" 
+                            className="bg-primary shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                            disabled={profile?.hasNoCertificates || false}
+                        >
                             <Plus className="mr-2 h-4 w-4" /> Add Qualification
                         </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl">
-                        <DialogHeader className="pb-4 border-b">
-                            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                    </SheetTrigger>
+                    <SheetContent className="w-full sm:max-w-md border-l border-slate-200 dark:border-slate-800 p-0 flex flex-col" side="right">
+                        <SheetHeader className="p-6 border-b border-slate-100 dark:border-slate-800 text-left">
+                            <SheetTitle className="text-2xl font-bold flex items-center gap-2">
                                 <GraduationCap className="h-6 w-6 text-primary" />
                                 {editingQualification ? 'Edit Qualification' : 'Add New Qualification'}
-                            </DialogTitle>
-                            <DialogDescription>
+                            </SheetTitle>
+                            <SheetDescription className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                                 Enter your academic details below. All information is handled securely.
-                            </DialogDescription>
-                        </DialogHeader>
+                            </SheetDescription>
+                        </SheetHeader>
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-6">
-                                {/* Level & Course Section */}
-                                <div className="space-y-4">
-                                    <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-l-2 border-primary/30 pl-2">Level & Course</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <FormField
-                                            control={form.control}
-                                            name="level"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Qualification Level *</FormLabel>
-                                                    <Select 
-                                                        onValueChange={(val) => { 
-                                                            if (val === 'OTHER') {
-                                                                setShowOtherLevelInput(true)
-                                                                field.onChange('')
-                                                            } else {
-                                                                setShowOtherLevelInput(false)
-                                                                field.onChange(val)
-                                                                if (val === 'KCPE') form.setValue('course', 'Primary Education')
-                                                                if (val === 'KCSE') form.setValue('course', 'Secondary Education')
-                                                            }
-                                                            form.setValue('grade', '') 
-                                                        }} 
-                                                        value={levels.some(l => l.code === field.value) ? field.value : (showOtherLevelInput ? 'OTHER' : field.value)}
-                                                    >
-                                                        <FormControl><SelectTrigger className="h-11 rounded-lg"><SelectValue placeholder="Select level" /></SelectTrigger></FormControl>
-                                                        <SelectContent className="rounded-xl">
-                                                            {levels.map((level) => <SelectItem key={level.id} value={level.code}>{level.name}</SelectItem>)}
-                                                            <SelectItem value="OTHER">Other / Custom Level</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    {showOtherLevelInput && (
-                                                        <div className="mt-3 animate-in fade-in slide-in-from-top-2">
-                                                            <Input 
-                                                                placeholder="Enter custom level (e.g. Higher Diploma)" 
-                                                                className="h-11 rounded-lg"
-                                                                value={field.value} 
-                                                                onChange={field.onChange}
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
+                                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                    {/* Level & Course Section */}
+                                    <div className="space-y-4">
+                                        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-l-2 border-primary/30 pl-2">Level & Course</h4>
+                                        <div className="space-y-6">
+                                            <FormField
+                                                control={form.control}
+                                                name="level"
+                                                render={({ field }) => (
+                                                    <FormItem className="w-full">
+                                                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Qualification Level *</FormLabel>
+                                                        <Select 
+                                                            onValueChange={(val) => { 
+                                                                if (val === 'OTHER') {
+                                                                    setShowOtherLevelInput(true)
+                                                                    field.onChange('')
+                                                                } else {
+                                                                    setShowOtherLevelInput(false)
+                                                                    field.onChange(val)
+                                                                    
+                                                                    // Dynamic course value setting for levels 1-4 and legacy levels
+                                                                    if (val === 'KNQF_LEVEL_1' || val === 'KCPE') {
+                                                                        form.setValue('course', 'Primary Education')
+                                                                        form.setValue('courseId', undefined)
+                                                                    } else if (val === 'KNQF_LEVEL_2') {
+                                                                        form.setValue('course', 'Junior Secondary Education')
+                                                                        form.setValue('courseId', undefined)
+                                                                    } else if (val === 'KNQF_LEVEL_3' || val === 'KCSE') {
+                                                                        form.setValue('course', 'Secondary Education')
+                                                                        form.setValue('courseId', undefined)
+                                                                    } else if (val === 'KNQF_LEVEL_4') {
+                                                                        form.setValue('course', 'Artisan Certificate')
+                                                                        form.setValue('courseId', undefined)
+                                                                    } else {
+                                                                        form.setValue('course', '')
+                                                                        form.setValue('courseId', undefined)
+                                                                    }
+                                                                }
+                                                                form.setValue('grade', '') 
+                                                            }} 
+                                                            value={filteredLevels.some(l => l.code === field.value) ? field.value : (showOtherLevelInput ? 'OTHER' : field.value)}
+                                                        >
+                                                            <FormControl><SelectTrigger className="h-11 rounded-lg"><SelectValue placeholder="Select level" /></SelectTrigger></FormControl>
+                                                            <SelectContent className="rounded-xl">
+                                                                {filteredLevels.map((level) => <SelectItem key={level.id} value={level.code}>{level.name}</SelectItem>)}
+                                                                <SelectItem value="OTHER">Other / Custom Level</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                        {showOtherLevelInput && (
+                                                            <div className="mt-3 animate-in fade-in slide-in-from-top-2">
+                                                                <Input 
+                                                                    placeholder="Enter custom level (e.g. Higher Diploma)" 
+                                                                    className="h-11 rounded-lg"
+                                                                    value={field.value} 
+                                                                    onChange={field.onChange}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
 
-                                        <FormField
-                                            control={form.control}
-                                            name="courseId"
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-col">
-                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground mb-2">Course / Field of Study *</FormLabel>
-                                                    <Popover open={courseSearchOpen} onOpenChange={setCourseSearchOpen}>
-                                                        <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    role="combobox"
-                                                                    className={cn(
-                                                                        "w-full h-11 justify-between font-normal rounded-lg",
-                                                                        !field.value && !form.watch('course') && "text-muted-foreground"
-                                                                    )}
-                                                                    disabled={isSchoolLevel}
-                                                                >
-                                                                    <span className="truncate">
-                                                                        {field.value
-                                                                            ? courses.find((c) => c.id === field.value)?.name
-                                                                            : form.watch('course') || "Select course"}
-                                                                    </span>
-                                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                                </Button>
-                                                            </FormControl>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl overflow-hidden shadow-2xl border-none ring-1 ring-border">
-                                                            <Command>
-                                                                <CommandInput placeholder="Search course..." className="h-11" />
-                                                                <CommandList>
-                                                                    <CommandEmpty>
-                                                                        <div className="p-4 text-sm text-center">
-                                                                            <p className="mb-2 text-muted-foreground">No predefined course found.</p>
-                                                                            <Button 
-                                                                                variant="secondary" 
-                                                                                size="sm"
-                                                                                className="rounded-lg h-8"
-                                                                                onClick={() => {
-                                                                                    field.onChange(undefined)
-                                                                                    setCourseSearchOpen(false)
-                                                                                }}
+                                            {!isLevel1To4(selectedLevelCode) && (
+                                                <div className="space-y-4">
+                                                    <FormField
+                                                        control={form.control}
+                                                        name="courseId"
+                                                        render={({ field }) => (
+                                                            <FormItem className="flex flex-col">
+                                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground mb-2">Course / Field of Study *</FormLabel>
+                                                                <Popover open={courseSearchOpen} onOpenChange={setCourseSearchOpen}>
+                                                                    <PopoverTrigger asChild>
+                                                                        <FormControl>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                role="combobox"
+                                                                                className={cn(
+                                                                                    "w-full h-11 justify-between font-normal rounded-lg",
+                                                                                    !field.value && !form.watch('course') && "text-muted-foreground"
+                                                                                )}
+                                                                                disabled={isSchoolLevel}
                                                                             >
-                                                                                Enter Manually
+                                                                                <span className="truncate">
+                                                                                    {field.value
+                                                                                        ? courses.find((c) => c.id === field.value)?.name
+                                                                                        : form.watch('course') || "Select course"}
+                                                                                </span>
+                                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                                             </Button>
-                                                                        </div>
-                                                                    </CommandEmpty>
-                                                                    <CommandGroup>
-                                                                        {courses.map((c) => (
-                                                                            <CommandItem
-                                                                                value={c.name}
-                                                                                key={c.id}
-                                                                                onSelect={() => {
-                                                                                    field.onChange(c.id)
-                                                                                    form.setValue('course', c.name)
-                                                                                    setCourseSearchOpen(false)
-                                                                                }}
-                                                                                className="h-10 rounded-md"
-                                                                            >
-                                                                                <Check
-                                                                                    className={cn(
-                                                                                        "mr-2 h-4 w-4 text-primary",
-                                                                                        c.id === field.value ? "opacity-100" : "opacity-0"
-                                                                                    )}
-                                                                                />
-                                                                                {c.name}
-                                                                            </CommandItem>
-                                                                        ))}
-                                                                    </CommandGroup>
-                                                                </CommandList>
-                                                            </Command>
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
+                                                                        </FormControl>
+                                                                    </PopoverTrigger>
+                                                                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl overflow-hidden shadow-2xl border-none ring-1 ring-border">
+                                                                        <Command>
+                                                                            <CommandInput placeholder="Search course..." className="h-11" />
+                                                                            <CommandList>
+                                                                                <CommandEmpty>
+                                                                                    <div className="p-4 text-sm text-center">
+                                                                                        <p className="mb-2 text-muted-foreground">No predefined course found.</p>
+                                                                                        <Button 
+                                                                                            variant="secondary" 
+                                                                                            size="sm"
+                                                                                            className="rounded-lg h-8"
+                                                                                            onClick={() => {
+                                                                                                field.onChange(undefined)
+                                                                                                setCourseSearchOpen(false)
+                                                                                            }}
+                                                                                        >
+                                                                                            Enter Manually
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                </CommandEmpty>
+                                                                                <CommandGroup>
+                                                                                    {courses.map((c) => (
+                                                                                        <CommandItem
+                                                                                            value={c.name}
+                                                                                            key={c.id}
+                                                                                            onSelect={() => {
+                                                                                                field.onChange(c.id)
+                                                                                                form.setValue('course', c.name)
+                                                                                                setCourseSearchOpen(false)
+                                                                                            }}
+                                                                                            className="h-10 rounded-md"
+                                                                                        >
+                                                                                            <Check
+                                                                                                className={cn(
+                                                                                                    "mr-2 h-4 w-4 text-primary",
+                                                                                                    c.id === field.value ? "opacity-100" : "opacity-0"
+                                                                                                )}
+                                                                                            />
+                                                                                            {c.name}
+                                                                                        </CommandItem>
+                                                                                    ))}
+                                                                                </CommandGroup>
+                                                                            </CommandList>
+                                                                        </Command>
+                                                                    </PopoverContent>
+                                                                </Popover>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
 
-                                    {!form.watch('courseId') && !isSchoolLevel && (
-                                        <FormField
-                                            control={form.control}
-                                            name="course"
-                                            render={({ field }) => (
-                                                <FormItem className="animate-in fade-in slide-in-from-top-1">
-                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Manual Course Entry</FormLabel>
-                                                    <FormControl><Input placeholder="Enter your full course name" className="h-11 rounded-lg" {...field} /></FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
+                                                    {!form.watch('courseId') && (
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="course"
+                                                            render={({ field }) => (
+                                                                <FormItem className="animate-in fade-in slide-in-from-top-1">
+                                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Manual Course Entry</FormLabel>
+                                                                    <FormControl><Input placeholder="Enter your full course name" className="h-11 rounded-lg" {...field} /></FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    )}
+                                                </div>
                                             )}
-                                        />
-                                    )}
-                                </div>
+                                        </div>
+                                    </div>
 
                                 {/* Institution Section */}
                                 <div className="space-y-4">
@@ -372,8 +427,16 @@ export function QualificationsManager() {
                                                     <FormControl>
                                                         <Input 
                                                             className="h-11 rounded-lg"
-                                                            placeholder={selectedLevelCode === 'KCPE' ? "Enter primary school name" : "Enter secondary school name"} 
-                                                            value={form.watch('institution')}
+                                                            placeholder={
+                                                                selectedLevelCode === 'KNQF_LEVEL_1' || selectedLevelCode === 'KCPE' 
+                                                                    ? "Enter primary school name" 
+                                                                    : selectedLevelCode === 'KNQF_LEVEL_2'
+                                                                    ? "Enter junior secondary school name"
+                                                                    : selectedLevelCode === 'KNQF_LEVEL_3' || selectedLevelCode === 'KCSE'
+                                                                    ? "Enter secondary school name"
+                                                                    : "Enter artisan school name"
+                                                            } 
+                                                            value={form.watch('institution') || ''}
                                                             onChange={(e) => {
                                                                 field.onChange(undefined)
                                                                 form.setValue('institution', e.target.value)
@@ -471,8 +534,8 @@ export function QualificationsManager() {
                                 {/* Grade & Years Section */}
                                 <div className="space-y-4">
                                     <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-l-2 border-primary/30 pl-2">Performance & Duration</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                        <div className="md:col-span-2">
+                                    <div className="space-y-6">
+                                        <div className="w-full">
                                             <FormField
                                                 control={form.control}
                                                 name="grade"
@@ -491,7 +554,7 @@ export function QualificationsManager() {
                                                 )}
                                             />
                                         </div>
-                                        <div className="md:col-span-1">
+                                        <div className="grid grid-cols-2 gap-4">
                                             <FormField 
                                                 control={form.control} 
                                                 name="yearStart" 
@@ -512,8 +575,6 @@ export function QualificationsManager() {
                                                     </FormItem>
                                                 )} 
                                             />
-                                        </div>
-                                        <div className="md:col-span-1">
                                             <FormField 
                                                 control={form.control} 
                                                 name="yearEnd" 
@@ -537,18 +598,83 @@ export function QualificationsManager() {
                                         </div>
                                     </div>
                                 </div>
+                                </div>
 
-                                <div className="flex justify-end gap-3 pt-6 border-t mt-4">
-                                    <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                                    <Button type="submit" className="px-10 rounded-xl shadow-lg shadow-primary/20" disabled={addMutation.isPending || updateMutation.isPending}>
+                                <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 flex gap-3 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] mt-auto">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="flex-1 h-12 rounded-2xl font-bold border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
+                                        onClick={() => setIsDialogOpen(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        className="flex-[2] h-12 rounded-2xl font-bold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98] transition-all"
+                                        disabled={addMutation.isPending || updateMutation.isPending}
+                                    >
                                         {(addMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         {editingQualification ? 'Update Qualification' : 'Save Qualification'}
                                     </Button>
                                 </div>
                             </form>
                         </Form>
-                    </DialogContent>
-                </Dialog>
+                    </SheetContent>
+                </Sheet>
+            </div>
+
+            {/* Not Included Toggle */}
+            <div className="flex items-center space-x-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                <Checkbox
+                    id="hasNoCertificates"
+                    checked={profile?.hasNoCertificates || false}
+                    onCheckedChange={async (checked) => {
+                        if (!profile) return
+                        await updateProfile.mutateAsync({
+                            fullName: profile.fullName || '',
+                            idNumber: profile.idNumber || '',
+                            gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
+                            dateOfBirth: profile.dateOfBirth || '',
+                            ethnicityId: profile.ethnicityId || 0,
+                            phoneNumber: profile.phoneNumber || '',
+                            email: profile.email || '',
+                            homeCountyId: profile.homeCountyId || 0,
+                            homeSubCountyId: profile.homeSubCountyId || 0,
+                            wardId: profile.wardId || 0,
+                            impairment: profile.impairment || false,
+                            impairmentDetails: profile.impairmentDetails || '',
+                            publicServiceInfo: profile.publicServiceInfo || '',
+                            personalNumber: profile.personalNumber || '',
+                            hasNoExperience: profile.hasNoExperience || false,
+                            hasNoCertificates: Boolean(checked),
+                            hasNoMemberships: profile.hasNoMemberships || false,
+                            hasNoTrainings: profile.hasNoTrainings || false,
+                            hasNoReferees: profile.hasNoReferees || false,
+                        })
+                    }}
+                    disabled={updateProfile.isPending || qualifications.length > 0}
+                    className="h-5 w-5 rounded-md"
+                />
+                <div className="grid gap-1.5 leading-none">
+                    <Label
+                        htmlFor="hasNoCertificates"
+                        className={cn(
+                            "text-sm font-semibold cursor-pointer select-none",
+                            qualifications.length > 0 ? "text-slate-400 cursor-not-allowed" : "text-slate-700 dark:text-slate-300"
+                        )}
+                    >
+                        I have no academic history to add
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                        {qualifications.length > 0 
+                            ? "Remove existing qualifications first to mark this section as Not Applicable."
+                            : "Check this if you do not hold any academic qualifications."}
+                    </p>
+                </div>
+                {updateProfile.isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary ml-auto" />
+                )}
             </div>
 
             <div className="space-y-4">
@@ -577,7 +703,7 @@ export function QualificationsManager() {
                                         <div className="min-w-0">
                                             <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate pr-2">{qual.course}</h3>
                                             <Badge variant="secondary" className="font-bold text-[10px] px-2 bg-primary/5 text-primary border-none uppercase tracking-wider h-5">
-                                                {qual.level}
+                                                {formatKNQFLevel(qual.level)}
                                             </Badge>
                                         </div>
                                     </div>

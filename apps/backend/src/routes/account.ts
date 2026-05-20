@@ -12,6 +12,7 @@ import path from 'path'
 import fs from 'fs/promises'
 import { fileURLToPath } from 'url'
 import { AuditService } from '../services/audit-service'
+import { buildPagination, parsePagination } from '../utils/pagination'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -30,13 +31,23 @@ accountRouter.get('/security', authenticate, async (c) => {
         throw new NotFoundError('User not found')
     }
 
-    const sessions = await db.select().from(activeSessions).where(eq(activeSessions.userId, user.userId))
+    const [{ count: activeSessionCount }] = await db.select({ count: sql<number>`count(*)::int` })
+        .from(activeSessions)
+        .where(eq(activeSessions.userId, user.userId))
+    const [currentSession] = await db.select({
+        deviceName: activeSessions.deviceName
+    }).from(activeSessions)
+        .where(and(
+            eq(activeSessions.userId, user.userId),
+            eq(activeSessions.isCurrent, true)
+        ))
+        .limit(1)
     
     return successResponse(c, {
         twoFactorEnabled: dbUser.twoFactorEnabled,
         passwordLastChanged: dbUser.updatedAt ? dbUser.updatedAt.toISOString() : 'Never',
-        activeSessions: sessions.length,
-        currentDevice: sessions.find(s => s.isCurrent)?.deviceName || 'Unknown Device'
+        activeSessions: activeSessionCount,
+        currentDevice: currentSession?.deviceName || 'Unknown Device'
     })
 })
 
@@ -121,12 +132,23 @@ accountRouter.post('/2fa/toggle', authenticate, async (c) => {
 // GET /api/account/sessions - List active sessions
 accountRouter.get('/sessions', authenticate, async (c) => {
     const user = c.get('user')
-    
-    const sessions = await db.select().from(activeSessions)
-        .where(eq(activeSessions.userId, user.userId))
-        .orderBy(activeSessions.lastActive)
-        
-    return successResponse(c, sessions)
+    const { page, limit, offset } = parsePagination(c.req.query('page'), c.req.query('limit'))
+
+    const [sessions, totalResult] = await Promise.all([
+        db.select().from(activeSessions)
+            .where(eq(activeSessions.userId, user.userId))
+            .orderBy(activeSessions.lastActive)
+            .limit(limit)
+            .offset(offset),
+        db.select({ count: sql<number>`count(*)::int` })
+            .from(activeSessions)
+            .where(eq(activeSessions.userId, user.userId))
+    ])
+
+    return successResponse(c, {
+        data: sessions,
+        pagination: buildPagination(totalResult[0]?.count ?? 0, page, limit)
+    })
 })
 
 // DELETE /api/account/sessions/:id - Revoke specific session
@@ -195,12 +217,23 @@ accountRouter.delete('/sessions', authenticate, async (c) => {
 // GET /api/account/documents - List user's documents
 accountRouter.get('/documents', authenticate, async (c) => {
     const user = c.get('user')
-    
-    const docs = await db.select().from(applicantDocuments)
-        .where(eq(applicantDocuments.userId, user.userId))
-        .orderBy(applicantDocuments.createdAt)
-        
-    return successResponse(c, docs)
+    const { page, limit, offset } = parsePagination(c.req.query('page'), c.req.query('limit'))
+
+    const [docs, totalResult] = await Promise.all([
+        db.select().from(applicantDocuments)
+            .where(eq(applicantDocuments.userId, user.userId))
+            .orderBy(applicantDocuments.createdAt)
+            .limit(limit)
+            .offset(offset),
+        db.select({ count: sql<number>`count(*)::int` })
+            .from(applicantDocuments)
+            .where(eq(applicantDocuments.userId, user.userId))
+    ])
+
+    return successResponse(c, {
+        data: docs,
+        pagination: buildPagination(totalResult[0]?.count ?? 0, page, limit)
+    })
 })
 
 // GET /api/account/documents/:id/view - View/Download a document
@@ -435,5 +468,4 @@ accountRouter.get('/audit-logs', authenticate, async (c) => {
         throw error
     }
 })
-
 

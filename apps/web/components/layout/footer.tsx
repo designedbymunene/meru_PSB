@@ -1,10 +1,27 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { MailIcon, MapPinIcon, PhoneIcon, ArrowUp } from "lucide-react"
 import { Logo } from "@/components/shared/logo"
+import { cn } from "@/lib/utils"
 
 export function Footer() {
+    const [isVisible, setIsVisible] = useState(false)
+
+    useEffect(() => {
+        const toggleVisibility = () => {
+            if (window.scrollY > 300) {
+                setIsVisible(true)
+            } else {
+                setIsVisible(false)
+            }
+        }
+
+        window.addEventListener("scroll", toggleVisibility)
+        return () => window.removeEventListener("scroll", toggleVisibility)
+    }, [])
+
     const scrollToTop = () => {
         window.scrollTo({ top: 0, behavior: "smooth" })
     }
@@ -14,7 +31,12 @@ export function Footer() {
             {/* Back to Top Button */}
             <button
                 onClick={scrollToTop}
-                className="fixed bottom-6 right-6 z-50 p-3 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                className={cn(
+                    "fixed bottom-6 right-6 z-50 p-3 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all duration-300 transform",
+                    isVisible
+                        ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
+                        : "opacity-0 translate-y-4 scale-75 pointer-events-none"
+                )}
                 aria-label="Back to top"
             >
                 <ArrowUp className="h-5 w-5" />
@@ -82,26 +104,6 @@ export function Footer() {
                             <div>
                                 <h3 className="font-semibold text-sm mb-4 text-foreground">Information</h3>
                                 <ul className="space-y-2.5 text-sm">
-                                    <li>
-                                        <a
-                                            href="/downloads/shortlist-general.pdf"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-muted-foreground hover:text-primary hover:underline"
-                                        >
-                                            General Shortlist
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="/downloads/shortlist-promotion.pdf"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-muted-foreground hover:text-primary hover:underline"
-                                        >
-                                            Promotion Shortlist
-                                        </a>
-                                    </li>
                                     <li>
                                         <Link href="/support" className="text-muted-foreground hover:text-primary hover:underline">
                                             Help & FAQs

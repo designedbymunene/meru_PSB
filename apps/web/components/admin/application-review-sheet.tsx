@@ -59,7 +59,7 @@ const PREFILLED_LABELS: Option[] = [
 ]
 
 const reviewSchema = z.object({
-    status: z.enum(["pending", "reviewed", "shortlisted", "interviewed", "accepted", "rejected"]),
+    status: z.enum(["pending", "reviewed", "shortlisted", "interviewing", "interviewed", "accepted", "rejected"]),
     notes: z.string().min(1, "Review notes are required").max(1000, "Notes are too long"),
     tags: z.array(z.string()).optional(),
 })
@@ -80,7 +80,8 @@ interface ApplicationReviewSheetProps {
 const STATUS_TRANSITIONS: Record<string, string[]> = {
     [APPLICATION_STATUS.PENDING]: [APPLICATION_STATUS.REVIEWED, APPLICATION_STATUS.REJECTED],
     [APPLICATION_STATUS.REVIEWED]: [APPLICATION_STATUS.SHORTLISTED, APPLICATION_STATUS.REJECTED],
-    [APPLICATION_STATUS.SHORTLISTED]: [APPLICATION_STATUS.INTERVIEWED, APPLICATION_STATUS.REJECTED],
+    [APPLICATION_STATUS.SHORTLISTED]: [APPLICATION_STATUS.INTERVIEWING, APPLICATION_STATUS.INTERVIEWED, APPLICATION_STATUS.REJECTED],
+    [APPLICATION_STATUS.INTERVIEWING]: [APPLICATION_STATUS.INTERVIEWED, APPLICATION_STATUS.ACCEPTED, APPLICATION_STATUS.REJECTED],
     [APPLICATION_STATUS.INTERVIEWED]: [APPLICATION_STATUS.ACCEPTED, APPLICATION_STATUS.REJECTED],
     [APPLICATION_STATUS.ACCEPTED]: [APPLICATION_STATUS.REJECTED],
     [APPLICATION_STATUS.REJECTED]: [APPLICATION_STATUS.REVIEWED], // Allow re-reviewing
@@ -90,9 +91,10 @@ const STATUS_LABELS: Record<string, string> = {
     [APPLICATION_STATUS.PENDING]: "Pending",
     [APPLICATION_STATUS.REVIEWED]: "Mark as Reviewed",
     [APPLICATION_STATUS.SHORTLISTED]: "Shortlist Candidate",
+    [APPLICATION_STATUS.INTERVIEWING]: "Interview Scheduled",
     [APPLICATION_STATUS.INTERVIEWED]: "Mark as Interviewed",
     [APPLICATION_STATUS.ACCEPTED]: "Accept / Approve",
-    [APPLICATION_STATUS.REJECTED]: "Reject Candidate",
+    [APPLICATION_STATUS.REJECTED]: "Mark as Not Successful",
 }
 
 export function ApplicationReviewSheet({
@@ -146,12 +148,12 @@ export function ApplicationReviewSheet({
 
     const onSubmit = (data: ReviewFormValues) => {
         reviewApplication.mutate(
-            { id: applicationId, data },
+            { id: applicationId, data: data as any },
             {
                 onSuccess: () => {
                     setLastStatus(data.status)
                     setShowSuccess(true)
-                    if (data.status !== APPLICATION_STATUS.SHORTLISTED) {
+                    if (data.status !== APPLICATION_STATUS.SHORTLISTED && data.status !== APPLICATION_STATUS.INTERVIEWING) {
                         setTimeout(() => handleOpenChange(false), 2000)
                     }
                 },
@@ -184,11 +186,13 @@ export function ApplicationReviewSheet({
                             </p>
                         </div>
 
-                        {lastStatus === APPLICATION_STATUS.SHORTLISTED && vacancyId && (
+                        {(lastStatus === APPLICATION_STATUS.SHORTLISTED || lastStatus === APPLICATION_STATUS.INTERVIEWING) && vacancyId && (
                             <div className="w-full max-w-sm pt-6 space-y-3">
                                 <div className="p-4 bg-primary/5 rounded-lg border border-primary/10 mb-4">
-                                    <p className="text-sm text-center text-primary-foreground/80 leading-relaxed">
-                                        This candidate is now shortlisted. Would you like to schedule an interview session now?
+                                    <p className="text-sm text-center text-primary leading-relaxed">
+                                        {lastStatus === APPLICATION_STATUS.SHORTLISTED 
+                                            ? "This candidate is now shortlisted. Would you like to schedule an interview session now?"
+                                            : "This candidate is now scheduled for interview. Would you like to set the session details now?"}
                                     </p>
                                 </div>
                                 <Button 

@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { logger } from 'hono/logger'
-import dotenv from 'dotenv'
+import { getAppConfig } from './utils/env'
 
 // Import routes
 import { authRouter } from './routes/auth'
@@ -26,8 +26,7 @@ import { downloadsRouter } from './routes/downloads'
 import { errorHandler } from './middleware/errorHandler'
 import { cors } from 'hono/cors'
 
-// Load environment variables
-dotenv.config()
+const { NODE_ENV, PORT } = getAppConfig()
 
 const app = new Hono()
 
@@ -35,7 +34,7 @@ const app = new Hono()
 app.use('*', logger())
 
 // Debug logger for development
-if (process.env.NODE_ENV !== 'production') {
+if (NODE_ENV !== 'production') {
   app.use('*', async (c, next) => {
     const { method, url } = c.req
     const reqId = Math.random().toString(36).substring(7)
@@ -152,19 +151,17 @@ app.notFound((c) =>
 )
 
 // Start server
-const port = parseInt(process.env.PORT || '4000')
-
-if (process.env.NODE_ENV !== 'test') {
+if (NODE_ENV !== 'test') {
   serve(
     {
       fetch: app.fetch,
-      port
+      port: PORT
     },
     (info) => {
       console.log('🚀 Meru County Recruitment Portal API')
       console.log(`📍 Server running on http://localhost:${info.port}`)
       console.log(`🏥 Health check: http://localhost:${info.port}/health`)
-      console.log(`📚 Environment: ${process.env.NODE_ENV || 'development'}`)
+      console.log(`📚 Environment: ${NODE_ENV}`)
     }
   )
 }

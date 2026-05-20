@@ -5,7 +5,8 @@ export const registerSchema = z.object({
     email: z.string().email().max(320),
     phoneNumber: z.string().min(10).max(20),
     password: z.string().min(8).max(100),
-    fullName: z.string().min(1).max(200),
+    firstName: z.string().trim().min(1).max(100),
+    lastName: z.string().trim().min(1).max(100),
     nationalId: z.string().min(5).max(50),
     role: z.enum(['applicant', 'admin']).optional().default('applicant')
 })

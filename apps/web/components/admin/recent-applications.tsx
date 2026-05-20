@@ -48,7 +48,7 @@ export function RecentApplications({ className }: RecentApplicationsProps) {
                             <p className="text-sm font-bold text-slate-400">No recent applications found</p>
                         </div>
                     ) : (
-                        recentApplications.map((app) => (
+                        recentApplications.map((app: any) => (
                             <div key={app.id} className="flex items-center group">
                                 <Avatar className="h-11 w-11 border-2 border-white dark:border-slate-950 shadow-sm ring-1 ring-slate-100 dark:ring-slate-800">
                                     <AvatarFallback className="bg-primary/5 text-primary text-xs font-black">
@@ -74,7 +74,7 @@ export function RecentApplications({ className }: RecentApplicationsProps) {
                                             'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
                                         )}
                                     >
-                                        {app.status}
+                                        {app.status === 'rejected' ? 'Not Successful' : app.status}
                                     </Badge>
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
                                         {app.appliedAt && formatDistanceToNow(new Date(app.appliedAt), { addSuffix: true })}

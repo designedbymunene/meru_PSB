@@ -57,7 +57,7 @@ export function BulkActionsBar({ selectedCount, onAction, isPending }: BulkActio
                         disabled={isPending}
                     >
                         <XCircle className="h-4 w-4" />
-                        Reject
+                        Mark Not Successful
                     </Button>
 
                     <DropdownMenu>
@@ -96,7 +96,7 @@ export function BulkActionsBar({ selectedCount, onAction, isPending }: BulkActio
                                 onClick={() => onAction('rejected')}
                             >
                                 <XCircle className="mr-2 h-4 w-4" />
-                                Bulk Reject
+                                Bulk Mark Not Successful
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

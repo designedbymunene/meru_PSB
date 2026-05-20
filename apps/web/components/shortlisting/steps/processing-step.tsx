@@ -12,7 +12,6 @@ import {
     Cpu, 
     Filter, 
     Save, 
-    ShieldCheck,
     Search,
     CheckCircle2,
     Calendar,
@@ -41,10 +40,10 @@ interface ProcessingStepProps {
 
 const STAGES = [
     { id: 'init', label: 'Initializing Engine', icon: Cpu },
-    { id: 'fetch', label: 'Fetching Application Data', icon: Database },
+    { id: 'fetch', label: 'Loading Pending Applicants', icon: Database },
     { id: 'score', label: 'Calculating Criteria Scores', icon: Activity },
-    { id: 'filter', label: 'Applying Threshold Filters', icon: Filter },
-    { id: 'save', label: 'Finalizing Shortlist', icon: Save },
+    { id: 'filter', label: 'Applying Shortlist Threshold', icon: Filter },
+    { id: 'save', label: 'Updating Application Statuses', icon: Save },
 ]
 
 export function ProcessingStep({ 
@@ -59,6 +58,7 @@ export function ProcessingStep({
     const [currentStageIndex, setCurrentStageIndex] = useState(0)
     const [logs, setLogs] = useState<string[]>([])
     const logEndRef = useRef<HTMLDivElement>(null)
+    const intervalRef = useRef<number | null>(null)
 
     // Scroll to bottom of logs
     useEffect(() => {
@@ -67,53 +67,71 @@ export function ProcessingStep({
 
     useEffect(() => {
         if (!isRunning && !results) {
-            setProgress(0)
-            setCurrentStageIndex(0)
-            setLogs([])
+            const resetTimer = window.setTimeout(() => {
+                setProgress(0)
+                setCurrentStageIndex(0)
+                setLogs([])
+            }, 0)
+
+            return () => window.clearTimeout(resetTimer)
+        }
+
+        if (!isRunning && results) {
             return
         }
 
         if (isRunning) {
-            const initialLogs = ["System: Automated Shortlisting Engine started...", "System: Validating criteria weights..."]
-            setLogs(initialLogs)
-
-            const interval = setInterval(() => {
-                setProgress(prev => {
-                    const nextProgress = prev + (Math.random() * 4)
-                    
-                    if (nextProgress < 15) setCurrentStageIndex(0)
-                    else if (nextProgress < 30) setCurrentStageIndex(1)
-                    else if (nextProgress < 75) setCurrentStageIndex(2)
-                    else if (nextProgress < 90) setCurrentStageIndex(3)
-                    else setCurrentStageIndex(4)
-
-                    if (Math.random() > 0.6 && nextProgress < 98) {
-                        const stage = STAGES[currentStageIndex].id
-                        let message = ""
-                        if (stage === 'init') message = "Optimizing algorithms..."
-                        if (stage === 'fetch') message = `Loading ${totalApplications} profiles...`
-                        if (stage === 'score') message = `Scoring applicant #${Math.floor(Math.random() * totalApplications + 1)}...`
-                        if (stage === 'filter') message = "Validating thresholds..."
-                        if (stage === 'save') message = "Commiting records..."
+            const initialLogs = [
+                "System: Batch shortlisting started...",
+                "System: Validating criteria weights...",
+                "System: Loading pending and reviewed applications...",
+            ]
+            const startTimer = window.setTimeout(() => {
+                setLogs(initialLogs)
+                intervalRef.current = window.setInterval(() => {
+                    setProgress(prev => {
+                        const nextProgress = prev + (Math.random() * 4)
                         
-                        if (message) setLogs(l => [...l.slice(-10), `[${new Date().toLocaleTimeString()}] ${message}`])
-                    }
+                        if (nextProgress < 15) setCurrentStageIndex(0)
+                        else if (nextProgress < 30) setCurrentStageIndex(1)
+                        else if (nextProgress < 75) setCurrentStageIndex(2)
+                        else if (nextProgress < 90) setCurrentStageIndex(3)
+                        else setCurrentStageIndex(4)
 
-                    if (nextProgress >= 98) return 98
-                    return nextProgress
-                })
-            }, 150)
+                        if (Math.random() > 0.6 && nextProgress < 98) {
+                            const stage = STAGES[currentStageIndex].id
+                            let message = ""
+                            if (stage === 'init') message = "Preparing the scoring engine..."
+                            if (stage === 'fetch') message = `Loading ${totalApplications} applicant records...`
+                            if (stage === 'score') message = `Scoring applicant #${Math.floor(Math.random() * Math.max(totalApplications, 1) + 1)}...`
+                            if (stage === 'filter') message = "Checking candidates against the shortlist threshold..."
+                            if (stage === 'save') message = "Updating shortlisted and reviewed statuses..."
+                            
+                            if (message) setLogs(l => [...l.slice(-10), `[${new Date().toLocaleTimeString()}] ${message}`])
+                        }
 
-            return () => clearInterval(interval)
+                        if (nextProgress >= 98) return 98
+                        return nextProgress
+                    })
+                }, 150)
+            }, 0)
+
+            return () => {
+                window.clearTimeout(startTimer)
+                if (intervalRef.current !== null) {
+                    window.clearInterval(intervalRef.current)
+                    intervalRef.current = null
+                }
+            }
         } else if (results) {
-            setProgress(100)
-            setCurrentStageIndex(4)
+            const settleTimer = window.setTimeout(() => {
+                setProgress(100)
+                setCurrentStageIndex(4)
+            }, 0)
+
+            return () => window.clearTimeout(settleTimer)
         }
     }, [isRunning, results, totalApplications, currentStageIndex])
-
-    const handleScheduleInterviews = () => {
-        router.push(`/admin/interviews/schedule?vacancyId=${vacancyId}`)
-    }
 
     const handleViewShortlisted = () => {
         router.push(`/admin/applications?vacancyId=${vacancyId}&status=shortlisted`)
@@ -147,19 +165,11 @@ export function ProcessingStep({
                                 <h3 className="text-3xl font-extrabold tracking-tight">Shortlisting Complete</h3>
                             </div>
                             <p className="text-primary-foreground/80 text-lg max-w-md">
-                                Successfully evaluated {formatNumber(results.processed)} applications against your criteria.
+                                Successfully processed {formatNumber(results.processed)} applications and updated their shortlist status.
                             </p>
                         </div>
                         <div className="flex flex-col gap-2 min-w-[200px]">
-                            <Button 
-                                onClick={handleScheduleInterviews} 
-                                size="lg"
-                                className="bg-white text-primary hover:bg-white/90 font-bold h-14 shadow-lg"
-                            >
-                                <Calendar className="mr-2 h-5 w-5" />
-                                Schedule Interviews
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
+
                             <Button 
                                 variant="ghost" 
                                 onClick={onReset}
@@ -235,15 +245,15 @@ export function ProcessingStep({
                     <div className="flex gap-3">
                         <Button variant="outline" size="lg" onClick={handleViewShortlisted} className="font-semibold h-12">
                             <Eye className="mr-2 h-4 w-4" />
-                            View Candidates
+                            View Shortlisted Candidates
                         </Button>
                         <Button variant="outline" size="lg" onClick={handleExport} className="font-semibold h-12">
                             <FileSpreadsheet className="mr-2 h-4 w-4" />
-                            Export Excel
+                            Export Report
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground max-w-xs text-right italic">
-                        All shortlisted candidates have been notified and moved to the next recruitment stage.
+                        The batch process updated application statuses for the selected vacancy.
                     </p>
                 </div>
             </div>
@@ -265,9 +275,9 @@ export function ProcessingStep({
                         {STAGES[currentStageIndex].label}
                     </h3>
                     <p className="text-muted-foreground">
-                        {isRunning 
-                            ? `Processing ${totalApplications} applications...` 
-                            : "Shortlisting engine is preparing your results."}
+                        {isRunning
+                            ? `Processing ${totalApplications} pending and reviewed applications...`
+                            : "Batch shortlisting is preparing your results."}
                     </p>
                 </div>
             </div>
@@ -321,10 +331,10 @@ export function ProcessingStep({
                             <p className="text-sm font-bold">Engine Activity</p>
                             <p className="text-xs text-muted-foreground leading-relaxed">
                                 {currentStageIndex === 0 && "Initializing secure compute environment..."}
-                                {currentStageIndex === 1 && `Fetching candidate profiles...`}
-                                {currentStageIndex === 2 && "Scoring applicants against criteria..."}
-                                {currentStageIndex === 3 && "Filtering candidates based on threshold..."}
-                                {currentStageIndex === 4 && "Finalizing results pool..."}
+                                {currentStageIndex === 1 && `Fetching applicant records...`}
+                                {currentStageIndex === 2 && "Scoring applicants against the configured weights..."}
+                                {currentStageIndex === 3 && "Applying the shortlist threshold..."}
+                                {currentStageIndex === 4 && "Saving updated shortlist statuses..."}
                             </p>
                         </div>
                     </div>

@@ -59,6 +59,26 @@ export async function getAdminApplications(
     return data
 }
 
+// Admin: Get application stats
+export async function getApplicationStats(): Promise<ApiResponse<{
+    total: number;
+    pending: number;
+    reviewed: number;
+    accepted: number;
+    rejected: number;
+    avgRating: number;
+}>> {
+    const { data } = await apiClient.get<ApiResponse<{
+        total: number;
+        pending: number;
+        reviewed: number;
+        accepted: number;
+        rejected: number;
+        avgRating: number;
+    }>>('/applications/admin/dashboard')
+    return data
+}
+
 // Get user's own applications
 export async function getMyApplications(filters?: ApplicationFilters): Promise<ApiResponse<ApplicationWithRelations[]>> {
     const { data } = await apiClient.get<ApiResponse<ApplicationWithRelations[]>>(

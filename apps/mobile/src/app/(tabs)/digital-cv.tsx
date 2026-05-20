@@ -28,17 +28,11 @@ type SectionMeta = {
     path: string;
 }
 
-const SECTION_META: Record<ProfileSectionId, SectionMeta> = {
+const SECTION_META: Partial<Record<ProfileSectionId, SectionMeta>> = {
     personal: {
-        title: 'Bio Data',
-        subtitle: 'Name, ID and birth details',
+        title: 'Bio Data & Contact Details',
+        subtitle: 'Name, ID, Contact and birth details',
         icon: <User size={20} color="#004aad" />,
-        path: '/profile/personal-details',
-    },
-    contact: {
-        title: 'Contact Details',
-        subtitle: 'Phone number and email',
-        icon: <FileText size={20} color="#004aad" />,
         path: '/profile/personal-details',
     },
     location: {
@@ -83,12 +77,12 @@ const SECTION_META: Record<ProfileSectionId, SectionMeta> = {
         icon: <Users size={20} color="#004aad" />,
         path: '/profile/referees',
     },
-    documents: {
+    /* documents: {
         title: 'Uploaded Documents',
         subtitle: 'ID, CV and other supporting documents',
         icon: <FileUp size={20} color="#004aad" />,
         path: '/profile/documents',
-    },
+    }, */
 }
 
 export default function DigitalCVScreen() {
@@ -113,12 +107,35 @@ export default function DigitalCVScreen() {
 
     const completion: ProfileCompletionSummary = profile?.profileCompletion || calculateProfileCompletion(profile);
 
+    const mergeSections = (sections: any[]) => {
+        const merged: any[] = [];
+        let personalHandled = false;
+
+        sections.forEach(section => {
+            if (section.id === 'personal' || section.id === 'contact') {
+                if (!personalHandled) {
+                    const other = sections.find(s => (s.id === 'personal' || s.id === 'contact') && s.id !== section.id);
+                    merged.push({
+                        ...section,
+                        id: 'personal',
+                        completed: section.completed && (other ? other.completed : true),
+                        percentage: Math.round((section.percentage + (other ? other.percentage : 0)) / (other ? 2 : 1))
+                    });
+                    personalHandled = true;
+                }
+            } else {
+                merged.push(section);
+            }
+        });
+        return merged;
+    };
+
     const handlePress = (path: string) => {
         router.push(path as any);
     };
 
-    const requiredSections = completion?.groups?.required || [];
-    const optionalSections = completion?.groups?.optional || [];
+    const requiredSections = mergeSections(completion?.groups?.required || []);
+    const optionalSections = mergeSections(completion?.groups?.optional || []);
 
     return (
         <View className="flex-1 bg-white dark:bg-gray-950">
@@ -216,6 +233,7 @@ function SectionGroup({
             <View className="space-y-3">
                 {sections.map((section) => {
                     const meta = SECTION_META[section.id];
+                    if (!meta) return null;
 
                     return (
                         <TouchableOpacity

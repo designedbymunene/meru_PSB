@@ -7,6 +7,7 @@ import { jobGroups } from './job-groups'
 import { vacancyDocuments } from './vacancy-documents'
 import { applicantProfiles } from './applicant-profiles'
 import { passwordResetSessions } from './password-reset-sessions'
+import { loginOtpSessions } from './login-otp-sessions'
 import { qualifications } from './qualifications'
 import { professionalDetails } from './professional-details'
 import { trainingCourses } from './training-courses'
@@ -14,7 +15,7 @@ import { professionalMemberships } from './professional-memberships'
 import { employmentHistory } from './employment-history'
 import { referees } from './referees'
 import { applicantDocuments } from './applicant-documents'
-import { interviews, interviewScores } from './interviews'
+import { interviews, interviewScores, vacancyPanelMembers, interviewCriteria, interviewCriteriaScores } from './interviews'
 import { boardResolutions } from './board'
 import { auditLogs } from './audit-logs'
 import { downloadCategories, downloadFiles } from './downloads'
@@ -54,6 +55,16 @@ export const passwordResetSessionsRelations = relations(
     })
 )
 
+export const loginOtpSessionsRelations = relations(
+    loginOtpSessions,
+    ({ one }) => ({
+        user: one(users, {
+            fields: [loginOtpSessions.userId],
+            references: [users.id]
+        })
+    })
+)
+
 // Relations for vacancies
 export const vacanciesRelations = relations(vacancies, ({ one, many }) => ({
     creator: one(users, {
@@ -71,6 +82,8 @@ export const vacanciesRelations = relations(vacancies, ({ one, many }) => ({
     applications: many(applications),
     documents: many(vacancyDocuments),
     interviews: many(interviews),
+    panelMembers: many(vacancyPanelMembers),
+    interviewCriteria: many(interviewCriteria),
     resolutions: many(boardResolutions)
 }))
 
@@ -122,13 +135,47 @@ export const interviewsRelations = relations(interviews, ({ one, many }) => ({
 }))
 
 // Relations for interview scores
-export const interviewScoresRelations = relations(interviewScores, ({ one }) => ({
+export const interviewScoresRelations = relations(interviewScores, ({ one, many }) => ({
     interview: one(interviews, {
         fields: [interviewScores.interviewId],
         references: [interviews.id]
     }),
     panelMember: one(users, {
         fields: [interviewScores.panelMemberId],
+        references: [users.id]
+    }),
+    criteriaScores: many(interviewCriteriaScores)
+}))
+
+// Relations for interview criteria
+export const interviewCriteriaRelations = relations(interviewCriteria, ({ one, many }) => ({
+    vacancy: one(vacancies, {
+        fields: [interviewCriteria.vacancyId],
+        references: [vacancies.id]
+    }),
+    scores: many(interviewCriteriaScores)
+}))
+
+// Relations for interview criteria scores
+export const interviewCriteriaScoresRelations = relations(interviewCriteriaScores, ({ one }) => ({
+    interviewScore: one(interviewScores, {
+        fields: [interviewCriteriaScores.interviewScoreId],
+        references: [interviewScores.id]
+    }),
+    criteria: one(interviewCriteria, {
+        fields: [interviewCriteriaScores.criteriaId],
+        references: [interviewCriteria.id]
+    })
+}))
+
+// Relations for vacancy panel members
+export const vacancyPanelMembersRelations = relations(vacancyPanelMembers, ({ one }) => ({
+    vacancy: one(vacancies, {
+        fields: [vacancyPanelMembers.vacancyId],
+        references: [vacancies.id]
+    }),
+    user: one(users, {
+        fields: [vacancyPanelMembers.userId],
         references: [users.id]
     })
 }))

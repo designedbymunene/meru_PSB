@@ -32,7 +32,172 @@ export function useInterviewResults(vacancyId: number) {
     })
 }
 
+export function useInterviewAdmin(id: number) {
+    return useQuery({
+        queryKey: QUERY_KEYS.INTERVIEW(id),
+        queryFn: () => interviewsApi.getInterviewAdmin(id),
+        enabled: !!id,
+    })
+}
+
+export function useVacancyPanel(vacancyId: number) {
+    return useQuery({
+        queryKey: QUERY_KEYS.VACANCY_PANEL(vacancyId),
+        queryFn: () => interviewsApi.getVacancyPanel(vacancyId),
+        enabled: !!vacancyId,
+    })
+}
+
+export function useDefaultPanel(vacancyId: number) {
+    return useQuery({
+        queryKey: ['vacancy-default-panel', vacancyId],
+        queryFn: () => interviewsApi.getDefaultPanel(vacancyId),
+        enabled: !!vacancyId,
+    })
+}
+
+export function useInterviewCriteria(vacancyId: number) {
+    return useQuery({
+        queryKey: ['vacancy-interview-criteria', vacancyId],
+        queryFn: () => interviewsApi.getInterviewCriteria(vacancyId),
+        enabled: !!vacancyId,
+    })
+}
+
 // Mutations
+
+export function useSetInterviewCriteria() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ vacancyId, criteria }: { vacancyId: number; criteria: { name: string, maxScore: number, description?: string }[] }) =>
+            interviewsApi.setInterviewCriteria(vacancyId, criteria),
+        onSuccess: (_, variables) => {
+            toast.success('Interview criteria updated successfully')
+            queryClient.invalidateQueries({ queryKey: ['vacancy-interview-criteria', variables.vacancyId] })
+        },
+        onError: (error: unknown) => {
+            toast.error('Failed to update criteria', {
+                description: getErrorMessage(error, 'Could not update interview criteria'),
+            })
+        },
+    })
+}
+
+export function useDownloadInterviewReport() {
+    return useMutation({
+        mutationFn: (vacancyId: number) => interviewsApi.downloadInterviewReport(vacancyId),
+        onSuccess: (blob, vacancyId) => {
+            const url = window.URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.setAttribute('download', `Interview_Report_#${vacancyId}.pdf`)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            toast.success('Report downloaded successfully')
+        },
+        onError: (error: unknown) => {
+            toast.error('Failed to download report', {
+                description: getErrorMessage(error, 'Could not generate PDF report'),
+            })
+        },
+    })
+}
+
+export function useSetDefaultPanel() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ vacancyId, userIds }: { vacancyId: number; userIds: number[] }) =>
+            interviewsApi.setDefaultPanel(vacancyId, userIds),
+        onSuccess: (_, variables) => {
+            toast.success('Default panel updated successfully')
+            queryClient.invalidateQueries({ queryKey: ['vacancy-default-panel', variables.vacancyId] })
+        },
+        onError: (error: unknown) => {
+            toast.error('Failed to update default panel', {
+                description: getErrorMessage(error, 'Could not update default panel'),
+            })
+        },
+    })
+}
+
+export function useBulkScheduleInterviews() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: (data: {
+            vacancyId: number,
+            applicationIds: number[],
+            startAt: string,
+            durationMinutes: number,
+            gapMinutes: number,
+            venue: string,
+            virtualLink?: string,
+            panelMembers: number[]
+        }) => interviewsApi.bulkScheduleInterviews(data),
+        onSuccess: (_, variables) => {
+            toast.success('Interviews scheduled successfully')
+            queryClient.invalidateQueries({
+                queryKey: QUERY_KEYS.VACANCY_INTERVIEWS(variables.vacancyId)
+            })
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APPLICATIONS })
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.INTERVIEW_RESULTS(variables.vacancyId) })
+        },
+        onError: (error: unknown) => {
+            toast.error('Failed to bulk schedule', {
+                description: getErrorMessage(error, 'Could not schedule interviews'),
+            })
+        },
+    })
+}
+
+export function useUpdateInterviewStatus() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ id, status }: { id: number; status: string }) =>
+            interviewsApi.updateInterviewStatus(id, status),
+        onSuccess: (response, variables) => {
+            toast.success('Interview status updated')
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.INTERVIEW(variables.id) })
+            if (response.data) {
+                queryClient.invalidateQueries({ 
+                    queryKey: QUERY_KEYS.INTERVIEW_RESULTS(response.data.vacancyId) 
+                })
+            }
+        },
+        onError: (error: unknown) => {
+            toast.error('Failed to update status', {
+                description: getErrorMessage(error, 'Could not update interview status'),
+            })
+        },
+    })
+}
+
+export function useRescheduleInterview() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: ({ id, data }: { id: number; data: { scheduledAt: string; venue: string; virtualLink?: string } }) =>
+            interviewsApi.rescheduleInterview(id, data),
+        onSuccess: (response, variables) => {
+            toast.success('Interview rescheduled successfully')
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.INTERVIEW(variables.id) })
+            if (response.data) {
+                queryClient.invalidateQueries({ 
+                    queryKey: QUERY_KEYS.INTERVIEW_RESULTS(response.data.vacancyId) 
+                })
+            }
+        },
+        onError: (error: unknown) => {
+            toast.error('Failed to reschedule', {
+                description: getErrorMessage(error, 'Could not reschedule interview'),
+            })
+        },
+    })
+}
 
 export function useScheduleInterview() {
     const queryClient = useQueryClient()
@@ -46,6 +211,8 @@ export function useScheduleInterview() {
                 queryKey: QUERY_KEYS.VACANCY_INTERVIEWS(variables.vacancyId)
             })
             queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APPLICATIONS })
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MY_APPLICATIONS })
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APPLICATION(variables.applicationId) })
         },
         onError: (error: unknown) => {
             toast.error('Failed to schedule interview', {

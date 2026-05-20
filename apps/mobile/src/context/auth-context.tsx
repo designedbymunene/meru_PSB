@@ -5,6 +5,7 @@ import { apiClient } from '../lib/api/client';
 import { router, useNavigationContainerRef } from 'expo-router';
 import { toast } from 'sonner-native';
 import { authEvents } from '../lib/auth/events';
+import { registerDevicePushToken } from '../lib/notifications/push';
 
 interface AuthContextType {
     user: User | null;
@@ -60,6 +61,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         loadUser();
     }, [loadUser]);
+
+    useEffect(() => {
+        if (!user) return;
+
+        void registerDevicePushToken().catch((error) => {
+            if (__DEV__) {
+                console.warn('[Notifications] Push token registration failed', error);
+            }
+        });
+    }, [user]);
 
     useEffect(() => {
         const unsubscribe = authEvents.subscribe(() => {

@@ -1,4 +1,5 @@
 import type { Application, Vacancy } from '../db'
+import { getApplicationStatusLabel } from './application-status'
 
 export type DashboardApplication = Application & {
     vacancy: (Vacancy & {
@@ -87,7 +88,7 @@ export const buildDashboardData = (applications: DashboardApplication[], vacanci
     const ongoingActivity = latestApplication?.vacancy
         ? {
               id: `app_${latestApplication.id}`,
-              status: latestApplication.status.toUpperCase(),
+          status: getApplicationStatusLabel(latestApplication.status),
               progress: getDashboardApplicationProgress(latestApplication.status),
               nextStep: getDashboardApplicationNextStep(latestApplication.status),
               vacancy: {

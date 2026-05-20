@@ -4,7 +4,7 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import { Bell, Briefcase, Calendar, CheckCircle, ChevronRight, Clock, FileText, MapPin, Search } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header, HeaderAction } from '@/components/ui/header';
@@ -61,7 +61,34 @@ export default function DashboardScreen() {
         ? getApiErrorMessage(vacanciesError, 'Unable to load vacancies right now.')
         : null;
 
-    const activeApp = applications?.[0];
+    const activeApp = useMemo(() => {
+        const app = applications?.[0];
+        if (!app) return null;
+
+        // If API already provides these, use them
+        if (app.progress !== undefined && app.nextStep) return app;
+
+        // Otherwise calculate them (mirrors TrackApplicationScreen logic)
+        const status = (app.status || 'pending').toLowerCase();
+        let progress = 0;
+        let nextStep = 'Application in review';
+
+        if (status === 'pending') {
+            progress = 30;
+            nextStep = 'Undergoing preliminary review';
+        } else if (status === 'reviewed') {
+            progress = 50;
+            nextStep = 'Shortlisting in progress';
+        } else if (status === 'accepted') {
+            progress = 100;
+            nextStep = 'Application successful';
+        } else if (status === 'rejected') {
+            progress = 100;
+            nextStep = 'Final decision reached';
+        }
+
+        return { ...app, progress, nextStep };
+    }, [applications]);
 
     const stats = [
         { label: 'Applied', value: applications?.length || 0, icon: <FileText size={16} color="#004aad" />, bg: 'bg-blue-50/50', path: '/applications' },
@@ -161,7 +188,7 @@ export default function DashboardScreen() {
                                 <View className="flex-row justify-between items-start mb-4">
                                     <View className="flex-1 mr-3">
                                         <View className="bg-white/10 self-start px-2 py-0.5 rounded-full mb-2">
-                                            <Text className="text-white/80 text-[9px] font-bold uppercase tracking-wider">{activeApp.status}</Text>
+                                            <Text className="text-white/80 text-[9px] font-bold tracking-wider">{activeApp.statusLabel || activeApp.status}</Text>
                                         </View>
                                         <Text className="text-white text-base font-bold" numberOfLines={1}>{activeApp.vacancy?.title || 'Application'}</Text>
                                         <Text className="text-white/50 text-[11px] mt-1" numberOfLines={1}>

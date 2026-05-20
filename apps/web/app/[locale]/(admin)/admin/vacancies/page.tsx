@@ -1,10 +1,10 @@
 "use client"
 
-import { useVacancies, useDeleteVacancy } from "@/hooks/use-vacancies"
+import { useVacancies, useDeleteVacancy, useVacancyStats } from "@/hooks/use-vacancies"
 import { DataTable } from "@/components/admin/data-table"
 import { TableSkeleton } from "@/components/shared/table-skeleton"
 import { Button } from "@/components/ui/button"
-import { Plus, Eye, Users, Building2, Briefcase, Calendar, Edit, Trash } from "lucide-react"
+import { Plus, Eye, Users, Building2, Briefcase, Calendar, Edit, Trash, Loader2, CheckCircle2, XCircle } from "lucide-react"
 import Link from "next/link"
 import { ColumnDef } from "@tanstack/react-table"
 import { VacancyWithRelations, VacancyFilters as VacancyFiltersType } from "@/types"
@@ -13,6 +13,13 @@ import { format } from "date-fns"
 import { formatNumber, formatSalaryRange } from "@/lib/utils"
 import { VacancyFilters } from "@/components/vacancies/vacancy-filters"
 import { useQueryState } from "nuqs"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -23,7 +30,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useState } from "react"
+import { useState, Suspense } from "react"
 
 const VacancyActions = ({ vacancy }: { vacancy: VacancyWithRelations }) => {
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -31,11 +38,11 @@ const VacancyActions = ({ vacancy }: { vacancy: VacancyWithRelations }) => {
 
     return (
         <div className="flex items-center justify-end gap-1">
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10" 
-                asChild 
+            <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                asChild
                 title="View Details"
             >
                 <Link href={`/admin/vacancies/${vacancy.id}`}>
@@ -43,11 +50,11 @@ const VacancyActions = ({ vacancy }: { vacancy: VacancyWithRelations }) => {
                     <span className="sr-only">View</span>
                 </Link>
             </Button>
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10" 
-                asChild 
+            <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                asChild
                 title="Edit Vacancy"
             >
                 <Link href={`/admin/vacancies/${vacancy.id}/edit`}>
@@ -55,10 +62,10 @@ const VacancyActions = ({ vacancy }: { vacancy: VacancyWithRelations }) => {
                     <span className="sr-only">Edit</span>
                 </Link>
             </Button>
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10" 
+            <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                 onClick={() => setShowDeleteDialog(true)}
                 title="Delete Vacancy"
             >
@@ -90,7 +97,7 @@ const VacancyActions = ({ vacancy }: { vacancy: VacancyWithRelations }) => {
     )
 }
 
-export default function VacanciesPage() {
+function VacanciesPageContent() {
     const [search] = useQueryState('search')
     const [departmentId] = useQueryState('departmentId')
     const [jobGroupId] = useQueryState('jobGroupId')
@@ -105,6 +112,9 @@ export default function VacanciesPage() {
 
     const { data, isLoading } = useVacancies(filters)
     const vacancies = data?.data || []
+
+    const { data: statsResponse, isLoading: isLoadingStats } = useVacancyStats()
+    const stats = statsResponse?.data
 
     const columns: ColumnDef<VacancyWithRelations>[] = [
         {
@@ -194,7 +204,7 @@ export default function VacanciesPage() {
     ]
 
     return (
-        <div className="flex-1 space-y-4 p-8 pt-6">
+        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Vacancies</h2>
@@ -207,6 +217,62 @@ export default function VacanciesPage() {
                 </Button>
             </div>
 
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6 mb-6">
+                <Card className="bg-primary/5 border-primary/10">
+                    <CardHeader className="pb-2">
+                        <CardDescription className="text-primary/70 font-medium flex items-center gap-2">
+                            <Briefcase className="h-4 w-4" />
+                            Total Vacancies
+                        </CardDescription>
+                        {isLoadingStats ? (
+                            <Loader2 className="h-8 w-8 animate-spin text-primary/40 mt-2" />
+                        ) : (
+                            <CardTitle className="text-3xl font-bold text-primary">{formatNumber(stats?.totalVacancies || 0)}</CardTitle>
+                        )}
+                    </CardHeader>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardDescription className="font-medium flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                            Open Vacancies
+                        </CardDescription>
+                        {isLoadingStats ? (
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mt-2" />
+                        ) : (
+                            <CardTitle className="text-3xl font-bold">{formatNumber(stats?.openVacancies || 0)}</CardTitle>
+                        )}
+                    </CardHeader>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardDescription className="font-medium flex items-center gap-2">
+                            <XCircle className="h-4 w-4 text-rose-500" />
+                            Closed Vacancies
+                        </CardDescription>
+                        {isLoadingStats ? (
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mt-2" />
+                        ) : (
+                            <CardTitle className="text-3xl font-bold">{formatNumber(stats?.closedVacancies || 0)}</CardTitle>
+                        )}
+                    </CardHeader>
+                </Card>
+                <Card className="border-indigo-200 bg-indigo-50/50">
+                    <CardHeader className="pb-2">
+                        <CardDescription className="text-indigo-700 font-medium flex items-center gap-1.5">
+                            <Users className="h-4 w-4" />
+                            Open Positions
+                        </CardDescription>
+                        {isLoadingStats ? (
+                            <Loader2 className="h-8 w-8 animate-spin text-indigo-700/40 mt-2" />
+                        ) : (
+                            <CardTitle className="text-3xl font-bold text-indigo-700">{formatNumber(stats?.totalOpenPositions || 0)}</CardTitle>
+                        )}
+                    </CardHeader>
+                </Card>
+            </div>
+
             <VacancyFilters />
 
             <div className="mt-4">
@@ -217,5 +283,17 @@ export default function VacanciesPage() {
                 )}
             </div>
         </div>
+    )
+}
+
+export default function VacanciesPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+                <TableSkeleton columnCount={6} />
+            </div>
+        }>
+            <VacanciesPageContent />
+        </Suspense>
     )
 }

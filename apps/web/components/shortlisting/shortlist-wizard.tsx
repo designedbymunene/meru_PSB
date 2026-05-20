@@ -12,9 +12,9 @@ interface WizardStep {
 }
 
 const WIZARD_STEPS: WizardStep[] = [
-    { id: 1, title: "Select Vacancy", description: "Choose a vacancy to shortlist" },
-    { id: 2, title: "Configure Criteria", description: "Set weights and score threshold" },
-    { id: 3, title: "Processing", description: "Running shortlisting" },
+    { id: 1, title: "Select Vacancy", description: "Choose the vacancy to process" },
+    { id: 2, title: "Configure Criteria", description: "Set weights and shortlist threshold" },
+    { id: 3, title: "Processing", description: "Running batch shortlisting" },
 ]
 
 interface ShortlistWizardProps {
@@ -64,7 +64,7 @@ export function ShortlistWizard({
                 <div className="space-y-4">
                     <h2 className="text-lg font-semibold">Steps</h2>
                     <div className="hidden lg:block space-y-2">
-                        {WIZARD_STEPS.map((step, index) => {
+                        {WIZARD_STEPS.map((step) => {
                             const isCompleted = currentStep > step.id
                             const isCurrent = currentStep === step.id
                             const isUpcoming = currentStep < step.id
@@ -120,7 +120,7 @@ export function ShortlistWizard({
                     </div>
                     {/* Mobile Step Indicator */}
                     <div className="lg:hidden flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                        {WIZARD_STEPS.map((step, index) => {
+                        {WIZARD_STEPS.map((step) => {
                             const isCompleted = currentStep > step.id
                             const isCurrent = currentStep === step.id
 

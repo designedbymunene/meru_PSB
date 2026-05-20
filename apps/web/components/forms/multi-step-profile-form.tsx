@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronLeft, ChevronRight, CheckCircle2, Loader2, Plus, Trash2, Edit2, User, Building2, Briefcase, Mail, Phone } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckCircle2, Loader2 } from 'lucide-react'
 import { z } from 'zod'
 import { toast } from 'sonner'
 
@@ -21,11 +21,11 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form'
-import { createProfileSchema, createQualificationSchema, createEmploymentHistorySchema, refereeSchema } from '@meru/shared'
-import { 
-    useCounties, 
-    useConstituencies, 
-    useWards, 
+import { createProfileSchema, createQualificationSchema, createEmploymentHistorySchema, createTrainingCourseSchema, formatKNQFLevel } from '@meru/shared'
+import {
+    useCounties,
+    useConstituencies,
+    useWards,
     useEthnicities,
     useEducationLevels,
     useEducationGrades,
@@ -36,46 +36,55 @@ import { useCreateOrUpdateProfile } from '@/hooks/use-applicant-profile'
 import { useAuthContext } from '@/hooks/use-auth'
 import * as applicantProfileApi from '@/lib/api/applicant-profiles'
 import { handleApiError } from '@/lib/api-error-handler'
-import type { CreateQualificationInput, CreateEmploymentHistoryInput } from '@/types'
+import type { RegisterInput } from '@/types'
 
-const TOTAL_STEPS = 6
+const TOTAL_STEPS = 5
 
 type Step1Data = z.infer<typeof createProfileSchema>
 type QualificationData = z.infer<typeof createQualificationSchema>
 type EmploymentData = z.infer<typeof createEmploymentHistorySchema>
-type RefereeData = z.infer<typeof refereeSchema>
+type TrainingData = z.infer<typeof createTrainingCourseSchema>
 
 interface MultiStepProfileFormProps {
     onComplete: () => void
+    initialRegistrationData?: RegisterInput
 }
 
-export function MultiStepProfileForm({ onComplete }: MultiStepProfileFormProps) {
-    const { user } = useAuthContext()
-    const [currentStep, setCurrentStep] = useState(1)
-    const [isSubmitting, setIsSubmitting] = useState(false)
-    const [profileData, setProfileData] = useState<Partial<Step1Data>>({
+function buildInitialProfileData(
+    user: ReturnType<typeof useAuthContext>['user'],
+    registration: RegisterInput | undefined
+): Partial<Step1Data> {
+    const firstName = registration?.firstName?.trim() || ''
+    const lastName = registration?.lastName?.trim() || ''
+
+    return {
         impairment: false,
         gender: 'Male',
-        fullName: user?.fullName || '',
-        email: user?.email || '',
+        fullName: registration ? `${firstName} ${lastName}`.trim() : user?.fullName || '',
+        idNumber: registration?.nationalId || '',
+        email: registration?.email || user?.email || '',
+        phoneNumber: registration?.phoneNumber || user?.phoneNumber || '',
         homeCountyId: undefined,
         homeSubCountyId: undefined,
         wardId: undefined,
         ethnicityId: undefined,
-    } as Partial<Step1Data>)
+    }
+}
+
+export function MultiStepProfileForm({ onComplete, initialRegistrationData }: MultiStepProfileFormProps) {
+    const { user } = useAuthContext()
+    const [currentStep, setCurrentStep] = useState(1)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [profileData, setProfileData] = useState<Partial<Step1Data>>(() =>
+        buildInitialProfileData(user, initialRegistrationData)
+    )
     const [qualifications, setQualifications] = useState<QualificationData[]>([])
     const [employmentHistory, setEmploymentHistory] = useState<EmploymentData[]>([])
-    const [referees, setReferees] = useState<RefereeData[]>([])
+    const [trainingCourses, setTrainingCourses] = useState<TrainingData[]>([])
 
     useEffect(() => {
-        if (user) {
-            setProfileData(prev => ({
-                ...prev,
-                fullName: user.fullName || (prev as any)?.fullName,
-                email: user.email || (prev as any)?.email,
-            }))
-        }
-    }, [user])
+        setProfileData(buildInitialProfileData(user, initialRegistrationData))
+    }, [user, initialRegistrationData])
 
     const createProfile = useCreateOrUpdateProfile()
 
@@ -92,28 +101,28 @@ export function MultiStepProfileForm({ onComplete }: MultiStepProfileFormProps) 
     }
 
     return (
-        <Card className="w-full max-w-7xl mx-auto shadow-2xl border-none">
-            <CardHeader className="space-y-6 pb-2">
+        <Card className="w-full max-w-5xl mx-auto shadow-sm border-t-4 border-t-primary rounded-md">
+            <CardHeader className="space-y-4  border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center justify-between">
                     <div>
-                        <CardTitle className="text-3xl font-black text-primary uppercase tracking-tighter italic">Complete Your Profile</CardTitle>
-                        <CardDescription className="text-base">
-                            Provide your professional details to unlock all features
+                        <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">Citizen Profile Registration</CardTitle>
+                        <CardDescription className="text-slate-500">
+                            Please provide your official details to complete your registration
                         </CardDescription>
                     </div>
-                    <div className="text-xs font-black text-white bg-primary px-4 py-1.5 rounded-full whitespace-nowrap flex-shrink-0 uppercase tracking-widest">
-                        Step {currentStep} / {TOTAL_STEPS}
+                    <div className="text-sm font-semibold text-slate-700 bg-slate-100 px-3 py-1 rounded-md border border-slate-200">
+                        Step {currentStep} of {TOTAL_STEPS}
                     </div>
                 </div>
                 {/* Progress Bar */}
-                <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                <div className="w-full bg-slate-100 rounded-sm h-2 border border-slate-200 overflow-hidden">
                     <div
-                        className="bg-primary h-full rounded-full transition-all duration-700 ease-in-out shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+                        className="bg-primary h-full transition-all duration-500 ease-in-out"
                         style={{ width: `${(currentStep / TOTAL_STEPS) * 100}%` }}
                     />
                 </div>
             </CardHeader>
-            <CardContent className="p-10">
+            <CardContent className="p-6 sm:p-8 pt-0">
                 {currentStep === 1 && (
                     <Step1PersonalInfo
                         data={profileData}
@@ -134,47 +143,48 @@ export function MultiStepProfileForm({ onComplete }: MultiStepProfileFormProps) 
                     />
                 )}
                 {currentStep === 3 && (
-                    <Step3ContactStatus
+                    <Step3Qualifications
                         data={profileData}
-                        onNext={(data) => {
-                            setProfileData({ ...profileData, ...data })
-                            goNext()
-                        }}
-                        onBack={goBack}
-                    />
-                )}
-                {currentStep === 4 && (
-                    <Step4Qualifications
                         qualifications={qualifications}
-                        onNext={(quals) => {
+                        onNext={(result) => {
+                            const { qualifications: quals, profilePatch } = result
+                            setProfileData((prev) => ({ ...prev, ...profilePatch }))
                             setQualifications(quals)
                             goNext()
                         }}
                         onBack={goBack}
                     />
                 )}
-                {currentStep === 5 && (
-                    <Step5Employment
+                {currentStep === 4 && (
+                    <Step4Employment
+                        data={profileData}
                         employmentHistory={employmentHistory}
-                        onNext={(emp) => {
+                        onNext={(result) => {
+                            const { employmentHistory: emp, profilePatch } = result
+                            setProfileData((prev) => ({ ...prev, ...profilePatch }))
                             setEmploymentHistory(emp)
                             goNext()
                         }}
                         onBack={goBack}
                     />
                 )}
-                {currentStep === 6 && (
-                    <Step6Referees
-                        referees={referees}
-                        onFinalSubmit={(finalReferees) => {
-                            setReferees(finalReferees)
+                {currentStep === 5 && (
+                    <Step5TrainingCourses
+                        data={profileData}
+                        trainingCourses={trainingCourses}
+                        onFinalSubmit={(result) => {
+                            const { trainingCourses: finalTrainingCourses, profilePatch } = result
+                            setProfileData((prev) => ({ ...prev, ...profilePatch }))
+                            setTrainingCourses(finalTrainingCourses)
                             const finalSubmit = async () => {
                                 setIsSubmitting(true)
                                 try {
                                     const finalProfileData = {
                                         ...(profileData as any),
                                         fullName: (profileData as any).fullName || user?.fullName,
-                                        email: (profileData as any).email || user?.email
+                                        email: (profileData as any).email || user?.email,
+                                        phoneNumber: (profileData as any).phoneNumber || user?.phoneNumber,
+                                        ...profilePatch,
                                     } as Step1Data
                                     const profileResponse = await createProfile.mutateAsync(finalProfileData as any)
                                     const profileId = profileResponse.data.id
@@ -187,8 +197,8 @@ export function MultiStepProfileForm({ onComplete }: MultiStepProfileFormProps) 
                                         await Promise.all(employmentHistory.map((e: any) => applicantProfileApi.addEmploymentHistory(profileId, e)))
                                     }
 
-                                    if (finalReferees.length > 0) {
-                                        await Promise.all(finalReferees.map((r: any) => applicantProfileApi.addReferee(profileId, r)))
+                                    if (finalTrainingCourses.length > 0) {
+                                        await Promise.all(finalTrainingCourses.map((course: any) => applicantProfileApi.addTrainingCourse(profileId, course)))
                                     }
 
                                     toast.success('Profile setup complete!')
@@ -226,6 +236,8 @@ function Step1PersonalInfo({
         gender: 'Male' | 'Female' | 'Other'
         dateOfBirth: string
         ethnicityId?: number | null
+        impairment?: boolean
+        impairmentDetails?: string
     }
 
     const schema = createProfileSchema.pick({
@@ -234,6 +246,8 @@ function Step1PersonalInfo({
         gender: true,
         dateOfBirth: true,
         ethnicityId: true,
+        impairment: true,
+        impairmentDetails: true,
     })
 
     const form = useForm<FormData>({
@@ -242,29 +256,43 @@ function Step1PersonalInfo({
             fullName: (data as any).fullName || '',
             idNumber: (data as any).idNumber || '',
             gender: (data as any).gender as any || 'Male',
-            dateOfBirth: (data as any).dateOfBirth || new Date().toISOString().split('T')[0],
+            dateOfBirth: (data as any).dateOfBirth || '',
             ethnicityId: (data as any).ethnicityId,
+            impairment: (data as any).impairment || false,
+            impairmentDetails: (data as any).impairmentDetails || '',
         },
     })
+
+    const watchImpairment = form.watch('impairment')
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onNext)} className="space-y-6">
-                <div className="bg-muted/30 p-6 rounded-2xl border-2 border-dashed mb-8">
-                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-1 block">Full Name</Label>
-                    <p className="text-xl font-bold">{(data as any).fullName || 'Not set'}</p>
-                    <input type="hidden" {...form.register('fullName')} />
+                <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl mb-6">
+                    <FormField
+                        control={form.control}
+                        name="fullName"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500">Full Legal Name</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Enter your full legal name" className="text-lg font-bold bg-white border-2 focus-visible:ring-primary/20 h-14" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                         control={form.control}
                         name="idNumber"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="font-bold">ID Number</FormLabel>
+                                <FormLabel className="font-semibold text-slate-700">National ID Number <span className="text-destructive">*</span></FormLabel>
                                 <FormControl>
-                                    <Input placeholder="12345678" className="h-12 text-lg" {...field} />
+                                    <Input placeholder="Enter ID number" className="h-12 bg-white rounded-md" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -276,10 +304,10 @@ function Step1PersonalInfo({
                         name="gender"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="font-bold">Gender</FormLabel>
+                                <FormLabel className="font-semibold text-slate-700">Gender <span className="text-destructive">*</span></FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
-                                        <SelectTrigger className="h-12 text-lg">
+                                        <SelectTrigger className="h-12 bg-white rounded-md">
                                             <SelectValue placeholder="Select gender" />
                                         </SelectTrigger>
                                     </FormControl>
@@ -299,12 +327,11 @@ function Step1PersonalInfo({
                         name="dateOfBirth"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="font-bold">Date of Birth</FormLabel>
+                                <FormLabel className="font-semibold text-slate-700">Date of Birth <span className="text-destructive">*</span></FormLabel>
                                 <FormControl>
                                     <Input
                                         type="date"
-                                        placeholder="YYYY-MM-DD"
-                                        className="h-12 text-lg"
+                                        className="h-12 bg-white rounded-md"
                                         {...field}
                                     />
                                 </FormControl>
@@ -318,13 +345,13 @@ function Step1PersonalInfo({
                         name="ethnicityId"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="font-bold">Ethnicity</FormLabel>
+                                <FormLabel className="font-semibold text-slate-700">Ethnicity <span className="text-destructive">*</span></FormLabel>
                                 <Select
                                     onValueChange={(val) => field.onChange(parseInt(val))}
                                     value={field.value?.toString()}
                                 >
                                     <FormControl>
-                                        <SelectTrigger className="h-12 text-lg">
+                                        <SelectTrigger className="h-12 bg-white rounded-md">
                                             <SelectValue placeholder="Select ethnicity" />
                                         </SelectTrigger>
                                     </FormControl>
@@ -342,9 +369,47 @@ function Step1PersonalInfo({
                     />
                 </div>
 
-                <div className="flex justify-end pt-10 border-t">
-                    <Button type="submit" size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
-                        Save & Continue <ChevronRight className="ml-2 h-6 w-6" />
+                <div className="space-y-4 border border-slate-200 rounded-xl p-6 bg-white mt-6 shadow-sm">
+                    <FormField
+                        control={form.control}
+                        name="impairment"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-4 space-y-0">
+                                <FormControl>
+                                    <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        className="h-6 w-6"
+                                    />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                    <FormLabel className="text-base font-bold text-slate-900">I have a disability or impairment</FormLabel>
+                                    <FormDescription className="text-sm text-slate-500 font-medium">Check this box if you require special accommodations.</FormDescription>
+                                </div>
+                            </FormItem>
+                        )}
+                    />
+
+                    {watchImpairment && (
+                        <FormField
+                            control={form.control}
+                            name="impairmentDetails"
+                            render={({ field }) => (
+                                <FormItem className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <FormLabel className="font-semibold text-slate-700">Impairment Details <span className="text-destructive">*</span></FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Please specify the nature of your impairment..." className="min-h-[100px] rounded-xl border-2 focus-visible:ring-primary/20" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+                </div>
+
+                <div className="flex justify-end pt-8 border-t border-slate-100 mt-10">
+                    <Button type="submit" size="lg" className="rounded-xl font-bold px-8 h-12 shadow-lg hover:shadow-xl transition-all">
+                        Save & Continue <ChevronRight className="ml-2 h-5 w-5" />
                     </Button>
                 </div>
             </form>
@@ -396,14 +461,18 @@ function Step2LocationInfo({
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onNext)} className="space-y-10">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <form onSubmit={form.handleSubmit(onNext)} className="space-y-6">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 mb-8">
+                    <h3 className="text-2xl font-bold text-slate-900">Location Details</h3>
+                    <p className="mt-1 text-sm font-medium text-slate-500">Choose the county, sub-county, and ward that match your home area.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <FormField
                         control={form.control}
                         name="homeCountyId"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="font-bold">Home County</FormLabel>
+                                <FormLabel className="font-semibold text-slate-700">Home County <span className="text-destructive">*</span></FormLabel>
                                 <Select
                                     onValueChange={(val) => {
                                         field.onChange(parseInt(val))
@@ -413,7 +482,7 @@ function Step2LocationInfo({
                                     value={field.value?.toString()}
                                 >
                                     <FormControl>
-                                        <SelectTrigger className="h-12 text-lg">
+                                        <SelectTrigger className="h-12 bg-white rounded-md">
                                             <SelectValue placeholder="Select county" />
                                         </SelectTrigger>
                                     </FormControl>
@@ -435,7 +504,7 @@ function Step2LocationInfo({
                         name="homeSubCountyId"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="font-bold">Home Sub-County</FormLabel>
+                                <FormLabel className="font-semibold text-slate-700">Home Sub-County <span className="text-destructive">*</span></FormLabel>
                                 <Select
                                     onValueChange={(val) => {
                                         field.onChange(parseInt(val))
@@ -445,7 +514,7 @@ function Step2LocationInfo({
                                     disabled={!selectedCountyId}
                                 >
                                     <FormControl>
-                                        <SelectTrigger className="h-12 text-lg">
+                                        <SelectTrigger className="h-12 bg-white rounded-md">
                                             <SelectValue placeholder="Select sub-county" />
                                         </SelectTrigger>
                                     </FormControl>
@@ -467,14 +536,14 @@ function Step2LocationInfo({
                         name="wardId"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="font-bold">Ward</FormLabel>
+                                <FormLabel className="font-semibold text-slate-700">Ward <span className="text-destructive">*</span></FormLabel>
                                 <Select
                                     onValueChange={(val) => field.onChange(parseInt(val))}
                                     value={field.value?.toString()}
                                     disabled={!selectedSubCountyId}
                                 >
                                     <FormControl>
-                                        <SelectTrigger className="h-12 text-lg">
+                                        <SelectTrigger className="h-12 bg-white rounded-md">
                                             <SelectValue placeholder="Select ward" />
                                         </SelectTrigger>
                                     </FormControl>
@@ -492,12 +561,12 @@ function Step2LocationInfo({
                     />
                 </div>
 
-                <div className="flex justify-between pt-10 border-t">
-                    <Button type="button" variant="ghost" onClick={onBack} size="lg" className="rounded-full px-8 h-14 font-black uppercase tracking-tighter">
-                        <ChevronLeft className="mr-2 h-6 w-6" /> Previous
+                <div className="flex justify-between pt-8 border-t border-slate-100 mt-10">
+                    <Button type="button" variant="outline" onClick={onBack} className="rounded-xl font-bold px-8 h-12">
+                        <ChevronLeft className="mr-2 h-5 w-5" /> Previous
                     </Button>
-                    <Button type="submit" size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
-                        Save & Continue <ChevronRight className="ml-2 h-6 w-6" />
+                    <Button type="submit" className="rounded-xl font-bold px-8 h-12 shadow-lg">
+                        Save & Continue <ChevronRight className="ml-2 h-5 w-5" />
                     </Button>
                 </div>
             </form>
@@ -505,168 +574,21 @@ function Step2LocationInfo({
     )
 }
 
-function Step3ContactStatus({
+
+function Step3Qualifications({
     data,
-    onNext,
-    onBack,
-}: {
-    data: Partial<Step1Data>
-    onNext: (data: Partial<Step1Data>) => void
-    onBack: () => void
-}) {
-    type ContactFormData = {
-        phoneNumber?: string
-        email?: string
-        impairment?: boolean
-        impairmentDetails?: string
-        publicServiceInfo?: string
-        personalNumber?: string
-    }
-
-    const schema = createProfileSchema.pick({
-        phoneNumber: true,
-        email: true,
-        impairment: true,
-        impairmentDetails: true,
-        publicServiceInfo: true,
-        personalNumber: true,
-    })
-
-    const form = useForm<ContactFormData>({
-        resolver: zodResolver(schema) as any,
-        defaultValues: {
-            phoneNumber: (data as any).phoneNumber || '',
-            email: (data as any).email || '',
-            impairment: (data as any).impairment || false,
-            impairmentDetails: (data as any).impairmentDetails || '',
-            publicServiceInfo: (data as any).publicServiceInfo || '',
-            personalNumber: (data as any).personalNumber || '',
-        },
-    })
-
-    const watchImpairment = form.watch('impairment')
-
-    return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onNext)} className="space-y-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div className="bg-muted/30 p-6 rounded-2xl border-2 border-dashed">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-1 block">Email Address</Label>
-                        <p className="text-lg font-bold">{(data as any).email || 'Not set'}</p>
-                        <input type="hidden" {...form.register('email')} />
-                    </div>
-
-                    <FormField
-                        control={form.control}
-                        name="phoneNumber"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="font-bold">Phone Number</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="+254712345678" className="h-12 text-lg" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-                <div className="space-y-6">
-                    <FormField
-                        control={form.control}
-                        name="impairment"
-                        render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-4 space-y-0 rounded-2xl border-2 p-6 bg-slate-50 dark:bg-slate-900/50">
-                                <FormControl>
-                                    <Checkbox
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                        className="h-6 w-6"
-                                    />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                    <FormLabel className="text-lg font-bold">I have a disability/impairment</FormLabel>
-                                    <FormDescription className="text-sm italic">Require special accommodations?</FormDescription>
-                                </div>
-                            </FormItem>
-                        )}
-                    />
-
-                    {watchImpairment && (
-                        <FormField
-                            control={form.control}
-                            name="impairmentDetails"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="font-bold">Impairment Details</FormLabel>
-                                    <FormControl>
-                                        <Textarea placeholder="Please describe..." className="min-h-[120px] text-lg" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-10">
-                    <FormField
-                        control={form.control}
-                        name="publicServiceInfo"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="font-bold">Public Service Information</FormLabel>
-                                <FormControl>
-                                    <Textarea
-                                        placeholder="Details about current or previous public service employment..."
-                                        className="min-h-[100px] text-lg"
-                                        {...field}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="personalNumber"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="font-bold">Personal Number (if applicable)</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Staff Number" className="h-12 text-lg" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-                <div className="flex justify-between pt-10 border-t">
-                    <Button type="button" variant="ghost" onClick={onBack} size="lg" className="rounded-full px-8 h-14 font-black uppercase tracking-tighter">
-                        <ChevronLeft className="mr-2 h-6 w-6" /> Previous
-                    </Button>
-                    <Button type="submit" size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
-                        Save & Continue <ChevronRight className="ml-2 h-6 w-6" />
-                    </Button>
-                </div>
-            </form>
-        </Form>
-    )
-}
-
-function Step4Qualifications({
     qualifications,
     onNext,
     onBack,
 }: {
+    data: Partial<Step1Data>
     qualifications: QualificationData[]
-    onNext: (quals: QualificationData[]) => void
+    onNext: (result: { qualifications: QualificationData[]; profilePatch: Partial<Step1Data> }) => void
     onBack: () => void
 }) {
     const [quals, setQuals] = useState<QualificationData[]>(qualifications)
     const [editingIndex, setEditingIndex] = useState<number | null>(null)
+    const [noAcademicHistory, setNoAcademicHistory] = useState(Boolean((data as any).hasNoCertificates))
 
     const { data: levelsResponse } = useEducationLevels()
     const levels = levelsResponse?.data || []
@@ -719,115 +641,220 @@ function Step4Qualifications({
     }
 
     return (
-        <div className="space-y-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                <Card className="shadow-none border-none bg-transparent">
-                    <CardHeader className="px-0">
-                        <CardTitle className="text-xl font-bold uppercase tracking-tight">{editingIndex !== null ? "Update Record" : "Add Qualification"}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="px-0">
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(addQualification)} className="space-y-6">
-                                <FormField
-                                    control={form.control}
-                                    name="level"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="font-bold">Education Level</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl><SelectTrigger className="h-12 text-lg"><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    {levels.map((l: any) => <SelectItem key={l.id} value={l.code}>{l.name}</SelectItem>)}
-                                                    <SelectItem value="OTHER">Other</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="courseId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="font-bold">Course</FormLabel>
-                                            <Select onValueChange={val => {
-                                                if (val === 'other') { field.onChange(undefined) }
-                                                else { const c = courses.find((x: any) => x.id.toString() === val); field.onChange(parseInt(val)); form.setValue('course', c?.name || '') }
-                                            }} value={field.value?.toString() || (form.watch('course') ? 'other' : '')}>
-                                                <FormControl><SelectTrigger className="h-12 text-lg"><SelectValue placeholder="Select course" /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    {courses.map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
-                                                    <SelectItem value="other">Other (Manual Entry)</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </FormItem>
-                                    )}
-                                />
-                                {(!courseId || form.watch('course')) && (
-                                    <FormField
-                                        control={form.control}
-                                        name="course"
-                                        render={({ field }) => <FormItem><FormControl><Input placeholder="Enter course name" className="h-12 text-lg" {...field} /></FormControl></FormItem>}
-                                    />
-                                )}
-                                <Button type="submit" variant="secondary" className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700">
-                                    {editingIndex !== null ? "Update Record" : "Add to List"}
-                                </Button>
-                            </form>
-                        </Form>
-                    </CardContent>
-                </Card>
-
-                <div className="space-y-6">
-                    <Label className="text-xl font-bold uppercase tracking-tight block border-b-2 pb-2">Record Summary ({quals.length})</Label>
-                    {quals.length === 0 ? (
-                        <div className="py-20 text-center border-2 border-dashed rounded-3xl bg-slate-50/50">
-                            <p className="text-muted-foreground font-medium italic">No records added yet</p>
+        <div className="space-y-8">
+            <Card className="border border-slate-200 shadow-sm rounded-2xl">
+                <CardHeader className="border-b bg-slate-50/80 py-5">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <CardTitle className="text-2xl font-bold text-slate-900">Academic History</CardTitle>
+                            <CardDescription className="text-slate-500">Add your formal education and qualifications.</CardDescription>
                         </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {quals.map((q: any, i: number) => (
-                                <div key={i} className="group relative flex items-start justify-between p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-xl hover:border-primary/40 hover:shadow-lg transition-all duration-200 shadow-sm">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-extrabold text-primary uppercase tracking-widest mb-0.5">{q.level}</p>
-                                        <h4 className="font-bold text-base text-slate-900 dark:text-slate-100 mb-1 truncate">{q.course}</h4>
-                                        <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">{q.institution} <span className="text-slate-400 dark:text-slate-500">• {q.yearEnd || 'Present'}</span></p>
-                                        {q.grade && <p className="text-xs text-slate-500 dark:text-slate-500 mt-2 font-medium">Grade: <span className="font-bold text-slate-700 dark:text-slate-300">{q.grade}</span></p>}
-                                    </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10" onClick={() => { setEditingIndex(i); form.reset(quals[i]) }}><Edit2 className="h-3.5 w-3.5 text-primary" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => setQuals(quals.filter((_, idx) => idx !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        <div className="text-sm font-semibold text-slate-600 bg-white border rounded-full px-3 py-1">
+                            {quals.length} record{quals.length === 1 ? '' : 's'} added
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                    <div className="mb-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 flex flex-row items-center space-x-3">
+                        <Checkbox
+                            id="hasNoCertificates"
+                            checked={noAcademicHistory}
+                            onCheckedChange={(checked) => {
+                                setNoAcademicHistory(checked === true)
+                            }}
+                        />
+                        <div className="space-y-1 leading-none">
+                            <Label htmlFor="hasNoCertificates" className="font-semibold text-slate-900">I have no academic history to add</Label>
+                            <p className="text-sm text-slate-500">Use this if you do not have certificates, diplomas, or other academic records to enter right now.</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-8">
+                        <Card className="shadow-none border border-slate-200 rounded-2xl">
+                            <CardHeader className="bg-white border-b border-slate-200 py-4">
+                                <CardTitle className="text-lg font-bold text-slate-800">{editingIndex !== null ? "Edit Academic Record" : "Add Academic Record"}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-5">
+                                <Form {...form}>
+                                    <form onSubmit={form.handleSubmit(addQualification)} className="space-y-5">
+                                        <FormField
+                                            control={form.control}
+                                            name="level"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold text-slate-700">Education Level</FormLabel>
+                                                    <Select onValueChange={(val) => {
+                                                        field.onChange(val)
+                                                        form.setValue('grade', '')
+                                                    }} value={field.value}>
+                                                        <FormControl><SelectTrigger className="rounded-xl"><SelectValue placeholder="Select education level" /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            {levels.map((l: any) => <SelectItem key={l.id} value={l.code}>{l.name}</SelectItem>)}
+                                                            <SelectItem value="OTHER">Other</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="courseId"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold text-slate-700">Course / Programme</FormLabel>
+                                                    <Select onValueChange={val => {
+                                                        if (val === 'other') { field.onChange(undefined) }
+                                                        else { const c = courses.find((x: any) => x.id.toString() === val); field.onChange(parseInt(val)); form.setValue('course', c?.name || '') }
+                                                    }} value={field.value?.toString() || (form.watch('course') ? 'other' : '')}>
+                                                        <FormControl><SelectTrigger className="rounded-xl"><SelectValue placeholder="Select course" /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            {courses.map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
+                                                            <SelectItem value="other">Other (Manual Entry)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        {(!courseId || form.watch('course')) && (
+                                            <FormField
+                                                control={form.control}
+                                                name="course"
+                                                render={({ field }) => <FormItem><FormControl><Input placeholder="Enter specific course name" className="rounded-xl" {...field} /></FormControl></FormItem>}
+                                            />
+                                        )}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="institution"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-semibold text-slate-700">Institution</FormLabel>
+                                                        <FormControl><Input placeholder="Institution name" className="rounded-xl" {...field} /></FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="grade"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-semibold text-slate-700">Grade / Score</FormLabel>
+                                                        {grades.length > 0 ? (
+                                                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                                                <FormControl>
+                                                                    <SelectTrigger className="rounded-xl">
+                                                                        <SelectValue placeholder="Select grade" />
+                                                                    </SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    {grades.map((g: any) => (
+                                                                        <SelectItem key={g.id} value={g.grade}>
+                                                                            {g.grade}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        ) : (
+                                                            <FormControl>
+                                                                <Input placeholder="e.g. Pass, B+, 85%" className="rounded-xl" {...field} value={field.value || ''} />
+                                                            </FormControl>
+                                                        )}
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="yearStart"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-semibold text-slate-700">Start Year</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="number" placeholder="2019" className="rounded-xl" {...field} value={field.value || ''} onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="yearEnd"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-semibold text-slate-700">End Year</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="number" placeholder="2023" className="rounded-xl" {...field} value={field.value || ''} onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <Button type="submit" variant="secondary" className="w-full rounded-xl font-semibold border border-slate-300">
+                                            {editingIndex !== null ? "Save Changes" : "Add Record"}
+                                        </Button>
+                                    </form>
+                                </Form>
+                            </CardContent>
+                        </Card>
+
+                        <div className="space-y-4">
+                            {quals.length === 0 ? (
+                                <div className="flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                                    <div className="max-w-sm">
+                                        <p className="font-semibold text-slate-900">No academic records yet</p>
+                                        <p className="mt-2 text-sm text-slate-500">Use the form to add each qualification, or mark that you have no academic history to continue.</p>
                                     </div>
                                 </div>
-                            ))}
+                            ) : (
+                                <div className="grid gap-4">
+                                    {quals.map((q: any, i: number) => (
+                                        <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="min-w-0 flex-1 space-y-2">
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{formatKNQFLevel(q.level)}</p>
+                                                    <h4 className="truncate text-lg font-bold text-slate-900">{q.course}</h4>
+                                                    <p className="text-sm text-slate-600">{q.institution} • {q.yearStart || 'Start'} - {q.yearEnd || 'Present'}</p>
+                                                    {q.grade && <p className="text-xs text-slate-500">Grade: <span className="font-semibold text-slate-700">{q.grade}</span></p>}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3" onClick={() => { setEditingIndex(i); form.reset(quals[i]) }}>Edit</Button>
+                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setQuals(quals.filter((_, idx) => idx !== i))}>Remove</Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-            </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-            <div className="flex justify-between pt-10 border-t">
-                <Button type="button" variant="ghost" onClick={onBack} size="lg" className="rounded-full px-8 h-14 font-black uppercase tracking-tighter">
-                    <ChevronLeft className="mr-2 h-6 w-6" /> Previous
+            <div className="flex justify-between pt-6 border-t border-slate-100 mt-8">
+                <Button type="button" variant="outline" onClick={onBack} className="rounded-xl font-bold px-8 h-12">
+                    <ChevronLeft className="mr-2 h-5 w-5" /> Previous
                 </Button>
-                <Button onClick={() => onNext(quals)} disabled={quals.length === 0} size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
-                    Save & Continue <ChevronRight className="ml-2 h-6 w-6" />
+                <Button onClick={() => onNext({ qualifications: quals, profilePatch: { hasNoCertificates: noAcademicHistory } })} disabled={!noAcademicHistory && quals.length === 0} className="rounded-xl font-bold px-8 h-12 shadow-lg">
+                    Save & Continue <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
             </div>
         </div>
     )
 }
 
-function Step5Employment({
+function Step4Employment({
+    data,
     employmentHistory,
     onNext,
     onBack,
 }: {
+    data: Partial<Step1Data>
     employmentHistory: EmploymentData[]
-    onNext: (emp: EmploymentData[]) => void
+    onNext: (result: { employmentHistory: EmploymentData[]; profilePatch: Partial<Step1Data> }) => void
     onBack: () => void
 }) {
     const [history, setHistory] = useState<EmploymentData[]>(employmentHistory)
     const [editingIndex, setEditingIndex] = useState<number | null>(null)
+    const [noExperience, setNoExperience] = useState(Boolean((data as any).hasNoExperience))
     const form = useForm<any>({
         resolver: zodResolver(createEmploymentHistorySchema) as any,
         defaultValues: { jobTitle: '', organization: '', startDate: '', endDate: '', jobGroup: '', responsibilities: '' },
@@ -840,147 +867,322 @@ function Step5Employment({
     }
 
     return (
-        <div className="space-y-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                <Card className="shadow-none border-none bg-transparent">
-                    <CardHeader className="px-0"><CardTitle className="text-xl font-bold uppercase tracking-tight">{editingIndex !== null ? "Update Experience" : "Add Experience"}</CardTitle></CardHeader>
-                    <CardContent className="px-0">
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(addRecord)} className="space-y-6">
-                                <FormField control={form.control} name="jobTitle" render={({ field }) => <FormItem><FormLabel className="font-bold">Job Title</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
-                                <FormField control={form.control} name="organization" render={({ field }) => <FormItem><FormLabel className="font-bold">Organization</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="startDate" render={({ field }) => <FormItem><FormLabel className="font-bold">Start Date</FormLabel><FormControl><Input type="date" className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
-                                    <FormField control={form.control} name="endDate" render={({ field }) => <FormItem><FormLabel className="font-bold">End Date</FormLabel><FormControl><Input type="date" className="h-12 text-lg" {...field} value={field.value || ''} /></FormControl></FormItem>} />
-                                </div>
-                                <Button type="submit" variant="secondary" className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700">
-                                    {editingIndex !== null ? "Update Record" : "Add to List"}
-                                </Button>
-                            </form>
-                        </Form>
-                    </CardContent>
-                </Card>
-
-                <div className="space-y-6">
-                    <Label className="text-xl font-bold uppercase tracking-tight block border-b-2 pb-2">Work History ({history.length})</Label>
-                    {history.length === 0 ? (
-                        <div className="py-20 text-center border-2 border-dashed rounded-3xl bg-slate-50/50"><p className="text-muted-foreground font-medium italic">No experience added yet</p></div>
-                    ) : (
-                        <div className="space-y-3">
-                            {history.map((h: any, i: number) => (
-                                <div key={i} className="group relative flex items-start justify-between p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-xl hover:border-primary/40 hover:shadow-lg transition-all duration-200 shadow-sm">
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{h.jobTitle}</h4>
-                                        <p className="text-xs font-extrabold text-primary uppercase tracking-widest mb-2">{h.organization}</p>
-                                        <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">{h.startDate} <span className="text-slate-400 dark:text-slate-500">—</span> {h.endDate || 'Present'}</p>
-                                        {h.jobGroup && <p className="text-xs text-slate-500 dark:text-slate-500 mt-2 font-medium">Group: <span className="font-bold text-slate-700 dark:text-slate-300">{h.jobGroup}</span></p>}
-                                    </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10" onClick={() => { setEditingIndex(i); form.reset(history[i]) }}><Edit2 className="h-3.5 w-3.5 text-primary" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => setHistory(history.filter((_, idx) => idx !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
-                                    </div>
-                                </div>
-                            ))}
+        <div className="space-y-8">
+            <Card className="border border-slate-200 shadow-sm rounded-2xl">
+                <CardHeader className="border-b bg-slate-50/80 py-5">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <CardTitle className="text-2xl font-bold text-slate-900">Employment History</CardTitle>
+                            <CardDescription className="text-slate-500">Add your previous roles, organizations, and dates.</CardDescription>
                         </div>
-                    )}
-                </div>
-            </div>
+                        <div className="text-sm font-semibold text-slate-600 bg-white border rounded-full px-3 py-1">
+                            {history.length} record{history.length === 1 ? '' : 's'} added
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                    <div className="mb-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 flex flex-row items-center space-x-3">
+                        <Checkbox
+                            id="hasNoExperience"
+                            checked={noExperience}
+                            onCheckedChange={(checked) => {
+                                setNoExperience(checked === true)
+                            }}
+                        />
+                        <div className="space-y-1 leading-none">
+                            <Label htmlFor="hasNoExperience" className="font-semibold text-slate-900">I have no employment history to add</Label>
+                            <p className="text-sm text-slate-500">Use this if you have never worked before or do not want to list previous roles.</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-8">
+                        <Card className="shadow-none border border-slate-200 rounded-2xl">
+                            <CardHeader className="bg-white border-b border-slate-200 py-4">
+                                <CardTitle className="text-lg font-bold text-slate-800">{editingIndex !== null ? "Edit Employment Record" : "Add Employment Record"}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-5">
+                                <Form {...form}>
+                                    <form onSubmit={form.handleSubmit(addRecord)} className="space-y-5">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField control={form.control} name="jobTitle" render={({ field }) => <FormItem><FormLabel className="font-semibold text-slate-700">Official Job Title</FormLabel><FormControl><Input className="rounded-xl" {...field} /></FormControl></FormItem>} />
+                                            <FormField control={form.control} name="organization" render={({ field }) => <FormItem><FormLabel className="font-semibold text-slate-700">Organization / Department</FormLabel><FormControl><Input className="rounded-xl" {...field} /></FormControl></FormItem>} />
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField control={form.control} name="startDate" render={({ field }) => <FormItem><FormLabel className="font-semibold text-slate-700">Start Date</FormLabel><FormControl><Input type="date" className="rounded-xl" {...field} /></FormControl></FormItem>} />
+                                            <FormField control={form.control} name="endDate" render={({ field }) => <FormItem><FormLabel className="font-semibold text-slate-700">End Date</FormLabel><FormControl><Input type="date" className="rounded-xl" {...field} value={field.value || ''} /></FormControl></FormItem>} />
+                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="responsibilities"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold text-slate-700">Key Responsibilities</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea className="min-h-[120px] rounded-xl" placeholder="Briefly describe your main duties and achievements." {...field} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <Button type="submit" variant="secondary" className="w-full rounded-xl font-semibold border border-slate-300">
+                                            {editingIndex !== null ? "Save Changes" : "Add Record"}
+                                        </Button>
+                                    </form>
+                                </Form>
+                            </CardContent>
+                        </Card>
 
-            <div className="flex justify-between pt-10 border-t">
-                <Button type="button" variant="ghost" onClick={onBack} size="lg" className="rounded-full px-8 h-14 font-black uppercase tracking-tighter">
-                    <ChevronLeft className="mr-2 h-6 w-6" /> Previous
+                        <div className="space-y-4">
+                            {history.length === 0 ? (
+                                <div className="flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                                    <div className="max-w-sm">
+                                        <p className="font-semibold text-slate-900">No employment history yet</p>
+                                        <p className="mt-2 text-sm text-slate-500">Add your previous jobs or mark that you have no experience to continue.</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="grid gap-4">
+                                    {history.map((h: any, i: number) => (
+                                        <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="min-w-0 flex-1 space-y-2">
+                                                    <h4 className="truncate text-lg font-bold text-slate-900">{h.jobTitle}</h4>
+                                                    <p className="text-sm font-semibold text-slate-600">{h.organization}</p>
+                                                    <p className="text-xs text-slate-500">{h.startDate} — {h.endDate || 'Present'}</p>
+                                                    {h.jobGroup && <p className="text-xs text-slate-500">Job Group: <span className="font-semibold text-slate-700">{h.jobGroup}</span></p>}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3" onClick={() => { setEditingIndex(i); form.reset(history[i]) }}>Edit</Button>
+                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setHistory(history.filter((_, idx) => idx !== i))}>Remove</Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="flex justify-between pt-6 border-t border-slate-100 mt-8">
+                <Button type="button" variant="outline" onClick={onBack} className="rounded-xl font-bold px-8 h-12">
+                    <ChevronLeft className="mr-2 h-5 w-5" /> Previous
                 </Button>
-                <Button onClick={() => onNext(history)} size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
-                    Save & Continue <ChevronRight className="ml-2 h-6 w-6" />
+                <Button onClick={() => onNext({ employmentHistory: history, profilePatch: { hasNoExperience: noExperience } })} disabled={!noExperience && history.length === 0} className="rounded-xl font-bold px-8 h-12 shadow-lg">
+                    Save & Continue <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
             </div>
         </div>
     )
 }
 
-function Step6Referees({
-    referees,
+function Step5TrainingCourses({
+    data,
+    trainingCourses,
     onFinalSubmit,
     onBack,
     isLoading,
 }: {
-    referees: RefereeData[]
-    onFinalSubmit: (referees: RefereeData[]) => void
+    data: Partial<Step1Data>
+    trainingCourses: TrainingData[]
+    onFinalSubmit: (result: { trainingCourses: TrainingData[]; profilePatch: Partial<Step1Data> }) => void
     onBack: () => void
     isLoading: boolean
 }) {
-    const [list, setList] = useState<RefereeData[]>(referees)
+    const [list, setList] = useState<TrainingData[]>(trainingCourses)
     const [editingIndex, setEditingIndex] = useState<number | null>(null)
+    const [noTraining, setNoTraining] = useState(Boolean((data as any).hasNoTrainings))
     const form = useForm<any>({
-        resolver: zodResolver(refereeSchema) as any,
-        defaultValues: { fullName: '', organization: '', designation: '', phoneNumber: '', email: '', relationship: '' },
+        resolver: zodResolver(createTrainingCourseSchema) as any,
+        defaultValues: {
+            courseName: '',
+            description: '',
+            grade: '',
+            institution: '',
+            year: undefined,
+            certificatePath: '',
+        },
     })
 
-    const addRecord = (data: RefereeData) => {
-        if (editingIndex !== null) { const u = [...list]; u[editingIndex] = data; setList(u); setEditingIndex(null) }
-        else { setList([...list, data]) }
-        form.reset({ fullName: '', organization: '', designation: '', phoneNumber: '', email: '', relationship: '' })
+    const addRecord = (record: TrainingData) => {
+        if (editingIndex !== null) {
+            const updated = [...list]
+            updated[editingIndex] = record
+            setList(updated)
+            setEditingIndex(null)
+        } else {
+            setList([...list, record])
+        }
+        form.reset({
+            courseName: '',
+            description: '',
+            grade: '',
+            institution: '',
+            year: undefined,
+            certificatePath: '',
+        })
     }
 
     return (
-        <div className="space-y-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                <Card className="shadow-none border-none bg-transparent">
-                    <CardHeader className="px-0"><CardTitle className="text-xl font-bold uppercase tracking-tight">{editingIndex !== null ? "Update Referee" : "Add Referee"}</CardTitle></CardHeader>
-                    <CardContent className="px-0">
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(addRecord)} className="space-y-4">
-                                <FormField control={form.control} name="fullName" render={({ field }) => <FormItem><FormLabel className="font-bold">Full Name</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="organization" render={({ field }) => <FormItem><FormLabel className="font-bold">Organization</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
-                                    <FormField control={form.control} name="designation" render={({ field }) => <FormItem><FormLabel className="font-bold">Designation</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="email" render={({ field }) => <FormItem><FormLabel className="font-bold">Email</FormLabel><FormControl><Input type="email" className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
-                                    <FormField control={form.control} name="phoneNumber" render={({ field }) => <FormItem><FormLabel className="font-bold">Phone</FormLabel><FormControl><Input className="h-12 text-lg" {...field} /></FormControl></FormItem>} />
-                                </div>
-                                <Button type="submit" variant="secondary" className="w-full h-12 rounded-xl font-bold uppercase tracking-widest bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700">
-                                    {editingIndex !== null ? "Update Record" : "Add to List"}
-                                </Button>
-                            </form>
-                        </Form>
-                    </CardContent>
-                </Card>
-
-                <div className="space-y-6">
-                    <Label className="text-xl font-bold uppercase tracking-tight block border-b-2 pb-2">Referees ({list.length})</Label>
-                    {list.length === 0 ? (
-                        <div className="py-20 text-center border-2 border-dashed rounded-3xl bg-slate-50/50"><p className="text-muted-foreground font-medium italic">No referees added yet</p></div>
-                    ) : (
-                        <div className="space-y-3">
-                            {list.map((r: any, i: number) => (
-                                <div key={i} className="group relative flex items-start justify-between p-6 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-xl hover:border-primary/40 hover:shadow-lg transition-all duration-200 shadow-sm">
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">{r.fullName}</h4>
-                                        <p className="text-xs font-extrabold text-primary uppercase tracking-widest mb-2">{r.designation} <span className="text-slate-400 dark:text-slate-600">@</span> {r.organization}</p>
-                                        <div className="flex gap-4 text-sm text-slate-600 dark:text-slate-400 font-medium mt-2">
-                                            <span className="truncate">{r.email}</span>
-                                            <span className="text-slate-400 dark:text-slate-600">•</span>
-                                            <span className="whitespace-nowrap">{r.phone}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10" onClick={() => { setEditingIndex(i); form.reset(list[i]) }}><Edit2 className="h-3.5 w-3.5 text-primary" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => setList(list.filter((_, idx) => idx !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>
-                                    </div>
-                                </div>
-                            ))}
+        <div className="space-y-8">
+            <Card className="border border-slate-200 shadow-sm rounded-2xl">
+                <CardHeader className="border-b bg-slate-50/80 py-5">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <CardTitle className="text-2xl font-bold text-slate-900">Training Courses</CardTitle>
+                            <CardDescription className="text-slate-500">Add short courses, certifications, and professional training.</CardDescription>
                         </div>
-                    )}
-                </div>
-            </div>
+                        <div className="text-sm font-semibold text-slate-600 bg-white border rounded-full px-3 py-1">
+                            {list.length} course{list.length === 1 ? '' : 's'} added
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                    <div className="mb-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 flex flex-row items-center space-x-3">
+                        <Checkbox
+                            id="hasNoTrainings"
+                            checked={noTraining}
+                            onCheckedChange={(checked) => {
+                                setNoTraining(checked === true)
+                            }}
+                        />
+                        <div className="space-y-1 leading-none">
+                            <Label htmlFor="hasNoTrainings" className="font-semibold text-slate-900">I have no training courses to add</Label>
+                            <p className="text-sm text-slate-500">Use this if you do not have any short courses or certificates to list right now.</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-8">
+                        <Card className="shadow-none border border-slate-200 rounded-2xl">
+                            <CardHeader className="bg-white border-b border-slate-200 py-4">
+                                <CardTitle className="text-lg font-bold text-slate-800">{editingIndex !== null ? 'Edit Training Course' : 'Add Training Course'}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-5">
+                                <Form {...form}>
+                                    <form onSubmit={form.handleSubmit(addRecord)} className="space-y-5">
+                                        <FormField
+                                            control={form.control}
+                                            name="courseName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold text-slate-700">Course Name</FormLabel>
+                                                    <FormControl><Input className="rounded-xl" placeholder="e.g. Project Management Professional" {...field} /></FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="institution"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-semibold text-slate-700">Institution</FormLabel>
+                                                        <FormControl><Input className="rounded-xl" placeholder="e.g. Kenya School of Government" {...field} /></FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="year"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-semibold text-slate-700">Year Completed</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                placeholder="2023"
+                                                                className="rounded-xl"
+                                                                {...field}
+                                                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                                                value={field.value || ''}
+                                                            />
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField
+                                                control={form.control}
+                                                name="grade"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-semibold text-slate-700">Grade / Score</FormLabel>
+                                                        <FormControl><Input className="rounded-xl" placeholder="e.g. Pass, 85%" {...field} /></FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name="certificatePath"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="font-semibold text-slate-700">Certificate Reference</FormLabel>
+                                                        <FormControl><Input className="rounded-xl" placeholder="Optional file path or ref" {...field} /></FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="description"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="font-semibold text-slate-700">Description</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea className="min-h-[120px] rounded-xl" placeholder="Briefly describe the course focus or outcome." {...field} />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <Button type="submit" variant="secondary" className="w-full rounded-xl font-semibold border border-slate-300">
+                                            {editingIndex !== null ? 'Save Changes' : 'Add Record'}
+                                        </Button>
+                                    </form>
+                                </Form>
+                            </CardContent>
+                        </Card>
 
-            <div className="flex justify-between pt-10 border-t">
-                <Button type="button" variant="ghost" onClick={onBack} size="lg" className="rounded-full px-8 h-14 font-black uppercase tracking-tighter" disabled={isLoading}>
-                    <ChevronLeft className="mr-2 h-6 w-6" /> Previous
+                        <div className="space-y-4">
+                            {list.length === 0 ? (
+                                <div className="flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                                    <div className="max-w-sm">
+                                        <p className="font-semibold text-slate-900">No training courses yet</p>
+                                        <p className="mt-2 text-sm text-slate-500">Add short courses or mark that you have no trainings to continue.</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="grid gap-4">
+                                    {list.map((course: any, i: number) => (
+                                        <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="min-w-0 flex-1 space-y-2">
+                                                    <h4 className="truncate text-lg font-bold text-slate-900">{course.courseName}</h4>
+                                                    <p className="text-sm font-semibold text-slate-600">{course.institution || 'No institution set'}</p>
+                                                    <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                                                        {course.year && <span>Year: {course.year}</span>}
+                                                        {course.grade && <span>Grade: {course.grade}</span>}
+                                                    </div>
+                                                    {course.description && <p className="text-sm text-slate-500">{course.description}</p>}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3" onClick={() => { setEditingIndex(i); form.reset(list[i]) }}>Edit</Button>
+                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setList(list.filter((_, idx) => idx !== i))}>Remove</Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="flex justify-between pt-6 border-t border-slate-100 mt-8">
+                <Button type="button" variant="outline" onClick={onBack} className="rounded-xl font-bold px-8 h-12" disabled={isLoading}>
+                    <ChevronLeft className="mr-2 h-5 w-5" /> Previous
                 </Button>
-                <Button onClick={() => onFinalSubmit(list)} disabled={isLoading || list.length === 0} size="lg" className="rounded-full px-10 h-14 text-lg font-black uppercase tracking-tighter">
-                    {isLoading ? <><Loader2 className="mr-2 h-6 w-6 animate-spin" /> Saving...</> : <><CheckCircle2 className="mr-2 h-6 w-6" /> Complete Profile</>}
+                <Button onClick={() => onFinalSubmit({ trainingCourses: list, profilePatch: { hasNoTrainings: noTraining } })} disabled={isLoading || (!noTraining && list.length === 0)} className="rounded-xl font-bold px-8 h-12 shadow-lg">
+                    {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Submit Profile Registration</>}
                 </Button>
             </div>
         </div>

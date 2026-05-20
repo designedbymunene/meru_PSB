@@ -1,7 +1,7 @@
 'use client'
 
 import { useQueryState } from 'nuqs'
-import { Search as SearchIconLucide, Filter, RotateCcw, Clock, FileText, CheckCircle2, Calendar, UserCheck, Briefcase, XCircle } from 'lucide-react'
+import { Search as SearchIconLucide, Filter, RotateCcw, Clock, FileText, CheckCircle2, Calendar, UserCheck, Briefcase, XCircle, Building2 } from 'lucide-react'
 
 const SearchIcon = SearchIconLucide
 import { Input } from '@/components/ui/input'
@@ -16,15 +16,33 @@ import {
 } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { useDepartments } from '@/hooks/use-departments'
+import { useJobGroups } from '@/hooks/use-job-groups'
+import { Label } from '@/components/ui/label'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { Separator } from '@/components/ui/separator'
 
 export function AdminApplicationFilters() {
     const [search, setSearch] = useQueryState('search', { defaultValue: '', throttleMs: 500 })
     const [status, setStatus] = useQueryState('status', { defaultValue: '' })
     const [vacancyId, setVacancyId] = useQueryState('vacancyId', { defaultValue: '' })
+    const [departmentId, setDepartmentId] = useQueryState('departmentId', { defaultValue: '' })
+    const [jobGroupId, setJobGroupId] = useQueryState('jobGroupId', { defaultValue: '' })
+
+    const { data: departments } = useDepartments()
+    const { data: jobGroups } = useJobGroups()
 
     const activeFilterCount = [
         (status && status !== ''),
-        (vacancyId && vacancyId !== '')
+        (vacancyId && vacancyId !== ''),
+        (departmentId && departmentId !== ''),
+        (jobGroupId && jobGroupId !== '')
     ].filter(Boolean).length
 
     const hasAnyFilters = activeFilterCount > 0 || (search !== '' && search !== null)
@@ -33,6 +51,8 @@ export function AdminApplicationFilters() {
         setSearch('')
         setStatus('')
         setVacancyId('')
+        setDepartmentId('')
+        setJobGroupId('')
     }
 
     const statusOptions = [
@@ -42,7 +62,7 @@ export function AdminApplicationFilters() {
         { label: 'Shortlisted', value: 'shortlisted', icon: UserCheck },
         { label: 'Interviewed', value: 'interviewed', icon: Calendar },
         { label: 'Offered', value: 'offered', icon: Briefcase },
-        { label: 'Rejected', value: 'rejected', icon: XCircle },
+        { label: 'Not Successful', value: 'rejected', icon: XCircle },
     ]
 
     return (
@@ -92,6 +112,57 @@ export function AdminApplicationFilters() {
                             </SheetHeader>
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                                {/* Department & Job Group Section */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <Building2 className="h-4 w-4 text-slate-400" />
+                                        <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Classification</span>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-semibold text-slate-600">Department</Label>
+                                            <Select
+                                                value={departmentId || 'all'}
+                                                onValueChange={(val) => setDepartmentId(val === 'all' ? '' : val)}
+                                            >
+                                                <SelectTrigger className="w-full rounded-xl border-slate-200">
+                                                    <SelectValue placeholder="All Departments" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All Departments</SelectItem>
+                                                    {departments?.data?.map((dept) => (
+                                                        <SelectItem key={dept.id} value={dept.id.toString()}>
+                                                            {dept.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-xs font-semibold text-slate-600">Job Group</Label>
+                                            <Select
+                                                value={jobGroupId || 'all'}
+                                                onValueChange={(val) => setJobGroupId(val === 'all' ? '' : val)}
+                                            >
+                                                <SelectTrigger className="w-full rounded-xl border-slate-200">
+                                                    <SelectValue placeholder="All Job Groups" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">All Job Groups</SelectItem>
+                                                    {jobGroups?.data?.map((jg) => (
+                                                        <SelectItem key={jg.id} value={jg.id.toString()}>
+                                                            {jg.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <Separator className="bg-slate-100 dark:bg-slate-800" />
+
                                 {/* Status Section */}
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2">

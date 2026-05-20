@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { and, desc, eq, gt, isNull } from 'drizzle-orm'
-import { db, passwordResetSessions, users, revokedTokens, applicantProfiles } from '../db'
+import { db, passwordResetSessions, loginOtpSessions, users, revokedTokens, applicantProfiles } from '../db'
 import { validate } from '../middleware/validation'
 import { authRateLimiter } from '../middleware/rateLimiter'
 import {
@@ -13,6 +13,7 @@ import {
     otpLoginRequestSchema,
     otpLoginVerifySchema
 } from '@meru/shared'
+import type { RegisterInput } from '@meru/shared'
 import {
     hashPassword,
     generatePasswordResetOtp,
@@ -27,32 +28,76 @@ import {
     sendPasswordResetOtpEmail,
     sendTwoFactorOtpEmail,
     sendLoginOtpEmail,
-    sendUnlockAccountEmail
+    sendUnlockAccountEmail,
+    sendRegistrationSuccessEmail
 } from '../utils/mailer'
 import { activeSessions } from '../db/schema'
+import { getAppConfig } from '../utils/env'
 import {
     ConflictError,
     UnauthorizedError,
     NotFoundError,
     ForbiddenError,
+    ValidationError,
     successResponse
 } from '../utils/errors'
 
 export const authRouter = new Hono()
+
+const { FRONTEND_URL } = getAppConfig()
+
+const createLoginOtpSession = async (userId: number, otpHash: string, expiresAt: Date) => {
+    await db.delete(loginOtpSessions).where(eq(loginOtpSessions.userId, userId))
+
+    const [session] = await db.insert(loginOtpSessions).values({
+        userId,
+        otpHash,
+        expiresAt,
+        attemptCount: 0
+    }).returning()
+
+    return session
+}
+
+const getActiveLoginOtpSession = async (userId: number) => {
+    const [session] = await db
+        .select()
+        .from(loginOtpSessions)
+        .where(and(
+            eq(loginOtpSessions.userId, userId),
+            isNull(loginOtpSessions.usedAt),
+            gt(loginOtpSessions.expiresAt, new Date())
+        ))
+        .orderBy(desc(loginOtpSessions.createdAt))
+        .limit(1)
+
+    return session
+}
+
+const markLoginOtpSessionUsed = async (sessionId: number) => {
+    await db.update(loginOtpSessions)
+        .set({ usedAt: new Date() })
+        .where(eq(loginOtpSessions.id, sessionId))
+}
+
+const failLoginOtpSessionAttempt = async (sessionId: number, attemptCount: number) => {
+    const update: { attemptCount: number; usedAt?: Date } = { attemptCount }
+    if (attemptCount >= 5) {
+        update.usedAt = new Date()
+    }
+
+    await db.update(loginOtpSessions)
+        .set(update)
+        .where(eq(loginOtpSessions.id, sessionId))
+}
 
 // POST /api/auth/register - Register new user
 authRouter.post('/register', authRateLimiter, validate(registerSchema), async (c) => {
     const requestId = Math.random().toString(36).substring(7)
     console.log(`[Auth] [${requestId}] Registration attempt started`)
     
-    const data = c.get('validatedData' as never) as {
-        email: string
-        phoneNumber: string
-        password: string
-        fullName: string
-        nationalId: string
-        role?: string
-    }
+    const data = c.get('validatedData' as never) as RegisterInput
+    const fullName = `${data.firstName.trim()} ${data.lastName.trim()}`.trim()
 
     try {
         // Hash password
@@ -71,7 +116,7 @@ authRouter.post('/register', authRateLimiter, validate(registerSchema), async (c
                     email: data.email.toLowerCase(),
                     phoneNumber: data.phoneNumber,
                     password: hashedPassword,
-                    fullName: data.fullName,
+                    fullName,
                     role: data.role || 'applicant'
                 })
                 .returning()
@@ -84,7 +129,7 @@ authRouter.post('/register', authRateLimiter, validate(registerSchema), async (c
                     .insert(applicantProfiles)
                     .values({
                         userId: u.id,
-                        fullName: u.fullName,
+                        fullName,
                         idNumber: data.nationalId,
                         email: u.email,
                         phoneNumber: u.phoneNumber
@@ -109,6 +154,14 @@ authRouter.post('/register', authRateLimiter, validate(registerSchema), async (c
         const accessToken = generateAccessToken(tokenPayload)
         const refreshToken = generateRefreshToken(tokenPayload)
 
+        void sendRegistrationSuccessEmail({
+            to: newUser.email,
+            fullName: newUser.fullName,
+            profileUrl: `${FRONTEND_URL}/dashboard?showProfileModal=true`
+        }).catch((error) => {
+            console.error(`[Auth] [${requestId}] Registration success email failed:`, error.message)
+        })
+
         console.log(`[Auth] [${requestId}] Tokens generated, sending success response`)
 
         return successResponse(
@@ -130,15 +183,18 @@ authRouter.post('/register', authRateLimiter, validate(registerSchema), async (c
     } catch (error: any) {
         console.error(`[Auth] [${requestId}] Registration failed:`, error.message)
         
+        // Handle database unique constraint violation
+        const dbError = error.cause || error
+        
         // Check for PostgreSQL unique constraint violation (code 23505)
-        if (error.code === '23505') {
-            if (error.detail?.includes('email')) {
+        if (dbError.code === '23505') {
+            if (dbError.detail?.includes('email')) {
                 throw new ConflictError('User with this email already exists')
             }
-            if (error.detail?.includes('phone_number')) {
+            if (dbError.detail?.includes('phone_number')) {
                 throw new ConflictError('Phone number already registered')
             }
-            if (error.detail?.includes('id_number')) {
+            if (dbError.detail?.includes('id_number')) {
                 throw new ConflictError('National ID already registered')
             }
             throw new ConflictError('User already exists')
@@ -204,7 +260,7 @@ authRouter.post('/login', authRateLimiter, validate(loginSchema), async (c) => {
                 expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
             })
 
-            const unlockUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/unlock?email=${encodeURIComponent(user.email)}&token=${otp}`
+            const unlockUrl = `${FRONTEND_URL}/auth/unlock?email=${encodeURIComponent(user.email)}&token=${otp}`
             
             await sendUnlockAccountEmail({
                 to: user.email,
@@ -227,15 +283,8 @@ authRouter.post('/login', authRateLimiter, validate(loginSchema), async (c) => {
     if (user.twoFactorEnabled) {
         const otp = generatePasswordResetOtp() // Reuse same generator
         const otpHash = await hashPasswordResetOtp(otp)
-        
-        // Use passwordResetSessions for 2FA too, or create new table. 
-        // Let's use it for now as it has expiry and userId.
-        await db.delete(passwordResetSessions).where(eq(passwordResetSessions.userId, user.id))
-        await db.insert(passwordResetSessions).values({
-            userId: user.id,
-            otpHash,
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
-        })
+
+        await createLoginOtpSession(user.id, otpHash, new Date(Date.now() + 5 * 60 * 1000))
 
         await sendTwoFactorOtpEmail({
             to: user.email,
@@ -257,7 +306,6 @@ authRouter.post('/login', authRateLimiter, validate(loginSchema), async (c) => {
     const accessToken = generateAccessToken(tokenPayload)
     const refreshToken = generateRefreshToken(tokenPayload)
 
-    // Record session
     await db.insert(activeSessions).values({
         userId: user.id,
         tokenVersion: user.tokenVersion ?? 0,
@@ -298,13 +346,7 @@ authRouter.post('/login/2fa', authRateLimiter, validate(login2faSchema), async (
 
     if (!user) throw new UnauthorizedError('Invalid request')
 
-    const [session] = await db.select().from(passwordResetSessions)
-        .where(and(
-            eq(passwordResetSessions.userId, user.id),
-            isNull(passwordResetSessions.usedAt),
-            gt(passwordResetSessions.expiresAt, new Date())
-        ))
-        .orderBy(desc(passwordResetSessions.createdAt))
+    const session = await getActiveLoginOtpSession(user.id)
 
     if (!session) {
         throw new UnauthorizedError('Verification code expired or invalid')
@@ -316,9 +358,7 @@ authRouter.post('/login/2fa', authRateLimiter, validate(login2faSchema), async (
     }
 
     // Mark session as used
-    await db.update(passwordResetSessions)
-        .set({ usedAt: new Date() })
-        .where(eq(passwordResetSessions.id, session.id))
+    await markLoginOtpSessionUsed(session.id)
 
     // Generate tokens
     const tokenPayload = {
@@ -331,7 +371,6 @@ authRouter.post('/login/2fa', authRateLimiter, validate(login2faSchema), async (
     const accessToken = generateAccessToken(tokenPayload)
     const refreshToken = generateRefreshToken(tokenPayload)
 
-    // Record session
     await db.insert(activeSessions).values({
         userId: user.id,
         tokenVersion: user.tokenVersion ?? 0,
@@ -368,13 +407,6 @@ authRouter.post('/logout', validate(refreshTokenSchema), async (c) => {
             token: data.refreshToken,
             expiresAt: decoded.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         }).onConflictDoNothing()
-
-        // Also remove from active sessions if we can match it (ideally we'd have the sessionId in the token or something)
-        // For now, let's just mark the current session as not current if we had a way to identify it.
-        // Actually, if we have the userId from decoded token, we can do some cleanup.
-        await db.delete(activeSessions).where(eq(activeSessions.userId, decoded.userId)) 
-        // Note: The above might be too aggressive if they have multiple sessions. 
-        // Ideally we should only delete the session associated with THIS token.
 
         return successResponse(c, null, 'Logged out successfully')
     } catch (error) {
@@ -560,14 +592,7 @@ authRouter.post('/otp/request', authRateLimiter, validate(otpLoginRequestSchema)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
 
     // Delete existing sessions for this user
-    await db.delete(passwordResetSessions).where(eq(passwordResetSessions.userId, user.id))
-
-    await db.insert(passwordResetSessions).values({
-        userId: user.id,
-        otpHash,
-        expiresAt,
-        attemptCount: 0
-    })
+    await createLoginOtpSession(user.id, otpHash, expiresAt)
 
     try {
         await sendLoginOtpEmail({
@@ -606,18 +631,7 @@ authRouter.post('/otp/verify', authRateLimiter, validate(otpLoginVerifySchema), 
         throw new UnauthorizedError('Invalid verification code')
     }
 
-    const [session] = await db
-        .select()
-        .from(passwordResetSessions)
-        .where(
-            and(
-                eq(passwordResetSessions.userId, user.id),
-                isNull(passwordResetSessions.usedAt),
-                gt(passwordResetSessions.expiresAt, new Date())
-            )
-        )
-        .orderBy(desc(passwordResetSessions.createdAt))
-        .limit(1)
+    const session = await getActiveLoginOtpSession(user.id)
 
     if (!session) {
         throw new UnauthorizedError('Verification code expired or invalid')
@@ -627,21 +641,13 @@ authRouter.post('/otp/verify', authRateLimiter, validate(otpLoginVerifySchema), 
 
     if (!isValid) {
         const nextAttemptCount = session.attemptCount + 1
-        await db
-            .update(passwordResetSessions)
-            .set({
-                attemptCount: nextAttemptCount,
-                usedAt: nextAttemptCount >= 5 ? new Date() : session.usedAt
-            })
-            .where(eq(passwordResetSessions.id, session.id))
+        await failLoginOtpSessionAttempt(session.id, nextAttemptCount)
 
         throw new UnauthorizedError('Invalid verification code')
     }
 
     // Mark session as used
-    await db.update(passwordResetSessions)
-        .set({ usedAt: new Date() })
-        .where(eq(passwordResetSessions.id, session.id))
+    await markLoginOtpSessionUsed(session.id)
 
     // Generate tokens
     const tokenPayload = {
@@ -695,18 +701,7 @@ authRouter.post('/unlock', authRateLimiter, async (c) => {
         throw new NotFoundError('User')
     }
 
-    const [session] = await db
-        .select()
-        .from(passwordResetSessions)
-        .where(
-            and(
-                eq(passwordResetSessions.userId, user.id),
-                isNull(passwordResetSessions.usedAt),
-                gt(passwordResetSessions.expiresAt, new Date())
-            )
-        )
-        .orderBy(desc(passwordResetSessions.createdAt))
-        .limit(1)
+    const session = await getActiveLoginOtpSession(user.id)
 
     if (!session) {
         throw new UnauthorizedError('Invalid or expired unlock link')
@@ -735,4 +730,3 @@ authRouter.post('/unlock', authRateLimiter, async (c) => {
 
     return successResponse(c, null, 'Account unlocked successfully. You can now log in.')
 })
-

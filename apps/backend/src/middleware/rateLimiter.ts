@@ -3,8 +3,22 @@ import { TooManyRequestsError } from '../utils/errors'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
+const getClientIp = (c: { req: { header: (name: string) => string | undefined } }) => {
+    const forwardedFor = c.req.header('x-forwarded-for')
+    if (forwardedFor) {
+        const [firstIp] = forwardedFor.split(',').map((value) => value.trim()).filter(Boolean)
+        if (firstIp) return firstIp
+    }
+
+    return (
+        c.req.header('x-real-ip') ||
+        c.req.header('cf-connecting-ip') ||
+        'anonymous'
+    )
+}
+
 // No-op middleware for development - bypasses rate limiting
-const noOpMiddleware = async (c: any, next: any) => {
+const noOpMiddleware = async (_c: any, next: any) => {
     await next()
 }
 
@@ -13,12 +27,10 @@ const authLimiter = rateLimiter({
     limit: 10, // Limit each IP to 10 requests per windowMs
     standardHeaders: 'draft-7', // Use standard RateLimit headers
     keyGenerator: (c) => {
-        // Use X-Forwarded-For if available, otherwise fallback to a generic key
-        // Note: In production, ensure your proxy sets this header correctly
-        return c.req.header('x-forwarded-for') || 'anonymous'
+        return getClientIp(c)
     },
     handler: (c) => {
-        console.warn(`[RateLimit] Triggered for IP: ${c.req.header('x-forwarded-for') || 'anonymous'} on path: ${c.req.path}`)
+        console.warn(`[RateLimit] Triggered for IP: ${getClientIp(c)} on path: ${c.req.path}`)
         throw new TooManyRequestsError('Too many requests, please try again later')
     }
 })
@@ -27,9 +39,9 @@ const publicLimiter = rateLimiter({
     windowMs: 1 * 60 * 1000, // 1 minute
     limit: 60, // 60 requests per minute
     standardHeaders: 'draft-7',
-    keyGenerator: (c) => c.req.header('x-forwarded-for') || 'anonymous',
+    keyGenerator: (c) => getClientIp(c),
     handler: (c) => {
-        console.warn(`[RateLimit] Triggered for IP: ${c.req.header('x-forwarded-for') || 'anonymous'} on path: ${c.req.path}`)
+        console.warn(`[RateLimit] Triggered for IP: ${getClientIp(c)} on path: ${c.req.path}`)
         throw new TooManyRequestsError('Too many requests, please try again later')
     }
 })

@@ -2,6 +2,7 @@ import { ChevronDown, LucideIcon } from 'lucide-react-native';
 import React from 'react';
 import { Platform, Text, View } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
+import { useColorScheme } from 'nativewind';
 
 interface FormPickerProps {
     label: string;
@@ -24,6 +25,8 @@ export function FormPicker({
     icon: Icon,
     enabled = true 
 }: FormPickerProps) {
+    const { colorScheme } = useColorScheme();
+    const isDarkMode = colorScheme === 'dark';
     const placeholderValue = placeholder ? { label: placeholder, value: null } : {};
 
     return (
@@ -58,7 +61,7 @@ export function FormPicker({
                                 fontSize: 16,
                                 paddingVertical: 16,
                                 paddingHorizontal: Icon ? 12 : 16,
-                                color: value ? '#0f172a' : '#94a3b8',
+                                color: value ? (isDarkMode ? '#ffffff' : '#0f172a') : '#94a3b8',
                                 paddingRight: 40,
                                 fontWeight: '500',
                             },
@@ -66,7 +69,7 @@ export function FormPicker({
                                 fontSize: 16,
                                 paddingVertical: 12,
                                 paddingHorizontal: Icon ? 12 : 16,
-                                color: value ? '#0f172a' : '#94a3b8',
+                                color: value ? (isDarkMode ? '#ffffff' : '#0f172a') : '#94a3b8',
                                 paddingRight: 40,
                                 fontWeight: '500',
                             },

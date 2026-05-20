@@ -67,7 +67,7 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                 'training',
                 'professional', 
                 'referees', 
-                'documents',
+                // 'documents',
                 'review'
             ].indexOf(initialStep);
             return index >= 0 ? index : 0;
@@ -338,7 +338,7 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                     />
                 )
             },
-            {
+            /* {
                 id: 'documents',
                 title: 'Uploads (Optional)',
                 icon: FileUp,
@@ -363,7 +363,7 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                         </View>
                     </View>
                 )
-            }
+            } */
         ];
 
         if (mode === 'apply') {

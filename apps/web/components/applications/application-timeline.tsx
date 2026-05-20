@@ -3,10 +3,10 @@
 import { CheckCircle2, Circle, Clock, AlertCircle, CheckCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type ApplicationStatus = 'pending' | 'under_review' | 'reviewed' | 'shortlisted' | 'interviewed' | 'offered' | 'rejected'
+type ApplicationStatus = 'pending' | 'under_review' | 'reviewed' | 'shortlisted' | 'interviewing' | 'interviewed' | 'offered' | 'rejected'
 
 interface ApplicationTimelineProps {
-    status: ApplicationStatus
+    status: ApplicationStatus | string
 }
 
 export function ApplicationTimeline({ status }: ApplicationTimelineProps) {
@@ -15,25 +15,25 @@ export function ApplicationTimeline({ status }: ApplicationTimelineProps) {
             id: 'submitted',
             label: 'Submitted',
             description: 'Application received',
-            statuses: ['pending', 'under_review', 'reviewed', 'shortlisted', 'interviewed', 'offered', 'rejected'],
+            statuses: ['pending', 'under_review', 'reviewed', 'shortlisted', 'interviewing', 'interviewed', 'offered', 'rejected'],
         },
         {
             id: 'reviewing',
             label: 'Under Review',
             description: 'HR is checking requirements',
-            statuses: ['under_review', 'reviewed', 'shortlisted', 'interviewed', 'offered', 'rejected'],
+            statuses: ['under_review', 'reviewed', 'shortlisted', 'interviewing', 'interviewed', 'offered', 'rejected'],
         },
         {
             id: 'shortlisted',
             label: 'Shortlisted',
             description: 'Qualified for the next stage',
-            statuses: ['shortlisted', 'interviewed', 'offered'],
+            statuses: ['shortlisted', 'interviewing', 'interviewed', 'offered'],
         },
         {
             id: 'interview',
             label: 'Interview',
             description: 'Face-to-face assessment',
-            statuses: ['interviewed', 'offered'],
+            statuses: ['interviewing', 'interviewed', 'offered'],
         },
         {
             id: 'final',

@@ -90,9 +90,9 @@ export function FileUpload({
                     </div>
                 </div>
             ) : (
-                <div className="flex items-center p-4 border rounded-lg bg-card text-card-foreground shadow-sm">
-                    <FileIcon className="w-8 h-8 text-primary mr-4" />
-                    <div className="flex-1 overflow-hidden">
+                <div className="flex items-center p-4 border rounded-lg bg-card text-card-foreground shadow-sm w-full min-w-0">
+                    <FileIcon className="w-8 h-8 text-primary mr-4 shrink-0" />
+                    <div className="flex-1 overflow-hidden min-w-0">
                         <p className="text-sm font-medium truncate">{value.name}</p>
                         <p className="text-xs text-muted-foreground">
                             {(value.size / 1024 / 1024).toFixed(2)} MB

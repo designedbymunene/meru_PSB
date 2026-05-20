@@ -126,7 +126,7 @@ export default function ProfileScreen() {
                                     <SettingRow
                                         icon={Lock}
                                         title="Security Settings"
-                                        subtitle="Password, 2FA & active sessions"
+                                        subtitle="Password & 2FA"
                                         onPress={() => router.push('/profile/security-settings')}
                                         color="#f59e0b"
                                     />
@@ -169,7 +169,7 @@ export default function ProfileScreen() {
                                     <SettingRow
                                         icon={Settings2}
                                         title="General Settings"
-                                        subtitle="Cache, language and regional settings"
+                                        subtitle="Theme, notifications & cache settings"
                                         onPress={() => router.push('/profile/general-settings')}
                                         color="#64748b"
                                         isLast={true}

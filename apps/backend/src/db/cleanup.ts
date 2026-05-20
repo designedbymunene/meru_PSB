@@ -1,5 +1,5 @@
 import dotenv from 'dotenv'
-import { db, passwordResetSessions } from './index'
+import { db, passwordResetSessions, loginOtpSessions, revokedTokens } from './index'
 import { lt } from 'drizzle-orm'
 
 dotenv.config()
@@ -11,12 +11,21 @@ dotenv.config()
  */
 export const cleanupExpiredPasswordResetSessions = async (): Promise<void> => {
     const now = new Date()
-    const result = await db
-        .delete(passwordResetSessions)
-        .where(lt(passwordResetSessions.expiresAt, now))
-        .returning()
+    const [passwordResetResult, loginOtpResult, revokedTokenResult] = await Promise.all([
+       db.delete(passwordResetSessions)
+           .where(lt(passwordResetSessions.expiresAt, now))
+           .returning(),
+       db.delete(loginOtpSessions)
+           .where(lt(loginOtpSessions.expiresAt, now))
+           .returning(),
+       db.delete(revokedTokens)
+           .where(lt(revokedTokens.expiresAt, now))
+           .returning()
+    ])
 
-    console.log(`Deleted ${result.length} expired password reset sessions.`)
+    console.log(`Deleted ${passwordResetResult.length} expired password reset sessions.`)
+    console.log(`Deleted ${loginOtpResult.length} expired login OTP sessions.`)
+    console.log(`Deleted ${revokedTokenResult.length} expired revoked tokens.`)
 }
 
 // Run cleanup if called directly

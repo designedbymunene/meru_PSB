@@ -1,5 +1,5 @@
 import { db } from '../db'
-import { eq, and, inArray, gte, lte, SQL, or, count, desc } from 'drizzle-orm'
+import { eq, and, inArray, gte, lte, SQL, or, count, desc, sql } from 'drizzle-orm'
 import { applications, auditLogs, vacancies, departments } from '../db/schema'
 
 export interface ReportFilters {
@@ -32,30 +32,32 @@ export class ReportingService {
     }
 
     /**
-     * Aggregates diversity data from applications.
+     * Aggregates diversity data from applications using database aggregations.
      */
     static async getDiversityReport(filters: ReportFilters = {}) {
         const conditions = this.applyFilters(filters)
         
-        let query;
+        const baseQuery = db.select({
+            gender: sql<string>`${applications.profileSnapshot}->>'gender'`,
+            ethnicityId: sql<string>`${applications.profileSnapshot}->>'ethnicityId'`,
+            homeCountyId: sql<string>`${applications.profileSnapshot}->>'homeCountyId'`,
+            impairment: sql<boolean>`(${applications.profileSnapshot}->>'impairment')::boolean`,
+            count: sql<number>`count(*)::int`
+        })
+        .from(applications)
+
         if (filters.departmentId) {
-            query = db.select({
-                profileSnapshot: applications.profileSnapshot,
-                createdAt: applications.createdAt
-            })
-            .from(applications)
-            .innerJoin(vacancies, eq(applications.vacancyId, vacancies.id))
-            .where(and(...conditions, eq(vacancies.departmentId, filters.departmentId)))
-        } else {
-            query = db.select({
-                profileSnapshot: applications.profileSnapshot,
-                createdAt: applications.createdAt
-            })
-            .from(applications)
-            .where(and(...conditions))
+            baseQuery.innerJoin(vacancies, eq(applications.vacancyId, vacancies.id))
+            conditions.push(eq(vacancies.departmentId, filters.departmentId))
         }
 
-        const apps = await query
+        const stats = await baseQuery.where(and(...conditions))
+            .groupBy(
+                sql`${applications.profileSnapshot}->>'gender'`,
+                sql`${applications.profileSnapshot}->>'ethnicityId'`,
+                sql`${applications.profileSnapshot}->>'homeCountyId'`,
+                sql`(${applications.profileSnapshot}->>'impairment')::boolean`
+            )
 
         // Fetch all ethnicities and counties for mapping
         const [allEthnicities, allCounties] = await Promise.all([
@@ -75,51 +77,42 @@ export class ReportingService {
             ethnicity: {} as Record<string, number>,
             disability: { hasImpairment: 0, noImpairment: 0, preferNotToSay: 0 },
             counties: {} as Record<string, number>,
-            totalApplicants: apps.length
+            totalApplicants: 0
         }
 
-        let minDate: Date | undefined
-        let maxDate: Date | undefined
+        stats.forEach(row => {
+            report.totalApplicants += row.count
 
-        apps.forEach(app => {
-            const date = app.createdAt ? new Date(app.createdAt) : null
-            if (date) {
-                if (!minDate || date < minDate) minDate = date
-                if (!maxDate || date > maxDate) maxDate = date
-            }
+            // Gender
+            const gender = row.gender
+            if (gender === 'Male') report.gender.Male += row.count
+            else if (gender === 'Female') report.gender.Female += row.count
+            else if (gender === 'Other') report.gender.Other += row.count
+            else report.gender.PreferNotToSay += row.count
 
-            const profile = app.profileSnapshot as any
-            if (profile) {
-                // Gender mapping
-                const gender = profile.gender
-                if (gender === 'Male') report.gender.Male++
-                else if (gender === 'Female') report.gender.Female++
-                else if (gender === 'Other') report.gender.Other++
-                else report.gender.PreferNotToSay++
+            // Ethnicity
+            const eId = row.ethnicityId
+            const ethnicityName = eId ? (ethnicityMap[eId] || 'Other') : 'Unknown'
+            report.ethnicity[ethnicityName] = (report.ethnicity[ethnicityName] || 0) + row.count
 
-                // Ethnicity
-                const eId = profile.ethnicityId?.toString()
-                const ethnicityName = eId ? (ethnicityMap[eId] || 'Other') : 'Unknown'
-                report.ethnicity[ethnicityName] = (report.ethnicity[ethnicityName] || 0) + 1
+            // County
+            const cId = row.homeCountyId
+            const countyName = cId ? (countyMap[cId] || 'Other') : 'Unknown'
+            report.counties[countyName] = (report.counties[countyName] || 0) + row.count
 
-                // County
-                const cId = profile.homeCountyId?.toString()
-                const countyName = cId ? (countyMap[cId] || 'Other') : 'Unknown'
-                report.counties[countyName] = (report.counties[countyName] || 0) + 1
-
-                // Disability mapping
-                if (profile.impairment === true) {
-                    report.disability.hasImpairment++
-                } else if (profile.impairment === false) {
-                    report.disability.noImpairment++
-                } else {
-                    report.disability.preferNotToSay++
-                }
+            // Disability
+            if (row.impairment === true) {
+                report.disability.hasImpairment += row.count
+            } else if (row.impairment === false) {
+                report.disability.noImpairment += row.count
+            } else {
+                report.disability.preferNotToSay += row.count
             }
         })
 
-        if (!report.period.start) report.period.start = minDate ? minDate.toISOString() : new Date().toISOString()
-        if (!report.period.end) report.period.end = maxDate ? maxDate.toISOString() : new Date().toISOString()
+        // If range not provided, use current date
+        if (!report.period.start) report.period.start = new Date().toISOString()
+        if (!report.period.end) report.period.end = new Date().toISOString()
 
         return report
     }
@@ -293,32 +286,38 @@ export class ReportingService {
     }
 
     /**
-     * Gets applicant funnel data (pipeline drop-offs)
+     * Gets applicant funnel data (pipeline drop-offs) using database aggregations.
      */
     static async getFunnelReport(filters: ReportFilters = {}) {
         const conditions = this.applyFilters(filters)
         
-        let query = db.select({
+        const baseQuery = db.select({
             status: applications.status,
-            id: applications.id
+            count: sql<number>`count(*)::int`
         }).from(applications)
 
         if (filters.departmentId) {
-            query.innerJoin(vacancies, eq(applications.vacancyId, vacancies.id))
-                 .where(and(...conditions, eq(vacancies.departmentId, filters.departmentId)))
-        } else {
-            query.where(and(...conditions))
+            baseQuery.innerJoin(vacancies, eq(applications.vacancyId, vacancies.id))
+            conditions.push(eq(vacancies.departmentId, filters.departmentId))
         }
 
-        const apps = await query
+        const stats = await baseQuery.where(and(...conditions)).groupBy(applications.status)
         
         const counts = {
-            total: apps.length,
-            reviewed: apps.filter(a => !['pending'].includes(a.status)).length,
-            shortlisted: apps.filter(a => ['shortlisted', 'interviewing', 'accepted', 'rejected'].includes(a.status)).length,
-            interviewed: apps.filter(a => ['interviewing', 'accepted', 'rejected'].includes(a.status)).length,
-            accepted: apps.filter(a => a.status === 'accepted').length
+            total: 0,
+            reviewed: 0,
+            shortlisted: 0,
+            interviewed: 0,
+            accepted: 0
         }
+
+        stats.forEach(row => {
+            counts.total += row.count
+            if (row.status !== 'pending') counts.reviewed += row.count
+            if (['shortlisted', 'interviewing', 'accepted', 'rejected'].includes(row.status)) counts.shortlisted += row.count
+            if (['interviewing', 'accepted', 'rejected'].includes(row.status)) counts.interviewed += row.count
+            if (row.status === 'accepted') counts.accepted += row.count
+        })
 
         return [
             { name: 'Applied', value: counts.total, fill: 'var(--chart-1)' },
@@ -330,36 +329,35 @@ export class ReportingService {
     }
 
     /**
-     * Gets conversion trends over time
+     * Gets conversion trends over time using database aggregations.
      */
     static async getConversionTrends(filters: ReportFilters = {}) {
         const conditions = this.applyFilters(filters)
         
-        let query = db.select({
+        const baseQuery = db.select({
+            date: sql<string>`DATE(${applications.createdAt})`,
             status: applications.status,
-            createdAt: applications.createdAt
+            count: sql<number>`count(*)::int`
         }).from(applications)
 
         if (filters.departmentId) {
-            query.innerJoin(vacancies, eq(applications.vacancyId, vacancies.id))
-                 .where(and(...conditions, eq(vacancies.departmentId, filters.departmentId)))
-        } else {
-            query.where(and(...conditions))
+            baseQuery.innerJoin(vacancies, eq(applications.vacancyId, vacancies.id))
+            conditions.push(eq(vacancies.departmentId, filters.departmentId))
         }
 
-        const apps = await query
+        const stats = await baseQuery.where(and(...conditions))
+            .groupBy(sql`DATE(${applications.createdAt})`, applications.status)
         
-        // Group by week or month depending on range, here we do by date for simplicity
         const grouping: Record<string, any> = {}
-        apps.forEach(app => {
-            const date = new Date(app.createdAt!).toISOString().split('T')[0]
+        stats.forEach(row => {
+            const date = row.date
             if (!grouping[date]) {
                 grouping[date] = { total: 0, shortlisted: 0, interviewed: 0, accepted: 0 }
             }
-            grouping[date].total++
-            if (['shortlisted', 'interviewing', 'accepted'].includes(app.status)) grouping[date].shortlisted++
-            if (['interviewing', 'accepted'].includes(app.status)) grouping[date].interviewed++
-            if (app.status === 'accepted') grouping[date].accepted++
+            grouping[date].total += row.count
+            if (['shortlisted', 'interviewing', 'accepted'].includes(row.status)) grouping[date].shortlisted += row.count
+            if (['interviewing', 'accepted'].includes(row.status)) grouping[date].interviewed += row.count
+            if (row.status === 'accepted') grouping[date].accepted += row.count
         })
 
         return Object.entries(grouping)
@@ -373,35 +371,28 @@ export class ReportingService {
     }
 
     /**
-     * Gets application volume over time (time-series)
+     * Gets application volume over time (time-series) using database aggregations.
      */
     static async getApplicationsTimeReport(filters: ReportFilters = {}) {
         const conditions = this.applyFilters(filters)
         
-        let query = db.select({
-            createdAt: applications.createdAt
+        const baseQuery = db.select({
+            date: sql<string>`DATE(${applications.createdAt})`,
+            count: sql<number>`count(*)::int`
         }).from(applications)
 
         if (filters.departmentId) {
-            query.innerJoin(vacancies, eq(applications.vacancyId, vacancies.id))
-                 .where(and(...conditions, eq(vacancies.departmentId, filters.departmentId)))
-        } else {
-            query.where(and(...conditions))
+            baseQuery.innerJoin(vacancies, eq(applications.vacancyId, vacancies.id))
+            conditions.push(eq(vacancies.departmentId, filters.departmentId))
         }
 
-        const apps = await query
-        
-        const grouping: Record<string, number> = {}
-        apps.forEach(app => {
-            const date = new Date(app.createdAt!).toISOString().split('T')[0]
-            grouping[date] = (grouping[date] || 0) + 1
-        })
+        const stats = await baseQuery.where(and(...conditions))
+            .groupBy(sql`DATE(${applications.createdAt})`)
+            .orderBy(sql`DATE(${applications.createdAt})`)
 
-        return Object.entries(grouping)
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([date, count]) => ({
-                date,
-                count
-            }))
+        return stats.map(row => ({
+            date: row.date,
+            count: row.count
+        }))
     }
 }

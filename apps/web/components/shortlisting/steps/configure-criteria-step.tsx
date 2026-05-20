@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, type Dispatch, type SetStateAction } from "react"
 import { useApplications } from "@/hooks/use-applications"
 import { useVacancies } from "@/hooks/use-vacancies"
 import { useShortlistCriteria } from "@/hooks/use-shortlisting"
@@ -12,8 +12,6 @@ import { Badge } from "@/components/ui/badge"
 import { 
     GraduationCap, 
     Briefcase, 
-    Zap, 
-    BookOpen, 
     Award, 
     Info, 
     Save, 
@@ -36,7 +34,7 @@ interface ConfigureCriteriaStepProps {
     vacancyId: number
     initialWeights: Record<string, number>
     initialMinScore: number
-    onWeightsChange: (weights: Record<string, number>) => void
+    onWeightsChange: Dispatch<SetStateAction<ShortlistWeights>>
     onMinScoreChange: (minScore: number) => void
     onSaveCriteria: () => void
     onRunShortlisting: () => void
@@ -44,10 +42,16 @@ interface ConfigureCriteriaStepProps {
     isRunning: boolean
 }
 
+type ShortlistWeights = {
+    education: number
+    experience: number
+    memberships: number
+}
+
 const WEIGHT_CONFIG = {
-    qualifications: {
-        label: "Qualifications",
-        description: "Academic and professional qualifications",
+    education: {
+        label: "Education",
+        description: "Highest qualification achieved",
         icon: GraduationCap,
     },
     experience: {
@@ -55,73 +59,93 @@ const WEIGHT_CONFIG = {
         description: "Years of relevant work experience",
         icon: Briefcase,
     },
-    skills: {
-        label: "Skills",
-        description: "Relevant technical and soft skills",
-        icon: Zap,
-    },
-    education: {
-        label: "Education",
-        description: "Educational background and achievements",
-        icon: BookOpen,
-    },
-    certifications: {
-        label: "Certifications",
-        description: "Professional certifications and memberships",
+    memberships: {
+        label: "Memberships",
+        description: "Professional memberships and licences",
         icon: Award,
     },
 }
 
-// Simplified scoring calculation for preview
+const SCORE_LEVELS: Array<[RegExp, number]> = [
+    [/ph\.?d|doctor/i, 100],
+    [/master|mba|msc|ma/i, 90],
+    [/post.?grad/i, 80],
+    [/bachelor|degree|bsc|ba|bed|bcom|llb/i, 70],
+    [/diploma/i, 55],
+    [/certificate/i, 40],
+    [/kcse|secondary|high school/i, 20],
+]
+
+const PRESET_WEIGHTS = {
+    balanced: { education: 40, experience: 40, memberships: 20 },
+    experienceHeavy: { education: 25, experience: 55, memberships: 20 },
+    qualificationHeavy: { education: 55, experience: 30, memberships: 15 },
+}
+
+const WEIGHT_KEYS = Object.keys(WEIGHT_CONFIG) as Array<keyof ShortlistWeights>
+
+function normalizeWeightsInput(weights?: Partial<Record<string, number>>) {
+    return {
+        education: weights?.education ?? weights?.qualifications ?? 0,
+        experience: weights?.experience ?? weights?.skills ?? 0,
+        memberships: weights?.memberships ?? weights?.certifications ?? weights?.professionalMemberships ?? 0,
+    }
+}
+
+function scoreQualificationLevel(level: unknown) {
+    const value = String(level || '').trim()
+    if (!value) return 0
+
+    for (const [pattern, score] of SCORE_LEVELS) {
+        if (pattern.test(value)) return score
+    }
+
+    return 0
+}
+
+// Matches the backend scoring model so the preview reflects real results.
 function calculateEstimatedScore(profile: any, weights: Record<string, number>): number {
     if (!profile) return 0
 
-    let score = 0
+    const qualifications = Array.isArray(profile.qualifications) ? profile.qualifications : []
+    const employmentHistory = Array.isArray(profile.employmentHistory) ? profile.employmentHistory : []
+    const professionalMemberships = Array.isArray(profile.professionalMemberships) 
+        ? profile.professionalMemberships 
+        : Array.isArray(profile.memberships) ? profile.memberships : []
+    const professionalDetails = Array.isArray(profile.professionalDetails) ? profile.professionalDetails : []
 
-    if (weights.education && profile.qualifications && Array.isArray(profile.qualifications)) {
-        const levels: Record<string, number> = {
-            "PhD": 30,
-            "Masters": 25,
-            "Bachelor": 20,
-            "Diploma": 15,
-            "Certificate": 10,
-        }
-        let maxScore = 0
-        for (const qual of profile.qualifications) {
-            const points = levels[qual.level] || 0
-            if (points > maxScore) maxScore = points
-        }
-        score += (maxScore * weights.education) / 100
+    let educationScore = 0
+    for (const qual of qualifications) {
+        educationScore = Math.max(educationScore, scoreQualificationLevel(qual?.level))
     }
 
-    if (weights.experience && profile.employmentHistory && Array.isArray(profile.employmentHistory)) {
+    let experienceScore = 0
+    if (employmentHistory.length > 0) {
         let totalDays = 0
-        for (const job of profile.employmentHistory) {
+        for (const job of employmentHistory) {
             if (!job.startDate) continue
             const start = new Date(job.startDate)
             const end = job.endDate ? new Date(job.endDate) : new Date()
-            totalDays += (end.getTime() - start.getTime()) / (1000 * 3600 * 24)
+
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) continue
+
+            totalDays += Math.max(0, (end.getTime() - start.getTime()) / (1000 * 3600 * 24))
         }
         const years = totalDays / 365.25
-        const expScore = Math.min(years * 5, 25)
-        score += (expScore * weights.experience) / 100
+        experienceScore = Math.min(Math.round((years / 10) * 100), 100)
     }
 
-    if (weights.certifications && profile.professionalMemberships && Array.isArray(profile.professionalMemberships)) {
-        const membershipScore = Math.min(profile.professionalMemberships.length * 5, 15)
-        score += (membershipScore * weights.certifications) / 100
-    }
+    const membershipsScore = Math.min((professionalMemberships.length + professionalDetails.length) * 25, 100)
 
-    if (weights.skills && profile.skills) {
-        const skillsScore = Math.min(profile.skills.length * 2, 20)
-        score += (skillsScore * weights.skills) / 100
-    }
+    const totalWeight = Object.values(weights).reduce((sum, value) => sum + value, 0)
+    if (totalWeight <= 0) return 0
 
-    if (weights.qualifications && profile.qualifications && Array.isArray(profile.qualifications)) {
-        score += (15 * weights.qualifications) / 100
-    }
+    const score =
+        (educationScore * (weights.education || 0)) +
+        (experienceScore * (weights.experience || 0)) +
+        (membershipsScore * (weights.memberships || 0))
 
-    return Math.round(score)
+    return Math.round(score / totalWeight)
 }
 
 export function ConfigureCriteriaStep({
@@ -135,36 +159,63 @@ export function ConfigureCriteriaStep({
     isSaving,
     isRunning,
 }: ConfigureCriteriaStepProps) {
-    const [weights, setWeights] = useState<Record<string, number>>(initialWeights)
+    const [weights, setWeights] = useState<ShortlistWeights>(() => normalizeWeightsInput(initialWeights))
     const [minScore, setMinScore] = useState(initialMinScore)
     const [importFromVacancyId, setImportFromVacancyId] = useState<string>("")
 
     const { data: applicationsData } = useApplications({
         vacancyId: vacancyId.toString(),
-        status: "pending,reviewed,shortlisted",
+        sortBy: "appliedAt",
+        order: "desc",
+        limit: "1000",
+        offset: "0",
     })
 
     const { data: vacancies } = useVacancies()
     const { data: importedCriteria } = useShortlistCriteria(parseInt(importFromVacancyId) || 0)
 
-    const applications = Array.isArray(applicationsData?.data) ? applicationsData.data : (applicationsData?.data as any)?.data || []
+    type PreviewApplication = {
+        id: number
+        profileSnapshot?: any
+        applicantProfileSnapshot?: any
+        applicant?: {
+            fullName: string
+            applicantProfile?: any
+        }
+    }
+
+    const rawApplications = Array.isArray(applicationsData?.data)
+        ? applicationsData.data as PreviewApplication[]
+        : ((applicationsData?.data as any)?.data || []) as PreviewApplication[]
+
+    const applications = useMemo(() => {
+        return rawApplications.filter((app: any) => 
+            app.status === "pending" || app.status === "reviewed"
+        )
+    }, [rawApplications])
 
     // Normalizing weights logic
-    const normalizedWeights = useMemo(() => {
+    const normalizedWeights = useMemo<ShortlistWeights>(() => {
         const total = Object.values(weights).reduce((sum, value) => sum + value, 0)
         if (total === 0) return weights
 
-        const normalized: Record<string, number> = {}
-        for (const [key, value] of Object.entries(weights)) {
+        const normalized: ShortlistWeights = {
+            education: 0,
+            experience: 0,
+            memberships: 0,
+        }
+
+        for (const [key, value] of Object.entries(weights) as Array<[keyof ShortlistWeights, number]>) {
             normalized[key] = Math.round((value / total) * 100)
         }
 
         const normalizedTotal = Object.values(normalized).reduce((sum, value) => sum + value, 0)
         if (normalizedTotal !== 100) {
             const difference = 100 - normalizedTotal
-            const maxKey = Object.entries(normalized).reduce((a, b) =>
-                normalized[a[0]] > normalized[b[0]] ? a : b
-            )[0]
+            const maxKey = (Object.keys(normalized) as Array<keyof ShortlistWeights>).reduce(
+                (currentMax, key) => (normalized[key] > normalized[currentMax] ? key : currentMax),
+                'education'
+            )
             normalized[maxKey] += difference
         }
 
@@ -183,10 +234,14 @@ export function ConfigureCriteriaStep({
     // Scoring Distribution
     const scoredApplications = useMemo(() => {
         return applications
-            .map(app => ({
-                ...app,
-                score: calculateEstimatedScore(app.applicantProfileSnapshot, normalizedWeights),
-            }))
+            .map(app => {
+                const profile = app.profileSnapshot ?? app.applicantProfileSnapshot ?? app.applicant?.applicantProfile
+                return {
+                    ...app,
+                    score: calculateEstimatedScore(profile, normalizedWeights),
+                    displayName: app.applicantProfileSnapshot?.fullName || app.applicant?.fullName || "Applicant"
+                }
+            })
             .sort((a, b) => b.score - a.score)
     }, [applications, normalizedWeights])
 
@@ -205,9 +260,13 @@ export function ConfigureCriteriaStep({
 
     const handleImportCriteria = () => {
         if (importedCriteria?.data) {
-            setWeights(importedCriteria.data.weights)
+            setWeights(normalizeWeightsInput(importedCriteria.data.weights))
             setMinScore(importedCriteria.data.minScore)
         }
+    }
+
+    const applyPreset = (preset: keyof typeof PRESET_WEIGHTS) => {
+        setWeights(PRESET_WEIGHTS[preset])
     }
 
     return (
@@ -250,9 +309,24 @@ export function ConfigureCriteriaStep({
                         <Label className="text-sm font-semibold">Scoring Weights</Label>
                         <Badge variant="outline" className="font-mono">Total: 100%</Badge>
                     </div>
+
+                    <div className="flex flex-wrap gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => applyPreset("balanced")}>
+                            Balanced
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => applyPreset("experienceHeavy")}>
+                            Experience heavy
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => applyPreset("qualificationHeavy")}>
+                            Qualification heavy
+                        </Button>
+                    </div>
+
+                    <WeightDistributionBar weights={normalizedWeights} />
                     
                     <div className="space-y-5">
-                        {Object.entries(WEIGHT_CONFIG).map(([key, config]) => {
+                        {WEIGHT_KEYS.map((key) => {
+                            const config = WEIGHT_CONFIG[key]
                             const value = weights[key]
                             const Icon = config.icon
                             return (
@@ -361,7 +435,7 @@ export function ConfigureCriteriaStep({
                                 <div className="flex items-center gap-3">
                                     <span className="text-xs font-bold text-muted-foreground w-4">#{i+1}</span>
                                     <span className="font-medium truncate max-w-[150px]">
-                                        {app.applicantProfileSnapshot?.fullName || "Applicant"}
+                                        {app.displayName}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-3">

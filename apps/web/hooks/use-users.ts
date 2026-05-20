@@ -8,10 +8,5 @@ export function useUsers() {
     return useQuery({
         queryKey: ['users'],
         queryFn: () => usersApi.getUsers(),
-        onError: (error: Error) => {
-            toast.error('Failed to load users', {
-                description: error.message,
-            })
-        },
     })
 }

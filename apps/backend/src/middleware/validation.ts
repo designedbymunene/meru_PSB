@@ -11,9 +11,8 @@ export const validate = <T extends z.ZodSchema>(schema: T) => {
         try {
             const body = await c.req.json()
             const validated = schema.parse(body)
-            
-            // Set the validated data in context
-            c.set('validatedData' as any, validated)
+
+            c.set('validatedData', validated)
             
             await next()
         } catch (error) {

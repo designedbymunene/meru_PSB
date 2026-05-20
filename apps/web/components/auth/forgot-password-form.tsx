@@ -36,7 +36,7 @@ export function ForgotPasswordForm() {
     const { mutate: requestReset, isPending: isRequesting } = useRequestPasswordReset()
     const { mutate: resetPassword, isPending: isResetting } = useResetPassword()
 
-    const form = useForm<ResetPasswordSchemaType>({
+    const form = useForm<any>({
         resolver: zodResolver(step === 1 ? forgotPasswordRequestSchema : resetPasswordSchema),
         defaultValues: {
             email: '',
@@ -87,7 +87,7 @@ export function ForgotPasswordForm() {
                                 control={form.control}
                                 name="email"
                                 render={({ field }) => (
-                                    <FormItem>
+                                    <FormItem id="email">
                                         <FormLabel>Email</FormLabel>
                                         <FormControl>
                                             <div className="relative">
@@ -111,7 +111,7 @@ export function ForgotPasswordForm() {
                                     control={form.control}
                                     name="otp"
                                     render={({ field }) => (
-                                        <FormItem>
+                                        <FormItem id="otp">
                                             <FormLabel>Verification Code</FormLabel>
                                             <FormControl>
                                                 <div className="relative">
@@ -133,7 +133,7 @@ export function ForgotPasswordForm() {
                                     control={form.control}
                                     name="newPassword"
                                     render={({ field }) => (
-                                        <FormItem>
+                                        <FormItem id="newPassword">
                                             <FormLabel>New Password</FormLabel>
                                             <FormControl>
                                                 <div className="relative">
