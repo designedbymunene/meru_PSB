@@ -20,6 +20,13 @@ web-build/
 .env.test.local
 .env.production.local
 .env*.local
+/apps/backend/.env
+/apps/backend/.env.local
+/apps/backend/.env.development.local
+/apps/backend/.env.test.local
+/apps/backend/.env.production.local
+/apps/web/.env
+/apps/mobile/.env
 
 # OS Specific
 .DS_Store
