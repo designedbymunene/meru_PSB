@@ -8,6 +8,7 @@ export interface LogoProps {
     text?: string
     href?: string
     className?: string
+    showRecruitmentLabel?: boolean
 }
 
 const sizeMap = {
@@ -28,7 +29,8 @@ export function Logo({
     variant = 'short',
     text,
     href,
-    className
+    className,
+    showRecruitmentLabel
 }: LogoProps) {
     const { width, height, textSize } = sizeMap[size]
     const displayText = text ?? variantTextMap[variant]
@@ -52,9 +54,20 @@ export function Logo({
     const content = displayText ? (
         <div className="flex items-center gap-2">
             {logoImage}
-            <span className={cn("font-bold", textSize)}>
-                {displayText}
-            </span>
+            {showRecruitmentLabel ? (
+                <div className="flex flex-col items-start justify-center">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500/80 dark:text-slate-400/80 leading-none mb-1">
+                        Recruitment
+                    </span>
+                    <span className={cn("font-bold text-slate-900 dark:text-white leading-none", textSize)}>
+                        {displayText}
+                    </span>
+                </div>
+            ) : (
+                <span className={cn("font-bold text-slate-900 dark:text-white", textSize)}>
+                    {displayText}
+                </span>
+            )}
         </div>
     ) : (
         logoImage

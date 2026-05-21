@@ -94,26 +94,21 @@ export function calculateProfileCompletion(profile: any): ProfileCompletionSumma
         sectionFromFields(
             profile,
             'personal',
-            'Personal Details',
-            'Name, ID number and date of birth',
+            'Personal Information',
+            'Bio-data, contact and location details',
             'required',
-            ['fullName', 'idNumber', 'gender', 'dateOfBirth']
-        ),
-        sectionFromFields(
-            profile,
-            'contact',
-            'Contact Details',
-            'Phone number and email address',
-            'required',
-            ['phoneNumber', 'email']
-        ),
-        sectionFromFields(
-            profile,
-            'location',
-            'Location Details',
-            'County, sub-county, ward and ethnicity',
-            'required',
-            ['homeCountyId', 'homeSubCountyId', 'wardId', 'ethnicityId']
+            [
+                'fullName', 
+                'idNumber', 
+                'gender', 
+                'dateOfBirth',
+                'phoneNumber', 
+                'email',
+                'homeCountyId', 
+                'homeSubCountyId', 
+                'wardId', 
+                'ethnicityId'
+            ]
         ),
         sectionFromCollection(
             profile,

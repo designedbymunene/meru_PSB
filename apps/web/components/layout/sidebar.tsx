@@ -82,11 +82,11 @@ const navData: Record<string, NavItem[]> = {
     },
   ],
   governance: [
-    // {
-    //   title: "Board",
-    //   url: "/admin/board",
-    //   icon: Scale,
-    // },
+    {
+      title: "Board",
+      url: "/admin/board",
+      icon: Scale,
+    },
     {
       title: "Reports",
       url: "/admin/reports",

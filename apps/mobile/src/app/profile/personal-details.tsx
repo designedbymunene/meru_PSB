@@ -13,10 +13,13 @@ import { FormPicker } from '@/components/ui/form-picker';
 import { FormDatePicker } from '@/components/ui/form-date-picker';
 import { apiClient, getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
 import { 
+    useCounties, 
+    useConstituencies, 
+    useWards, 
     useEthnicities 
 } from '@/lib/api/reference';
 import { runOfflineCapableMutation } from '@/lib/offline-mutations/mutation-strategy';
-import { User, MapPin, Phone, Calendar, Mail, Fingerprint, Globe, Users } from 'lucide-react-native';
+import { User, MapPin, Phone, Calendar, Mail, Fingerprint, Globe, Users, Heart } from 'lucide-react-native';
 import { ProfileFormLoadingState } from '@/components/ui/loading-skeletons';
 
 const personalDetailsSchema = z.object({
@@ -26,6 +29,10 @@ const personalDetailsSchema = z.object({
     email: z.string().email('Valid email is required'),
     dateOfBirth: z.string().min(1, 'Date of birth is required'),
     gender: z.enum(['Male', 'Female', 'Other']),
+    ethnicityId: z.coerce.number().min(1, 'Ethnicity is required'),
+    homeCountyId: z.coerce.number().min(1, 'Home County is required'),
+    homeSubCountyId: z.coerce.number().min(1, 'Home Sub-County is required'),
+    wardId: z.coerce.number().min(1, 'Ward is required'),
     impairment: z.boolean().default(false),
     impairmentDetails: z.string().optional(),
 });
@@ -36,6 +43,7 @@ export default function PersonalDetailsScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const netInfo = useNetInfo();
+    const [hasInitialReset, setHasInitialReset] = React.useState(false);
 
 
     // Refs for keyboard "Next" navigation
@@ -49,9 +57,9 @@ export default function PersonalDetailsScreen() {
             const response = await apiClient.get('/applicant-profiles/me');
             return response.data.data;
         },
-        });
+    });
 
-        const mutation = useMutation({
+    const mutation = useMutation({
         mutationFn: async (data: any) => {
             return runOfflineCapableMutation({
                 request: () => apiClient.put('/applicant-profiles/me', data),
@@ -97,14 +105,48 @@ export default function PersonalDetailsScreen() {
             email: '',
             dateOfBirth: '',
             gender: 'Male',
+            ethnicityId: null as any,
+            homeCountyId: null as any,
+            homeSubCountyId: null as any,
+            wardId: null as any,
             impairment: false,
             impairmentDetails: '',
         },
     });
 
+    // Watch for location dependencies
+    const selectedCountyId = watch('homeCountyId');
+    const selectedSubCountyId = watch('homeSubCountyId');
+
+    // Reference Queries
+    const { data: countiesResponse, isLoading: isLoadingCounties } = useCounties();
+    const counties = (countiesResponse?.data || []).map((c: any) => ({ label: c.name, value: c.id }));
+
+    const { data: ethnicitiesResponse, isLoading: isLoadingEthnicities } = useEthnicities();
+    const ethnicities = (ethnicitiesResponse?.data || []).map((e: any) => ({ label: e.name, value: e.id }));
+
+    const { data: subCountiesResponse, isFetching: isFetchingSubCounties } = useConstituencies(typeof selectedCountyId === 'number' && selectedCountyId > 0 ? selectedCountyId : undefined);
+    const subCounties = (subCountiesResponse?.data || []).map((sc: any) => ({ label: sc.name, value: sc.id }));
+
+    const { data: wardsResponse, isFetching: isFetchingWards } = useWards(typeof selectedSubCountyId === 'number' && selectedSubCountyId > 0 ? selectedSubCountyId : undefined);
+    const wards = (wardsResponse?.data || []).map((w: any) => ({ label: w.name, value: w.id }));
+
+    // Cascading selection clearing
+    useEffect(() => {
+        if (!selectedCountyId || selectedCountyId <= 0) {
+            setValue('homeSubCountyId', null as any);
+            setValue('wardId', null as any);
+        }
+    }, [selectedCountyId, setValue]);
 
     useEffect(() => {
-        if (profile) {
+        if (!selectedSubCountyId || selectedSubCountyId <= 0) {
+            setValue('wardId', null as any);
+        }
+    }, [selectedSubCountyId, setValue]);
+
+    useEffect(() => {
+        if (profile && !hasInitialReset) {
             reset({
                 fullName: profile.fullName || '',
                 idNumber: profile.idNumber || '',
@@ -112,11 +154,16 @@ export default function PersonalDetailsScreen() {
                 email: profile.email || '',
                 dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : '',
                 gender: (profile.gender as any) || 'Male',
+                ethnicityId: profile.ethnicityId || null,
+                homeCountyId: profile.homeCountyId || null,
+                homeSubCountyId: profile.homeSubCountyId || null,
+                wardId: profile.wardId || null,
                 impairment: !!profile.impairment,
                 impairmentDetails: profile.impairmentDetails || '',
             });
+            setHasInitialReset(true);
         }
-    }, [profile, reset]);
+    }, [profile, reset, hasInitialReset]);
 
     const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
     const normalizedError = error ? getNormalizedApiError(error) : null;
@@ -238,6 +285,154 @@ export default function PersonalDetailsScreen() {
                     )}
                 />
 
+                <Controller
+                    control={control}
+                    name="gender"
+                    render={({ field: { onChange, value } }) => (
+                        <FormPicker
+                            label="Gender"
+                            items={[
+                                { label: 'Male', value: 'Male' },
+                                { label: 'Female', value: 'Female' },
+                                { label: 'Other', value: 'Other' },
+                            ]}
+                            icon={User}
+                            onValueChange={onChange}
+                            value={value}
+                            error={errors.gender?.message}
+                            placeholder="Select gender"
+                        />
+                    )}
+                />
+
+                <View className="pt-6 pb-2">
+                    <Text className="text-gray-900 dark:text-white font-black text-lg">Location & Origin</Text>
+                    <Text className="text-gray-500 dark:text-gray-400 text-xs">These details are required for statutory reporting.</Text>
+                </View>
+
+                <Controller
+                    control={control}
+                    name="homeCountyId"
+                    render={({ field: { onChange, value } }) => (
+                        <FormPicker
+                            label="Home County"
+                            items={counties}
+                            icon={Globe}
+                            onValueChange={(val) => {
+                                const numVal = val ? Number(val) : null;
+                                onChange(numVal);
+                                if (numVal !== value) {
+                                    setValue('homeSubCountyId', null as any);
+                                    setValue('wardId', null as any);
+                                }
+                            }}
+                            value={value}
+                            error={errors.homeCountyId?.message}
+                            placeholder="Select your county"
+                            isLoading={isLoadingCounties}
+                        />
+                    )}
+                />
+
+                <Controller
+                    control={control}
+                    name="homeSubCountyId"
+                    render={({ field: { onChange, value } }) => (
+                        <FormPicker
+                            label="Home Sub-County"
+                            items={subCounties}
+                            icon={MapPin}
+                            onValueChange={(val) => {
+                                const numVal = val ? Number(val) : null;
+                                onChange(numVal);
+                                if (numVal !== value) {
+                                    setValue('wardId', null as any);
+                                }
+                            }}
+                            value={value}
+                            error={errors.homeSubCountyId?.message}
+                            placeholder="Select sub-county"
+                            enabled={!!selectedCountyId && selectedCountyId > 0}
+                            isLoading={isFetchingSubCounties && !!selectedCountyId}
+                        />
+                    )}
+                />
+
+                <Controller
+                    control={control}
+                    name="wardId"
+                    render={({ field: { onChange, value } }) => (
+                        <FormPicker
+                            label="Ward"
+                            items={wards}
+                            icon={MapPin}
+                            onValueChange={(val) => onChange(val ? Number(val) : null)}
+                            value={value}
+                            error={errors.wardId?.message}
+                            placeholder="Select ward"
+                            enabled={!!selectedSubCountyId && selectedSubCountyId > 0}
+                            isLoading={isFetchingWards && !!selectedSubCountyId}
+                        />
+                    )}
+                />
+
+                <Controller
+                    control={control}
+                    name="ethnicityId"
+                    render={({ field: { onChange, value } }) => (
+                        <FormPicker
+                            label="Ethnicity"
+                            items={ethnicities}
+                            icon={Users}
+                            onValueChange={onChange}
+                            value={value}
+                            error={errors.ethnicityId?.message}
+                            placeholder="Select ethnicity"
+                            isLoading={isLoadingEthnicities}
+                        />
+                    )}
+                />
+
+                <View className="pt-6 pb-2">
+                    <Text className="text-gray-900 dark:text-white font-black text-lg">Additional Details</Text>
+                </View>
+
+                <Controller
+                    control={control}
+                    name="impairment"
+                    render={({ field: { onChange, value } }) => (
+                        <FormPicker
+                            label="Do you have any impairment?"
+                            items={[
+                                { label: 'No', value: false },
+                                { label: 'Yes', value: true },
+                            ]}
+                            icon={Heart}
+                            onValueChange={onChange}
+                            value={value}
+                            error={errors.impairment?.message}
+                        />
+                    )}
+                />
+
+                {watch('impairment') && (
+                    <Controller
+                        control={control}
+                        name="impairmentDetails"
+                        render={({ field: { onChange, onBlur, value } }) => (
+                            <FormField
+                                label="Impairment Details"
+                                placeholder="Please describe your impairment"
+                                onBlur={onBlur}
+                                onChangeText={onChange}
+                                value={value}
+                                error={errors.impairmentDetails?.message}
+                                multiline
+                                numberOfLines={3}
+                            />
+                        )}
+                    />
+                )}
             </View>
             
             <View className="h-10" />

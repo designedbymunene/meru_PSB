@@ -1,9 +1,7 @@
 import { db } from '../db'
-import { eq, desc } from 'drizzle-orm'
-import { vacancies, boardResolutions, applications, shortlistCriteria } from '../db/schema'
-import { InterviewService } from './interview-service'
+import { desc } from 'drizzle-orm'
+import { boardResolutions } from '../db/schema'
 import { AuditService } from './audit-service'
-import { NotFoundError } from '../utils/errors'
 
 export class BoardService {
     /**

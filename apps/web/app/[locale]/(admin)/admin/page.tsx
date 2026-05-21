@@ -7,6 +7,8 @@ import { QuickActions } from "@/components/admin/quick-actions"
 import { ApplicationStatusOverview } from "@/components/admin/application-status-overview"
 import { Users, FileText, CheckCircle, Clock } from "lucide-react"
 
+import { RecentApplications } from "@/components/admin/recent-applications"
+
 export default function AdminDashboardPage() {
     const { data: vacanciesData, isLoading: isLoadingVacancies } = useVacancies()
     const { data: applicationsData, isLoading: isLoadingApplications } = useAllApplications()
@@ -75,6 +77,7 @@ export default function AdminDashboardPage() {
                 {/* Main Content Area */}
                 <div className="lg:col-span-8 space-y-6">
                     <QuickActions />
+                    <RecentApplications />
                 </div>
 
                 {/* Sidebar Area */}

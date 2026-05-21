@@ -6,6 +6,8 @@ import { requestLogger, logger } from './utils/logger'
 import { getHealthReport } from './utils/health'
 import { timeout } from 'hono/timeout'
 import { pool } from './db'
+import { notificationWorker } from './workers/notification-worker'
+import { redisConnection } from './utils/queue'
 
 // Import routes
 import { authRouter } from './routes/auth'
@@ -167,6 +169,22 @@ const gracefulShutdown = async (signal: string) => {
   if (server) {
     logger.info('Closing HTTP server...')
     server.close()
+  }
+
+  logger.info('Closing background workers...')
+  try {
+    await notificationWorker.close()
+    logger.info('Background worker closed')
+  } catch (err) {
+    logger.error({ err }, 'Error closing background worker')
+  }
+
+  logger.info('Closing Redis connection...')
+  try {
+    await redisConnection.quit()
+    logger.info('Redis connection closed')
+  } catch (err) {
+    logger.error({ err }, 'Error closing Redis connection')
   }
 
   logger.info('Draining database connection pool...')

@@ -123,7 +123,7 @@ async function main() {
         const tableColumnMetadata: Record<string, string[]> = {}
         const counts: Record<string, number> = {}
         const wantedTables = [
-            'users', 'applicant_profiles', 'qualifications', 'employment_history',
+            'job_groups', 'departments', 'users', 'applicant_profiles', 'qualifications', 'employment_history',
             'professional_memberships', 'professional_details', 'training_courses'
         ]
         
@@ -139,13 +139,17 @@ async function main() {
 
         const refs = { ethnicities, counties, constituencies, wards }
 
+        // Pass 0: Job Groups and Departments
+        console.log('🏁 Pass 0: Importing Job Groups and Departments...')
+        await processPass(sourcePath, ['job_groups', 'departments'], client, tableColumnMetadata, refs, counts)
+
         // Pass 1: Users only
         console.log('🏁 Pass 1: Importing Users...')
         await processPass(sourcePath, ['users'], client, tableColumnMetadata, refs, counts)
 
         // Pass 2: Everything else
         console.log('🏁 Pass 2: Importing Profiles and Related Data...')
-        const otherTables = wantedTables.filter(t => t !== 'users')
+        const otherTables = wantedTables.filter(t => !['users', 'job_groups', 'departments'].includes(t))
         await processPass(sourcePath, otherTables, client, tableColumnMetadata, refs, counts)
 
         console.log('🔄 Syncing phone numbers from profiles to users...')

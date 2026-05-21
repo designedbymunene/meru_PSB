@@ -235,7 +235,7 @@ function Step1PersonalInfo({
         idNumber: string
         gender: 'Male' | 'Female' | 'Other'
         dateOfBirth: string
-        ethnicityId?: number | null
+        ethnicityId?: number
         impairment?: boolean
         impairmentDetails?: string
     }
@@ -257,7 +257,7 @@ function Step1PersonalInfo({
             idNumber: (data as any).idNumber || '',
             gender: (data as any).gender as any || 'Male',
             dateOfBirth: (data as any).dateOfBirth || '',
-            ethnicityId: (data as any).ethnicityId,
+            ethnicityId: (data as any).ethnicityId || undefined,
             impairment: (data as any).impairment || false,
             impairmentDetails: (data as any).impairmentDetails || '',
         },
@@ -430,9 +430,9 @@ function Step2LocationInfo({
     const counties = countiesResponse?.data || []
 
     type LocationFormData = {
-        homeCountyId?: number | null
-        homeSubCountyId?: number | null
-        wardId?: number | null
+        homeCountyId?: number
+        homeSubCountyId?: number
+        wardId?: number
     }
 
     const schema = createProfileSchema.pick({
@@ -444,9 +444,9 @@ function Step2LocationInfo({
     const form = useForm<LocationFormData>({
         resolver: zodResolver(schema) as any,
         defaultValues: {
-            homeCountyId: (data as any).homeCountyId,
-            homeSubCountyId: (data as any).homeSubCountyId,
-            wardId: (data as any).wardId,
+            homeCountyId: (data as any).homeCountyId || undefined,
+            homeSubCountyId: (data as any).homeSubCountyId || undefined,
+            wardId: (data as any).wardId || undefined,
         },
     })
 

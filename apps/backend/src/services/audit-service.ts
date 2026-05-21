@@ -17,32 +17,34 @@ export class AuditService {
         newState?: any;
         ipAddress?: string;
         userAgent?: string;
+        database?: any;
     }) {
+        const { adminId, action, targetType, targetId, previousState, newState, ipAddress, userAgent, database = db } = params
         try {
             logger.debug({
-                action: params.action,
-                targetType: params.targetType,
-                targetId: params.targetId,
-                adminId: params.adminId
+                action,
+                targetType,
+                targetId,
+                adminId
             }, '[AuditService] Recording action')
 
             // Verify that the adminId exists in the users table
-            const [adminUser] = await db.select({ id: users.id }).from(users).where(eq(users.id, params.adminId))
+            const [adminUser] = await database.select({ id: users.id }).from(users).where(eq(users.id, adminId))
 
             if (!adminUser) {
-                logger.error({ adminId: params.adminId }, '[AuditService] Invalid adminId - user does not exist. Skipping audit log.')
+                logger.error({ adminId }, '[AuditService] Invalid adminId - user does not exist. Skipping audit log.')
                 return null
             }
 
-            const [log] = await db.insert(auditLogs).values({
-                adminId: params.adminId,
-                action: params.action,
-                targetType: params.targetType,
-                targetId: params.targetId,
-                previousState: params.previousState,
-                newState: params.newState,
-                ipAddress: params.ipAddress,
-                userAgent: params.userAgent
+            const [log] = await database.insert(auditLogs).values({
+                adminId,
+                action,
+                targetType,
+                targetId,
+                previousState,
+                newState,
+                ipAddress,
+                userAgent
             }).returning()
 
             logger.info({ logId: log.id }, '[AuditService] Successfully recorded log')

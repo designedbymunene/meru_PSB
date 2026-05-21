@@ -1,9 +1,5 @@
-import { db } from '../db'
-import { users, vacancies } from '../db/schema'
-import { eq } from 'drizzle-orm'
-import { NotificationService } from './notification-service'
-import { sendApplicationStatusEmail } from '../utils/mailer'
-import { getApplicationStatusLabel, isApplicationNotificationStatus } from '../utils/application-status'
+import { notificationQueue } from '../utils/queue'
+import { isApplicationNotificationStatus } from '../utils/application-status'
 import { logger } from '../utils/logger'
 
 type ApplicationStatusNotificationInput = {
@@ -21,71 +17,24 @@ export class ApplicationNotificationService {
             return { success: true, skipped: true }
         }
 
-        const [applicant, vacancy] = await Promise.all([
-            db.query.users.findFirst({
-                where: eq(users.id, input.applicantId),
-                columns: {
-                    email: true,
-                    fullName: true,
-                    pushToken: true,
-                },
-            }),
-            db.query.vacancies.findFirst({
-                where: eq(vacancies.id, input.vacancyId),
-                columns: {
-                    title: true,
-                },
-            }),
-        ])
+        try {
+            logger.info({ applicantId: input.applicantId, vacancyId: input.vacancyId }, '[ApplicationNotificationService] Enqueuing notification job')
+            
+            const job = await notificationQueue.add('application_status_change', {
+                type: 'application_status_change',
+                payload: input
+            })
 
-        if (!applicant) {
-            logger.error({ applicantId: input.applicantId }, '[ApplicationNotificationService] Applicant not found')
-            return { success: false, error: 'Applicant not found' }
-        }
-
-        if (!vacancy) {
-            logger.error({ vacancyId: input.vacancyId }, '[ApplicationNotificationService] Vacancy not found')
-            return { success: false, error: 'Vacancy not found' }
-        }
-
-        const statusLabel = getApplicationStatusLabel(input.status)
-        const title = statusLabel === 'Not Successful'
-            ? 'Application Update - Not Successful'
-            : `Application Update - ${statusLabel}`
-        const body = `Your application for ${vacancy.title} is now ${statusLabel}.`
-
-        const [emailResult, pushResult] = await Promise.all([
-            applicant.email
-                ? sendApplicationStatusEmail({
-                      to: applicant.email,
-                      fullName: applicant.fullName,
-                      vacancyTitle: vacancy.title,
-                      status: input.status,
-                      feedbackToApplicant: input.feedbackToApplicant,
-                      rejectionReason: input.rejectionReason,
-                  })
-                : Promise.resolve({ success: false, error: 'No applicant email' }),
-            applicant.pushToken
-                ? NotificationService.sendPushNotification({
-                      to: applicant.pushToken,
-                      title,
-                      body,
-                      data: {
-                          applicationId: input.applicationId,
-                          vacancyId: input.vacancyId,
-                          status: input.status,
-                          statusLabel,
-                      },
-                      priority: 'high',
-                      sound: 'default',
-                  })
-                : Promise.resolve({ success: false, error: 'No push token' }),
-        ])
-
-        return {
-            success: true,
-            email: emailResult,
-            push: pushResult,
+            return {
+                success: true,
+                jobId: job.id
+            }
+        } catch (error) {
+            logger.error({ err: error, input }, '[ApplicationNotificationService] Failed to enqueue notification job')
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown queue error'
+            }
         }
     }
 }

@@ -4,7 +4,7 @@ import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
 import { BoardService } from '../services/board-service'
-import { successResponse, ValidationError } from '../utils/errors'
+import { successResponse } from '../utils/errors'
 
 export const boardRouter = new Hono()
 

@@ -17,6 +17,20 @@ services:
       retries: 5
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: meru-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   migrate:
     image: localhost/meru_county_psb_app:latest
     depends_on:
@@ -34,12 +48,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     environment:
       NODE_ENV: production
       PORT: 4000
       DATABASE_URL: postgres://meru_county:${POSTGRES_PASSWORD}@db:5432/meru_county_psb
+      REDIS_URL: redis://redis:6379
+      UPLOAD_DIR: /app/uploads
     volumes:
       - uploads:/app/uploads
     ports:
@@ -53,4 +71,5 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
   uploads:

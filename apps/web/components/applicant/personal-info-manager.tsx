@@ -54,37 +54,17 @@ export function PersonalInfoManager() {
 
     const form = useForm<CreateProfileInput>({
         resolver: zodResolver(createProfileSchema) as any,
-        values: profile ? {
-            fullName: profile.fullName || '',
-            idNumber: profile.idNumber,
-            gender: profile.gender as 'Male' | 'Female' | 'Other',
-            dateOfBirth: profile.dateOfBirth || new Date().toISOString().split('T')[0],
-            ethnicityId: profile.ethnicityId || 0,
-            phoneNumber: profile.phoneNumber || '',
-            email: profile.email,
-            homeCountyId: profile.homeCountyId || 0,
-            homeSubCountyId: profile.homeSubCountyId || 0,
-            wardId: profile.wardId || 0,
-            impairment: profile.impairment,
-            impairmentDetails: profile.impairmentDetails || '',
-            publicServiceInfo: profile.publicServiceInfo || '',
-            personalNumber: profile.personalNumber || '',
-            hasNoExperience: profile.hasNoExperience || false,
-            hasNoCertificates: profile.hasNoCertificates || false,
-            hasNoMemberships: profile.hasNoMemberships || false,
-            hasNoTrainings: profile.hasNoTrainings || false,
-            hasNoReferees: profile.hasNoReferees || false,
-        } : {
+        defaultValues: {
             fullName: '',
             idNumber: '',
             gender: 'Male' as const,
             dateOfBirth: new Date().toISOString().split('T')[0],
-            ethnicityId: 0,
+            ethnicityId: undefined,
             phoneNumber: '',
             email: '',
-            homeCountyId: 0,
-            homeSubCountyId: 0,
-            wardId: 0,
+            homeCountyId: undefined,
+            homeSubCountyId: undefined,
+            wardId: undefined,
             impairment: false,
             impairmentDetails: '',
             publicServiceInfo: '',
@@ -97,14 +77,54 @@ export function PersonalInfoManager() {
         },
     }) as any
 
+    useEffect(() => {
+        if (profile) {
+            form.reset({
+                fullName: profile.fullName || '',
+                idNumber: profile.idNumber,
+                gender: profile.gender as 'Male' | 'Female' | 'Other',
+                dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.split(/[T ]/)[0] : new Date().toISOString().split('T')[0],
+                ethnicityId: profile.ethnicityId || undefined,
+                phoneNumber: profile.phoneNumber || '',
+                email: profile.email,
+                homeCountyId: profile.homeCountyId || undefined,
+                homeSubCountyId: profile.homeSubCountyId || undefined,
+                wardId: profile.wardId || undefined,
+                impairment: profile.impairment,
+                impairmentDetails: profile.impairmentDetails || '',
+                publicServiceInfo: profile.publicServiceInfo || '',
+                personalNumber: profile.personalNumber || '',
+                hasNoExperience: profile.hasNoExperience || false,
+                hasNoCertificates: profile.hasNoCertificates || false,
+                hasNoMemberships: profile.hasNoMemberships || false,
+                hasNoTrainings: profile.hasNoTrainings || false,
+                hasNoReferees: profile.hasNoReferees || false,
+            })
+        }
+    }, [profile, form])
+
     const selectedCountyId = form.watch('homeCountyId') as number | undefined
     const selectedSubCountyId = form.watch('homeSubCountyId') as number | undefined
 
-    const { data: subCountiesResponse } = useConstituencies(selectedCountyId)
+    const { data: subCountiesResponse, isLoading: isLoadingSubCounties } = useConstituencies(selectedCountyId)
     const subCounties = (subCountiesResponse?.data as ReferenceItem[]) || []
 
-    const { data: wardsResponse } = useWards(selectedSubCountyId)
+    const { data: wardsResponse, isLoading: isLoadingWards } = useWards(selectedSubCountyId)
     const wards = (wardsResponse?.data as ReferenceItem[]) || []
+
+    // Cascading selection clearing
+    useEffect(() => {
+        if (!selectedCountyId) {
+            form.setValue('homeSubCountyId', undefined)
+            form.setValue('wardId', undefined)
+        }
+    }, [selectedCountyId, form])
+
+    useEffect(() => {
+        if (!selectedSubCountyId) {
+            form.setValue('wardId', undefined)
+        }
+    }, [selectedSubCountyId, form])
 
     const watchImpairment = form.watch('impairment')
 
@@ -292,11 +312,11 @@ export function PersonalInfoManager() {
                                             form.setValue('wardId', undefined)
                                         }}
                                         value={field.value?.toString()}
-                                        disabled={!selectedCountyId}
+                                        disabled={!selectedCountyId || isLoadingSubCounties}
                                     >
                                         <FormControl>
                                             <SelectTrigger className="h-11 rounded-lg border-muted-foreground/20 focus:border-primary/50 transition-colors">
-                                                <SelectValue placeholder="Select sub-county" />
+                                                <SelectValue placeholder={isLoadingSubCounties ? "Loading..." : "Select sub-county"} />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent className="rounded-xl">
@@ -321,11 +341,11 @@ export function PersonalInfoManager() {
                                     <Select
                                         onValueChange={(val) => field.onChange(parseInt(val))}
                                         value={field.value?.toString()}
-                                        disabled={!selectedSubCountyId}
+                                        disabled={!selectedSubCountyId || isLoadingWards}
                                     >
                                         <FormControl>
                                             <SelectTrigger className="h-11 rounded-lg border-muted-foreground/20 focus:border-primary/50 transition-colors">
-                                                <SelectValue placeholder="Select ward" />
+                                                <SelectValue placeholder={isLoadingWards ? "Loading..." : "Select ward"} />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent className="rounded-xl">

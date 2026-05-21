@@ -5,3 +5,5 @@ dist/
 uploads/
 *.log
 .claude/
+sql/*.sql
+extracted_output.json

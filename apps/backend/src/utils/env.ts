@@ -34,6 +34,10 @@ const smtpEnvSchema = z.object({
     SMTP_FROM: z.string().default('"Meru County PSB" <noreply@merupsb.go.ke>')
 })
 
+const redisEnvSchema = z.object({
+    REDIS_URL: z.string().default('redis://127.0.0.1:6379')
+})
+
 export const getAuthConfig = () => authEnvSchema.parse(process.env)
 
 export const getUploadConfig = () => uploadEnvSchema.parse(process.env)
@@ -43,4 +47,6 @@ export const getAppConfig = () => appEnvSchema.parse(process.env)
 export const getDbConfig = () => dbEnvSchema.parse(process.env)
 
 export const getSmtpConfig = () => smtpEnvSchema.parse(process.env)
+
+export const getRedisConfig = () => redisEnvSchema.parse(process.env)
 

@@ -61,7 +61,6 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
         if (initialStep) {
             const index = [
                 'personal', 
-                'location', 
                 'academic', 
                 'experience', 
                 'training',
@@ -202,16 +201,6 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                 title: 'Personal Details (Required)', 
                 icon: User, 
                 render: () => <PersonalDetailsForm ref={formRef} initialData={profile} onSubmit={(data) => {
-                    if (isSubmittingRef.current) return;
-                    isSubmittingRef.current = true;
-                    updateProfileMutation.mutate(data);
-                }} /> 
-            },
-            { 
-                id: 'location', 
-                title: 'Location Details (Required)', 
-                icon: MapPin, 
-                render: () => <LocationDetailsForm ref={formRef} initialData={profile} onSubmit={(data) => {
                     if (isSubmittingRef.current) return;
                     isSubmittingRef.current = true;
                     updateProfileMutation.mutate(data);
@@ -436,7 +425,7 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
     const handleNext = async () => {
         if (isSaving || isSubmittingRef.current || submitApplicationMutation.isSuccess) return;
 
-        if (currentStep.id === 'personal' || currentStep.id === 'location') {
+        if (currentStep.id === 'personal') {
             formRef.current?.submit();
         } else if (currentStep.id === 'review') {
             isSubmittingRef.current = true;

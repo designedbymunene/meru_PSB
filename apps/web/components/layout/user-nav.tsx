@@ -21,7 +21,7 @@ import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
-import { ChevronRight, LogOut, Settings, User as UserIcon, ChevronsUpDown, ShieldCheck, Users } from "lucide-react"
+import { ChevronRight, LogOut, Settings, User as UserIcon, ChevronsUpDown, ShieldCheck, Users, FileText, UserCircle } from "lucide-react"
 import { SidebarContext } from "@/components/ui/sidebar"
 import * as React from "react"
 
@@ -114,30 +114,55 @@ export function UserNav({ showDetails = false, className }: { showDetails?: bool
                     {isAdmin && (
                         <DropdownMenuItem 
                             onClick={() => switchView(isAdminSide ? "applicant" : "admin")}
-                            className="h-10 rounded-xl cursor-pointer focus:bg-primary/5 focus:text-primary"
+                            className="h-11 rounded-xl cursor-pointer focus:bg-primary/5 focus:text-primary border border-transparent hover:border-primary/10 transition-all"
                         >
                             {isAdminSide ? (
                                 <>
-                                    <Users className="mr-2 h-4 w-4 opacity-60" />
-                                    <span className="font-medium">Applicant View</span>
+                                    <Users className="mr-3 h-4 w-4 opacity-70" />
+                                    <div className="flex flex-col">
+                                        <span className="font-semibold text-sm">Applicant View</span>
+                                        <span className="text-[10px] opacity-50 font-medium">Switch to applicant portal</span>
+                                    </div>
                                 </>
                             ) : (
                                 <>
-                                    <ShieldCheck className="mr-2 h-4 w-4 opacity-60" />
-                                    <span className="font-medium">Admin View</span>
+                                    <ShieldCheck className="mr-3 h-4 w-4 opacity-70" />
+                                    <div className="flex flex-col">
+                                        <span className="font-semibold text-sm">Admin View</span>
+                                        <span className="text-[10px] opacity-50 font-medium">Switch to admin panel</span>
+                                    </div>
                                 </>
                             )}
                         </DropdownMenuItem>
                     )}
-                    <Link href="/dashboard/profile">
-                        <DropdownMenuItem className="h-10 rounded-xl cursor-pointer focus:bg-primary/5 focus:text-primary">
-                            <UserIcon className="mr-2 h-4 w-4 opacity-60" />
-                            <span className="font-medium">My Profile</span>
-                            <DropdownMenuShortcut className="text-[10px] opacity-40 font-bold uppercase tracking-widest ml-auto">⇧⌘P</DropdownMenuShortcut>
+                    
+                    {isAdmin && isAdminSide ? (
+                        <>
+                            <DropdownMenuItem asChild className="h-10 rounded-xl cursor-pointer focus:bg-primary/5 focus:text-primary">
+                                <Link href="/admin/applications" className="flex items-center w-full">
+                                    <FileText className="mr-2 h-4 w-4 opacity-60" />
+                                    <span className="font-medium">Manage Applications</span>
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild className="h-10 rounded-xl cursor-pointer focus:bg-primary/5 focus:text-primary">
+                                <Link href="/admin/profiles" className="flex items-center w-full">
+                                    <UserCircle className="mr-2 h-4 w-4 opacity-60" />
+                                    <span className="font-medium">Applicant Profiles</span>
+                                </Link>
+                            </DropdownMenuItem>
+                        </>
+                    ) : (
+                        <DropdownMenuItem asChild className="h-10 rounded-xl cursor-pointer focus:bg-primary/5 focus:text-primary">
+                            <Link href="/dashboard/profile" className="flex items-center w-full">
+                                <UserIcon className="mr-2 h-4 w-4 opacity-60" />
+                                <span className="font-medium">My Profile</span>
+                                <DropdownMenuShortcut className="text-[10px] opacity-40 font-bold uppercase tracking-widest ml-auto">⇧⌘P</DropdownMenuShortcut>
+                            </Link>
                         </DropdownMenuItem>
-                    </Link>
+                    )}
+
                     <DropdownMenuItem asChild className="h-10 rounded-xl cursor-pointer focus:bg-primary/5 focus:text-primary">
-                        <Link href={pathname.startsWith('/admin') ? "/admin/settings" : "/dashboard/settings"} className="flex items-center w-full">
+                        <Link href={isAdminSide ? "/admin/settings" : "/dashboard/settings"} className="flex items-center w-full">
                             <Settings className="mr-2 h-4 w-4 opacity-60" />
                             <span className="font-medium">Settings</span>
                             <DropdownMenuShortcut className="text-[10px] opacity-40 font-bold uppercase tracking-widest ml-auto">⌘S</DropdownMenuShortcut>

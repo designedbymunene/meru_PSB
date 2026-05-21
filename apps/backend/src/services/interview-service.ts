@@ -1,6 +1,6 @@
 import { db } from '../db'
 import { eq, and, between, sql } from 'drizzle-orm'
-import { interviews, interviewScores, applications, vacancyPanelMembers, interviewCriteria, interviewCriteriaScores, vacancies } from '../db/schema'
+import { interviews, interviewScores, applications, vacancyPanelMembers, interviewCriteria, interviewCriteriaScores } from '../db/schema'
 import { ValidationError } from '../utils/errors'
 import { AuditService } from './audit-service'
 import { ApplicationNotificationService } from './application-notification-service'

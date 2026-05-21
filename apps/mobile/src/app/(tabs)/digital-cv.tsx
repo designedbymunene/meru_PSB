@@ -30,16 +30,10 @@ type SectionMeta = {
 
 const SECTION_META: Partial<Record<ProfileSectionId, SectionMeta>> = {
     personal: {
-        title: 'Bio Data & Contact Details',
-        subtitle: 'Name, ID, Contact and birth details',
+        title: 'Personal Information',
+        subtitle: 'Bio-data, contact and location details',
         icon: <User size={20} color="#004aad" />,
         path: '/profile/personal-details',
-    },
-    location: {
-        title: 'Residence & Origin',
-        subtitle: 'County, sub-county and ward',
-        icon: <MapPin size={20} color="#004aad" />,
-        path: '/profile/location-details',
     },
     education: {
         title: 'Education History',
@@ -107,35 +101,12 @@ export default function DigitalCVScreen() {
 
     const completion: ProfileCompletionSummary = profile?.profileCompletion || calculateProfileCompletion(profile);
 
-    const mergeSections = (sections: any[]) => {
-        const merged: any[] = [];
-        let personalHandled = false;
-
-        sections.forEach(section => {
-            if (section.id === 'personal' || section.id === 'contact') {
-                if (!personalHandled) {
-                    const other = sections.find(s => (s.id === 'personal' || s.id === 'contact') && s.id !== section.id);
-                    merged.push({
-                        ...section,
-                        id: 'personal',
-                        completed: section.completed && (other ? other.completed : true),
-                        percentage: Math.round((section.percentage + (other ? other.percentage : 0)) / (other ? 2 : 1))
-                    });
-                    personalHandled = true;
-                }
-            } else {
-                merged.push(section);
-            }
-        });
-        return merged;
-    };
-
     const handlePress = (path: string) => {
         router.push(path as any);
     };
 
-    const requiredSections = mergeSections(completion?.groups?.required || []);
-    const optionalSections = mergeSections(completion?.groups?.optional || []);
+    const requiredSections = completion?.groups?.required || [];
+    const optionalSections = completion?.groups?.optional || [];
 
     return (
         <View className="flex-1 bg-white dark:bg-gray-950">

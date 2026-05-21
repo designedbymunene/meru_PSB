@@ -19,7 +19,6 @@ export default function ProfileLayout() {
             <Stack.Screen name="about" options={{ title: 'About Meru PSB' }} />
             <Stack.Screen name="privacy" options={{ title: 'Data & Privacy' }} />
             <Stack.Screen name="general-settings" options={{ title: 'General Settings' }} />
-            <Stack.Screen name="location-details" options={{ title: 'Location Details' }} />
             <Stack.Screen name="wizard" options={{ title: 'Profile Wizard', headerShown: false }} />
         </Stack>
     );

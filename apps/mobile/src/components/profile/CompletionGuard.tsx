@@ -16,7 +16,7 @@ type DisplaySection = {
 const DISPLAY_SECTIONS: DisplaySection[] = [
     { id: 'personal', stepId: 'personal' },
     { id: 'contact', stepId: 'personal' },
-    { id: 'location', stepId: 'location' },
+    { id: 'location', stepId: 'personal' },
     { id: 'education', stepId: 'academic' },
     { id: 'experience', stepId: 'experience' },
     { id: 'professional', stepId: 'professional' },

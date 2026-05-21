@@ -20,7 +20,7 @@
         "refreshToken": "mock-token"
       }
     },
-    "timestamp": "2026-05-20T13:07:49.052Z"
+    "timestamp": "2026-05-21T02:55:58.172Z"
   },
   {
     "step": "Step 2: Partial CV Submission",
@@ -34,11 +34,11 @@
       "success": false,
       "error": {
         "code": "AppError",
-        "message": "Complete the required profile sections before applying. Missing: Required sections",
+        "message": "Complete the required profile sections before applying. Missing: Personal Information, Academic History, Employment History, Training Courses",
         "details": null
       }
     },
-    "timestamp": "2026-05-20T13:07:49.059Z"
+    "timestamp": "2026-05-21T02:55:58.185Z"
   },
   {
     "step": "Step 3: Complete CV",
@@ -74,7 +74,7 @@
         "id": 1
       }
     },
-    "timestamp": "2026-05-20T13:07:49.062Z"
+    "timestamp": "2026-05-21T02:55:58.188Z"
   },
   {
     "step": "Step 4: Re-submit Application",
@@ -93,7 +93,7 @@
         "applicantId": 1
       }
     },
-    "timestamp": "2026-05-20T13:07:49.064Z"
+    "timestamp": "2026-05-21T02:55:58.191Z"
   },
   {
     "step": "Step 5: Admin Login",
@@ -116,7 +116,7 @@
         "refreshToken": "mock-token"
       }
     },
-    "timestamp": "2026-05-20T13:07:49.066Z"
+    "timestamp": "2026-05-21T02:55:58.193Z"
   },
   {
     "step": "Step 6: Fetch Application",
@@ -143,7 +143,7 @@
         "statusLabel": "Pending"
       }
     },
-    "timestamp": "2026-05-20T13:07:49.067Z"
+    "timestamp": "2026-05-21T02:55:58.195Z"
   },
   {
     "step": "Step 7: Export CSV",
@@ -151,6 +151,6 @@
     "path": "/api/applications/admin/export",
     "status": 200,
     "resBody": "CSV CONTENT TRUNCATED",
-    "timestamp": "2026-05-20T13:07:49.070Z"
+    "timestamp": "2026-05-21T02:55:58.198Z"
   }
 ]

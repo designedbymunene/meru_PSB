@@ -33,6 +33,9 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY package.json ./
 
+# Create uploads directory and set ownership to app user
+RUN mkdir -p /app/uploads && chown -R app:app /app/uploads
+
 USER app
 EXPOSE 4000
 

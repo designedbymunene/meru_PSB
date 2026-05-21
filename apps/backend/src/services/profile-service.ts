@@ -7,8 +7,8 @@ export class ProfileService {
     /**
      * Fetches the complete profile for a user with all its relations.
      */
-    static async getFullProfile(userId: number) {
-        return await db.query.applicantProfiles.findFirst({
+    static async getFullProfile(userId: number, database = db) {
+        return await database.query.applicantProfiles.findFirst({
             where: eq(applicantProfiles.userId, userId),
             with: {
                 qualifications: true,
@@ -29,8 +29,8 @@ export class ProfileService {
     /**
      * Checks if a profile satisfies the required application sections.
      */
-    static async isProfileComplete(userId: number) {
-        const profile = await this.getFullProfile(userId)
+    static async isProfileComplete(userId: number, database = db) {
+        const profile = await this.getFullProfile(userId, database)
         if (!profile) return false
 
         const completion = calculateProfileCompletion(profile)
@@ -40,8 +40,8 @@ export class ProfileService {
     /**
      * Gets completion stats for a profile.
      */
-    static async getCompletionStats(userId: number) {
-        const profile = await this.getFullProfile(userId)
+    static async getCompletionStats(userId: number, database = db) {
+        const profile = await this.getFullProfile(userId, database)
         if (!profile) return null
 
         return calculateProfileCompletion(profile)

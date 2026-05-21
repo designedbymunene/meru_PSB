@@ -57,7 +57,7 @@ export default function Home() {
         <div className="container mx-auto px-4 relative z-10 py-12">
           <div className="flex flex-col items-center text-center max-w-4xl mx-auto space-y-12">
             {/* Government Badge */}
-            <div className="inline-flex items-center gap-2 bg-background/50 backdrop-blur-md rounded-full px-4 py-1.5 text-xs font-semibold border border-border shadow-sm animate-in fade-in slide-in-from-top-4 duration-1000">
+            <div className="inline-flex items-center gap-2 bg-background/50 backdrop-blur-md rounded-full px-4 py-1.5 text-xs font-semibold border border-border shadow-sm">
               <ShieldCheckIcon className="h-3.5 w-3.5 text-primary" />
               <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 {t("badge")}
