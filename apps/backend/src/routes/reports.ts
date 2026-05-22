@@ -4,6 +4,7 @@ import { requireAdmin } from '../middleware/admin'
 import { ReportingService, ReportFilters } from '../services/reporting-service'
 import { successResponse } from '../utils/errors'
 import { safeParseIntOptional } from '../utils/safe-parse'
+import { auditLog } from '../middleware/audit-logger'
 
 export const reportsRouter = new Hono()
 
@@ -21,7 +22,7 @@ const getFilters = (c: any): ReportFilters => {
  * GET /api/reports/diversity
  * Fetches aggregated diversity metrics.
  */
-reportsRouter.get('/diversity', authenticate, requireAdmin, async (c) => {
+reportsRouter.get('/diversity', authenticate, requireAdmin, auditLog('VIEW_REPORT', 'DIVERSITY'), async (c) => {
     const filters = getFilters(c)
     const report = await ReportingService.getDiversityReport(filters)
     return successResponse(c, report)
@@ -31,7 +32,7 @@ reportsRouter.get('/diversity', authenticate, requireAdmin, async (c) => {
  * GET /api/reports/kpis
  * Fetches recruitment KPIs.
  */
-reportsRouter.get('/kpis', authenticate, requireAdmin, async (c) => {
+reportsRouter.get('/kpis', authenticate, requireAdmin, auditLog('VIEW_REPORT', 'KPI'), async (c) => {
     const filters = getFilters(c)
     const report = await ReportingService.getKPIReport(filters)
     return successResponse(c, report)
@@ -41,7 +42,7 @@ reportsRouter.get('/kpis', authenticate, requireAdmin, async (c) => {
  * GET /api/reports/funnel
  * Fetches applicant funnel data.
  */
-reportsRouter.get('/funnel', authenticate, requireAdmin, async (c) => {
+reportsRouter.get('/funnel', authenticate, requireAdmin, auditLog('VIEW_REPORT', 'FUNNEL'), async (c) => {
     const filters = getFilters(c)
     const report = await ReportingService.getFunnelReport(filters)
     return successResponse(c, report)
@@ -51,7 +52,7 @@ reportsRouter.get('/funnel', authenticate, requireAdmin, async (c) => {
  * GET /api/reports/vacancy-performance
  * Fetches performance metrics for vacancies.
  */
-reportsRouter.get('/vacancy-performance', authenticate, requireAdmin, async (c) => {
+reportsRouter.get('/vacancy-performance', authenticate, requireAdmin, auditLog('VIEW_REPORT', 'VACANCY_PERFORMANCE'), async (c) => {
     const filters = getFilters(c)
     const report = await ReportingService.getVacancyPerformance(filters)
     return successResponse(c, report)
@@ -61,7 +62,7 @@ reportsRouter.get('/vacancy-performance', authenticate, requireAdmin, async (c) 
  * GET /api/reports/conversion-trends
  * Fetches conversion trends over time.
  */
-reportsRouter.get('/conversion-trends', authenticate, requireAdmin, async (c) => {
+reportsRouter.get('/conversion-trends', authenticate, requireAdmin, auditLog('VIEW_REPORT', 'CONVERSION_TRENDS'), async (c) => {
     const filters = getFilters(c)
     const report = await ReportingService.getConversionTrends(filters)
     return successResponse(c, report)
@@ -71,7 +72,7 @@ reportsRouter.get('/conversion-trends', authenticate, requireAdmin, async (c) =>
  * GET /api/reports/applications-over-time
  * Fetches application volume over time.
  */
-reportsRouter.get('/applications-over-time', authenticate, requireAdmin, async (c) => {
+reportsRouter.get('/applications-over-time', authenticate, requireAdmin, auditLog('VIEW_REPORT', 'APPLICATIONS_OVER_TIME'), async (c) => {
     const filters = getFilters(c)
     const report = await ReportingService.getApplicationsTimeReport(filters)
     return successResponse(c, report)

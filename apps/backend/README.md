@@ -86,6 +86,22 @@ pnpm dev
 
 The server will start on `http://localhost:4000`
 
+## Production deployment on a VPS
+
+The recommended setup is Docker Compose on the VPS with a reverse proxy such as Caddy or Nginx in front of the API.
+
+```bash
+cd apps/backend
+docker compose up -d --build
+```
+
+For production:
+
+- keep Postgres and Redis private on the Compose network
+- store secrets in `.env`
+- run migrations as part of deployment
+- proxy `:4000` through HTTPS on ports `80` and `443`
+
 ## Available Scripts
 
 ```bash

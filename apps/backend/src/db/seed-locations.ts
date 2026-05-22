@@ -11,7 +11,37 @@ export async function seedLocations() {
     try {
         console.log('🌍 Seeding locations...')
         
-        // Try multiple possible paths for the SQL file
+        const fixedLocationsPath = path.resolve(__dirname, 'locations_fixed.json')
+        
+        if (fs.existsSync(fixedLocationsPath)) {
+            console.log(`📖 Reading fixed locations from: ${fixedLocationsPath}`)
+            const data = JSON.parse(fs.readFileSync(fixedLocationsPath, 'utf8'))
+
+            if (data.counties) {
+                console.log('📦 Seeding counties...')
+                await db.insert(counties).values(data.counties).onConflictDoNothing()
+                console.log(`✅ Seeded ${data.counties.length} counties`)
+            }
+
+            if (data.constituencies) {
+                console.log('📦 Seeding constituencies...')
+                for (let i = 0; i < data.constituencies.length; i += 100) {
+                    await db.insert(constituencies).values(data.constituencies.slice(i, i + 100)).onConflictDoNothing()
+                }
+                console.log(`✅ Seeded ${data.constituencies.length} constituencies`)
+            }
+
+            if (data.wards) {
+                console.log('📦 Seeding wards...')
+                for (let i = 0; i < data.wards.length; i += 100) {
+                    await db.insert(wards).values(data.wards.slice(i, i + 100)).onConflictDoNothing()
+                }
+                console.log(`✅ Seeded ${data.wards.length} wards`)
+            }
+            return
+        }
+
+        // Fallback to SQL or other data if JSON not found
         const possiblePaths = [
             path.resolve(__dirname, '../../../../Downloads/kenya20260430.sql'),
             path.resolve(process.cwd(), '../../Downloads/kenya20260430.sql'),

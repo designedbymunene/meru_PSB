@@ -218,6 +218,18 @@ export const applicantProfilesRelations = relations(applicantProfiles, ({ one, m
         fields: [applicantProfiles.wardId],
         references: [wards.id]
     }),
+    residenceCounty: one(counties, {
+        fields: [applicantProfiles.residenceCountyId],
+        references: [counties.id]
+    }),
+    residenceSubCounty: one(constituencies, {
+        fields: [applicantProfiles.residenceSubCountyId],
+        references: [constituencies.id]
+    }),
+    residenceWard: one(wards, {
+        fields: [applicantProfiles.residenceWardId],
+        references: [wards.id]
+    }),
     ethnicity: one(ethnicities, {
         fields: [applicantProfiles.ethnicityId],
         references: [ethnicities.id]

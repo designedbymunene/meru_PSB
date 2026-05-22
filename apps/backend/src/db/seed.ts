@@ -192,9 +192,10 @@ export async function seed() {
             }).returning()
 
             const numApps = Math.floor(Math.random() * 2) + 1
-            for (let j = 0; j < numApps; j++) {
-                const vacancy = vacanciesData[Math.floor(Math.random() * vacanciesData.length)]
-                
+            const shuffledVacancies = [...vacanciesData].sort(() => 0.5 - Math.random())
+            const chosenVacancies = shuffledVacancies.slice(0, numApps)
+
+            for (const vacancy of chosenVacancies) {
                 const profileSnapshotObj = {
                     id: profile.id,
                     userId: profile.userId,

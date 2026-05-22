@@ -165,8 +165,8 @@ export default function ProfilePage() {
                         </SheetTrigger>
                         {!section.disabled && (
                             <SheetContent className="w-full sm:max-w-[750px] p-0 flex flex-col h-full border-l shadow-2xl overflow-hidden">
-                                <div className="bg-muted/30 border-b p-6 pt-10">
-                                    <div className="flex items-center gap-4 mb-2">
+                                <div className="bg-muted/30 border-b py-4 px-5">
+                                    <div className="flex items-center gap-4 mb-1">
                                         <div className="p-3 rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                                             <section.icon className="h-6 w-6" />
                                         </div>
@@ -180,7 +180,7 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex-1 overflow-y-auto px-6 py-8">
+                                <div className="flex-1 overflow-y-auto px-5 pt-2.5 pb-4">
                                     {section.component}
                                 </div>
                             </SheetContent>

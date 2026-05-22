@@ -266,6 +266,10 @@ export class AuthService {
         const accessToken = generateAccessToken(tokenPayload)
         const refreshToken = generateRefreshToken(tokenPayload)
 
+        await db.update(activeSessions)
+            .set({ isCurrent: false })
+            .where(and(eq(activeSessions.userId, user.id), eq(activeSessions.isCurrent, true)))
+
         await db.insert(activeSessions).values({
             userId: user.id,
             tokenVersion: user.tokenVersion ?? 0,
@@ -330,6 +334,10 @@ export class AuthService {
         const accessToken = generateAccessToken(tokenPayload)
         const refreshToken = generateRefreshToken(tokenPayload)
 
+        await db.update(activeSessions)
+            .set({ isCurrent: false })
+            .where(and(eq(activeSessions.userId, user.id), eq(activeSessions.isCurrent, true)))
+
         await db.insert(activeSessions).values({
             userId: user.id,
             tokenVersion: user.tokenVersion ?? 0,
@@ -362,6 +370,15 @@ export class AuthService {
                 token: refreshToken,
                 expiresAt: decoded.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
             }).onConflictDoNothing()
+
+            // Mark sessions as not current for this user/token version
+            await db.update(activeSessions)
+                .set({ isCurrent: false })
+                .where(and(
+                    eq(activeSessions.userId, decoded.userId),
+                    eq(activeSessions.tokenVersion, decoded.tokenVersion),
+                    eq(activeSessions.isCurrent, true)
+                ))
         } catch (error) {
             // Even if token is invalid/expired, we consider it a successful logout
         }
@@ -567,6 +584,10 @@ export class AuthService {
 
         const accessToken = generateAccessToken(tokenPayload)
         const refreshToken = generateRefreshToken(tokenPayload)
+
+        await db.update(activeSessions)
+            .set({ isCurrent: false })
+            .where(and(eq(activeSessions.userId, user.id), eq(activeSessions.isCurrent, true)))
 
         await db.insert(activeSessions).values({
             userId: user.id,

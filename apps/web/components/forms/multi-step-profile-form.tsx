@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronLeft, ChevronRight, CheckCircle2, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckCircle2, Loader2, GraduationCap, School, Calendar, Award, Briefcase, Edit2, Trash2 } from 'lucide-react'
 import { z } from 'zod'
 import { toast } from 'sonner'
 
@@ -21,6 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form'
+import { Badge } from '@/components/ui/badge'
 import { createProfileSchema, createQualificationSchema, createEmploymentHistorySchema, createTrainingCourseSchema, formatKNQFLevel } from '@meru/shared'
 import {
     useCounties,
@@ -627,6 +628,7 @@ function Step3Qualifications({
             setEditingIndex(null)
         } else {
             setQuals([...quals, data])
+            setNoAcademicHistory(false)
         }
         form.reset({
             level: 'BACHELORS',
@@ -655,19 +657,21 @@ function Step3Qualifications({
                     </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                    <div className="mb-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 flex flex-row items-center space-x-3">
-                        <Checkbox
-                            id="hasNoCertificates"
-                            checked={noAcademicHistory}
-                            onCheckedChange={(checked) => {
-                                setNoAcademicHistory(checked === true)
-                            }}
-                        />
-                        <div className="space-y-1 leading-none">
-                            <Label htmlFor="hasNoCertificates" className="font-semibold text-slate-900">I have no academic history to add</Label>
-                            <p className="text-sm text-slate-500">Use this if you do not have certificates, diplomas, or other academic records to enter right now.</p>
+                    {quals.length === 0 && (
+                        <div className="mb-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 flex flex-row items-center space-x-3">
+                            <Checkbox
+                                id="hasNoCertificates"
+                                checked={noAcademicHistory}
+                                onCheckedChange={(checked) => {
+                                    setNoAcademicHistory(checked === true)
+                                }}
+                            />
+                            <div className="space-y-1 leading-none">
+                                <Label htmlFor="hasNoCertificates" className="font-semibold text-slate-900">I have no academic history to add</Label>
+                                <p className="text-sm text-slate-500">Use this if you do not have certificates, diplomas, or other academic records to enter right now.</p>
+                            </div>
                         </div>
-                    </div>
+                    )}
                     <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-8">
                         <Card className="shadow-none border border-slate-200 rounded-2xl">
                             <CardHeader className="bg-white border-b border-slate-200 py-4">
@@ -796,7 +800,7 @@ function Step3Qualifications({
                             </CardContent>
                         </Card>
 
-                        <div className="space-y-4">
+                        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 -mr-2 [scrollbar-width:thin]">
                             {quals.length === 0 ? (
                                 <div className="flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
                                     <div className="max-w-sm">
@@ -805,20 +809,45 @@ function Step3Qualifications({
                                     </div>
                                 </div>
                             ) : (
-                                <div className="grid gap-4">
+                                <div className="grid gap-4 pt-1 pb-4">
                                     {quals.map((q: any, i: number) => (
-                                        <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="min-w-0 flex-1 space-y-2">
-                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{formatKNQFLevel(q.level)}</p>
-                                                    <h4 className="truncate text-lg font-bold text-slate-900">{q.course}</h4>
-                                                    <p className="text-sm text-slate-600">{q.institution} • {q.yearStart || 'Start'} - {q.yearEnd || 'Present'}</p>
-                                                    {q.grade && <p className="text-xs text-slate-500">Grade: <span className="font-semibold text-slate-700">{q.grade}</span></p>}
+                                        <div key={i} className="group relative flex items-start justify-between p-5 bg-white border border-slate-200 rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
+                                            <div className="flex-1 min-w-0 space-y-3">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                                                        <GraduationCap className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="min-w-0 flex-1 space-y-1.5">
+                                                        <h4 className="font-bold text-slate-900 text-lg leading-tight break-words">{q.course}</h4>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            <Badge variant="secondary" className="font-semibold text-[10px] px-2 bg-primary/5 text-primary border-none uppercase tracking-wider h-auto py-0.5 whitespace-normal break-words max-w-full">
+                                                                {formatKNQFLevel(q.level)}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3" onClick={() => { setEditingIndex(i); form.reset(quals[i]) }}>Edit</Button>
-                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setQuals(quals.filter((_, idx) => idx !== i))}>Remove</Button>
+                                                <div className="space-y-3 pl-[60px]">
+                                                    <div className="flex items-center gap-2 text-[13px] text-slate-600 font-medium break-words">
+                                                        <School className="h-3.5 w-3.5 opacity-60 flex-shrink-0" />
+                                                        <span>{q.institution}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+                                                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
+                                                            <Calendar className="h-3.5 w-3.5 opacity-60" />
+                                                            <span>{q.yearStart} - {q.yearEnd || 'Present'}</span>
+                                                        </div>
+                                                        {q.grade && (
+                                                            <Badge variant="outline" className="text-[10px] py-0 h-5 border-slate-200 font-bold uppercase bg-slate-50">
+                                                                <Award className="h-3 w-3 mr-1 opacity-60" />
+                                                                {q.grade}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                            </div>
+                                            <div className="flex gap-1 ml-4 flex-shrink-0">
+                                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => { setEditingIndex(i); form.reset(quals[i]) }}><Edit2 className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={() => setQuals(quals.filter((_, idx) => idx !== i))}><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </div>
                                     ))}
@@ -862,7 +891,10 @@ function Step4Employment({
 
     const addRecord = (data: EmploymentData) => {
         if (editingIndex !== null) { const u = [...history]; u[editingIndex] = data; setHistory(u); setEditingIndex(null) }
-        else { setHistory([...history, data]) }
+        else {
+            setHistory([...history, data])
+            setNoExperience(false)
+        }
         form.reset({ jobTitle: '', organization: '', startDate: '', endDate: '', jobGroup: '', responsibilities: '' })
     }
 
@@ -881,19 +913,21 @@ function Step4Employment({
                     </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                    <div className="mb-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 flex flex-row items-center space-x-3">
-                        <Checkbox
-                            id="hasNoExperience"
-                            checked={noExperience}
-                            onCheckedChange={(checked) => {
-                                setNoExperience(checked === true)
-                            }}
-                        />
-                        <div className="space-y-1 leading-none">
-                            <Label htmlFor="hasNoExperience" className="font-semibold text-slate-900">I have no employment history to add</Label>
-                            <p className="text-sm text-slate-500">Use this if you have never worked before or do not want to list previous roles.</p>
+                    {history.length === 0 && (
+                        <div className="mb-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 flex flex-row items-center space-x-3">
+                            <Checkbox
+                                id="hasNoExperience"
+                                checked={noExperience}
+                                onCheckedChange={(checked) => {
+                                    setNoExperience(checked === true)
+                                }}
+                            />
+                            <div className="space-y-1 leading-none">
+                                <Label htmlFor="hasNoExperience" className="font-semibold text-slate-900">I have no employment history to add</Label>
+                                <p className="text-sm text-slate-500">Use this if you have never worked before or do not want to list previous roles.</p>
+                            </div>
                         </div>
-                    </div>
+                    )}
                     <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-8">
                         <Card className="shadow-none border border-slate-200 rounded-2xl">
                             <CardHeader className="bg-white border-b border-slate-200 py-4">
@@ -930,7 +964,7 @@ function Step4Employment({
                             </CardContent>
                         </Card>
 
-                        <div className="space-y-4">
+                        <div className="space-y-4 max-h-[520px] overflow-y-auto pr-2 -mr-2 [scrollbar-width:thin]">
                             {history.length === 0 ? (
                                 <div className="flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
                                     <div className="max-w-sm">
@@ -939,20 +973,43 @@ function Step4Employment({
                                     </div>
                                 </div>
                             ) : (
-                                <div className="grid gap-4">
+                                <div className="grid gap-4 pt-1 pb-4">
                                     {history.map((h: any, i: number) => (
-                                        <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="min-w-0 flex-1 space-y-2">
-                                                    <h4 className="truncate text-lg font-bold text-slate-900">{h.jobTitle}</h4>
-                                                    <p className="text-sm font-semibold text-slate-600">{h.organization}</p>
-                                                    <p className="text-xs text-slate-500">{h.startDate} — {h.endDate || 'Present'}</p>
-                                                    {h.jobGroup && <p className="text-xs text-slate-500">Job Group: <span className="font-semibold text-slate-700">{h.jobGroup}</span></p>}
+                                        <div key={i} className="group relative flex items-start justify-between p-5 bg-white border border-slate-200 rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
+                                            <div className="flex-1 min-w-0 space-y-3">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                                                        <Briefcase className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="min-w-0 flex-1 space-y-1.5">
+                                                        <h4 className="font-bold text-slate-900 text-lg leading-tight break-words">{h.jobTitle}</h4>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            <Badge variant="secondary" className="rounded-md font-bold text-[10px] px-2 bg-primary/5 text-primary border-none uppercase tracking-wider">
+                                                                {h.organization}
+                                                            </Badge>
+                                                            {h.jobGroup && (
+                                                                <Badge variant="outline" className="rounded-md font-medium text-[10px] px-2 text-muted-foreground uppercase tracking-wider">
+                                                                    Group {h.jobGroup}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3" onClick={() => { setEditingIndex(i); form.reset(history[i]) }}>Edit</Button>
-                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setHistory(history.filter((_, idx) => idx !== i))}>Remove</Button>
+                                                <div className="space-y-3 pl-[60px]">
+                                                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
+                                                        <Calendar className="h-3.5 w-3.5 opacity-60" />
+                                                        <span>{h.startDate} — {h.endDate || 'Present'}</span>
+                                                    </div>
+                                                    {h.responsibilities && (
+                                                        <p className="text-sm text-slate-500 leading-relaxed italic line-clamp-2 pl-4 border-l-2 border-primary/10 break-words">
+                                                            {h.responsibilities}
+                                                        </p>
+                                                    )}
                                                 </div>
+                                            </div>
+                                            <div className="flex gap-1 ml-4 flex-shrink-0">
+                                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => { setEditingIndex(i); form.reset(history[i]) }}><Edit2 className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={() => setHistory(history.filter((_, idx) => idx !== i))}><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </div>
                                     ))}
@@ -1011,6 +1068,7 @@ function Step5TrainingCourses({
             setEditingIndex(null)
         } else {
             setList([...list, record])
+            setNoTraining(false)
         }
         form.reset({
             courseName: '',
@@ -1037,19 +1095,21 @@ function Step5TrainingCourses({
                     </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                    <div className="mb-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 flex flex-row items-center space-x-3">
-                        <Checkbox
-                            id="hasNoTrainings"
-                            checked={noTraining}
-                            onCheckedChange={(checked) => {
-                                setNoTraining(checked === true)
-                            }}
-                        />
-                        <div className="space-y-1 leading-none">
-                            <Label htmlFor="hasNoTrainings" className="font-semibold text-slate-900">I have no training courses to add</Label>
-                            <p className="text-sm text-slate-500">Use this if you do not have any short courses or certificates to list right now.</p>
+                    {list.length === 0 && (
+                        <div className="mb-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 flex flex-row items-center space-x-3">
+                            <Checkbox
+                                id="hasNoTrainings"
+                                checked={noTraining}
+                                onCheckedChange={(checked) => {
+                                    setNoTraining(checked === true)
+                                }}
+                            />
+                            <div className="space-y-1 leading-none">
+                                <Label htmlFor="hasNoTrainings" className="font-semibold text-slate-900">I have no training courses to add</Label>
+                                <p className="text-sm text-slate-500">Use this if you do not have any short courses or certificates to list right now.</p>
+                            </div>
                         </div>
-                    </div>
+                    )}
                     <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-8">
                         <Card className="shadow-none border border-slate-200 rounded-2xl">
                             <CardHeader className="bg-white border-b border-slate-200 py-4">
@@ -1141,7 +1201,7 @@ function Step5TrainingCourses({
                             </CardContent>
                         </Card>
 
-                        <div className="space-y-4">
+                        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 -mr-2 [scrollbar-width:thin]">
                             {list.length === 0 ? (
                                 <div className="flex h-full min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
                                     <div className="max-w-sm">
@@ -1150,23 +1210,47 @@ function Step5TrainingCourses({
                                     </div>
                                 </div>
                             ) : (
-                                <div className="grid gap-4">
+                                <div className="grid gap-4 pt-1 pb-4">
                                     {list.map((course: any, i: number) => (
-                                        <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="min-w-0 flex-1 space-y-2">
-                                                    <h4 className="truncate text-lg font-bold text-slate-900">{course.courseName}</h4>
-                                                    <p className="text-sm font-semibold text-slate-600">{course.institution || 'No institution set'}</p>
-                                                    <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-                                                        {course.year && <span>Year: {course.year}</span>}
-                                                        {course.grade && <span>Grade: {course.grade}</span>}
+                                        <div key={i} className="group relative flex items-start justify-between p-5 bg-white border border-slate-200 rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
+                                            <div className="flex-1 min-w-0 space-y-3">
+                                                <div className="flex items-start gap-4">
+                                                    <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                                                        <GraduationCap className="h-5 w-5" />
                                                     </div>
-                                                    {course.description && <p className="text-sm text-slate-500">{course.description}</p>}
+                                                    <div className="min-w-0 flex-1 space-y-1.5">
+                                                        <h4 className="font-bold text-slate-900 text-lg leading-tight break-words">{course.courseName}</h4>
+                                                        <p className="text-[13px] text-slate-600 font-medium flex items-center gap-1.5 break-words">
+                                                            <School className="h-3.5 w-3.5 opacity-60 flex-shrink-0" />
+                                                            {course.institution || 'No institution set'}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3" onClick={() => { setEditingIndex(i); form.reset(list[i]) }}>Edit</Button>
-                                                    <Button variant="outline" size="sm" className="h-9 rounded-xl px-3 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setList(list.filter((_, idx) => idx !== i))}>Remove</Button>
+                                                <div className="space-y-3 pl-[60px]">
+                                                    <div className="flex flex-wrap items-center gap-y-2 gap-x-4">
+                                                        {course.year && (
+                                                            <div className="flex items-center gap-1.5 bg-slate-50 border px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                                                <Calendar className="h-3 w-3 opacity-60" />
+                                                                <span>Completed in {course.year}</span>
+                                                            </div>
+                                                        )}
+                                                        {course.grade && (
+                                                            <Badge variant="outline" className="rounded-md font-bold text-[10px] px-2 text-primary border-primary/20 uppercase tracking-wider h-5 bg-primary/5">
+                                                                <Award className="h-3 w-3 mr-1 opacity-60 text-primary" />
+                                                                {course.grade}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    {course.description && (
+                                                        <p className="text-sm text-slate-500 leading-relaxed italic line-clamp-2 border-l-2 border-primary/10 pl-3 break-words">
+                                                            {course.description}
+                                                        </p>
+                                                    )}
                                                 </div>
+                                            </div>
+                                            <div className="flex gap-1 ml-4 flex-shrink-0">
+                                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => { setEditingIndex(i); form.reset(list[i]) }}><Edit2 className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={() => setList(list.filter((_, idx) => idx !== i))}><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </div>
                                     ))}

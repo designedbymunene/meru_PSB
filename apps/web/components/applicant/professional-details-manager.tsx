@@ -91,8 +91,8 @@ export function ProfessionalDetailsManager() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between bg-muted/20 p-4 rounded-xl border border-dashed border-muted-foreground/20">
+        <div className="space-y-3">
+            <div className="flex items-center justify-between bg-muted/20 py-2 px-3.5 rounded-xl border border-dashed border-muted-foreground/20">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
                         <Plus className="h-5 w-5" />
@@ -110,63 +110,24 @@ export function ProfessionalDetailsManager() {
                             <Plus className="mr-2 h-4 w-4" /> Add Detail
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] rounded-2xl">
-                        <DialogHeader className="pb-4 border-b">
+                    <DialogContent className="sm:max-w-[500px] rounded-2xl p-0 overflow-hidden flex flex-col">
+                        <DialogHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-800 text-left">
                             <DialogTitle className="text-xl font-bold flex items-center gap-2">
                                 <Plus className="h-5 w-5 text-primary" />
                                 {editing ? 'Edit Professional Detail' : 'Add Professional Detail'}
                             </DialogTitle>
                         </DialogHeader>
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                                <FormField
-                                    control={form.control}
-                                    name="licenseType"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">License / Certificate Type *</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. Practicing License" className="h-11 rounded-lg" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="issuingBody"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Issuing Body *</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. Engineers Board of Kenya" className="h-11 rounded-lg" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="registrationNumber"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Registration Number *</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. EBK/12345" className="h-11 rounded-lg" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="grid grid-cols-2 gap-4">
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
+                                <div className="py-4 px-5 space-y-3">
                                     <FormField
                                         control={form.control}
-                                        name="issueDate"
+                                        name="licenseType"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Issue Date *</FormLabel>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">License / Certificate Type *</FormLabel>
                                                 <FormControl>
-                                                    <Input type="date" className="h-11 rounded-lg" {...field} value={field.value || ''} />
+                                                    <Input placeholder="e.g. Practicing License" className="h-11 rounded-lg" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -174,19 +135,60 @@ export function ProfessionalDetailsManager() {
                                     />
                                     <FormField
                                         control={form.control}
-                                        name="expiryDate"
+                                        name="issuingBody"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Expiry Date</FormLabel>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Issuing Body *</FormLabel>
                                                 <FormControl>
-                                                    <Input type="date" className="h-11 rounded-lg" {...field} value={field.value || ''} />
+                                                    <Input placeholder="e.g. Engineers Board of Kenya" className="h-11 rounded-lg" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
+                                    <FormField
+                                        control={form.control}
+                                        name="registrationNumber"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Registration Number *</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. EBK/12345" className="h-11 rounded-lg" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <FormField
+                                            control={form.control}
+                                            name="issueDate"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Issue Date *</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="date" className="h-11 rounded-lg" {...field} value={field.value || ''} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="expiryDate"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Expiry Date</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="date" className="h-11 rounded-lg" {...field} value={field.value || ''} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="flex justify-end gap-3 pt-6 border-t mt-4">
+                                <div className="py-3 px-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 mt-auto">
                                     <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                                     <Button type="submit" disabled={addMutation.isPending || updateMutation.isPending} className="px-8 shadow-lg shadow-primary/20">
                                         {(addMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -199,7 +201,7 @@ export function ProfessionalDetailsManager() {
                 </Dialog>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 space-y-4">
                         <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
@@ -216,12 +218,12 @@ export function ProfessionalDetailsManager() {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3">
                         {details.map((detail) => (
-                            <div key={detail.id} className="group relative flex items-start justify-between p-5 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
-                                <div className="flex-1 min-w-0 space-y-3">
+                            <div key={detail.id} className="group relative flex items-start justify-between p-4 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
+                                <div className="flex-1 min-w-0 space-y-2">
                                     <div className="space-y-1">
-                                        <h3 className="font-bold text-lg leading-tight text-foreground truncate pr-2">{detail.licenseType}</h3>
+                                        <h3 className="font-bold text-base leading-tight text-foreground truncate pr-2">{detail.licenseType}</h3>
                                         <p className="text-[13px] text-primary font-bold uppercase tracking-wider">
                                             {detail.issuingBody}
                                         </p>

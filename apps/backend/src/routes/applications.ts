@@ -759,6 +759,9 @@ applicationsRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EX
                             homeCounty: true,
                             homeSubCounty: true,
                             ward: true,
+                            residenceCounty: true,
+                            residenceSubCounty: true,
+                            residenceWard: true,
                             ethnicity: true
                         }
                     }
@@ -776,7 +779,14 @@ applicationsRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EX
 
     const escapeCsv = (field: any): string => {
         if (field === null || field === undefined) return ''
-        const stringField = String(field)
+        let stringField = String(field)
+        
+        // Prevent CSV injection
+        const injectionChars = ['=', '+', '-', '@', '\t', '\r']
+        if (injectionChars.some(char => stringField.startsWith(char))) {
+            stringField = `'${stringField}`
+        }
+
         if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
             return `"${stringField.replace(/"/g, '""')}"`
         }
@@ -784,8 +794,11 @@ applicationsRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EX
     }
 
     const headers = [
-        'VNo', 'Vacancy description', 'Applicant Name', 'ID-Number', 'Gender', 'Birth Year', 
-        'Ethnicity', 'Tel. Contact', 'Email', 'Home County', 'Home Sub County', 'Ward', 
+        'VNo', 'Vacancy description', 'Department', 'Job Group', 'Application Status', 'Applied Date',
+        'Applicant Name', 'ID-Number', 'Gender', 'Date of Birth', 
+        'Ethnicity', 'Tel. Contact', 'Email', 
+        'Home County', 'Home Sub County', 'Ward', 
+        'Residence County', 'Residence Sub County', 'Residence Ward',
         'Impairment', 'Information on Public Service', 'Personal/Employment Number.', 
         'Qualification', 'Professional/Technical Details', 'Relevant Courses and Training Details', 
         'Membership', 'Employment history'
@@ -822,16 +835,23 @@ applicationsRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EX
         const row = [
             vacancy.advertisementNumber,
             vacancy.title,
+            vacancy.department?.name || '',
+            vacancy.jobGroup?.name || '',
+            app.status,
+            app.appliedAt ? new Date(app.appliedAt).toISOString().split('T')[0] : 'N/A',
             profile.fullName || profile.applicantName,
             profile.idNumber,
             profile.gender,
-            profile.birthYear,
-            profile.ethnicity?.name || profile.ethnicity,
+            profile.dateOfBirth || profile.birthYear || 'N/A',
+            profile.ethnicity?.name || profile.ethnicity || '',
             profile.phoneNumber || profile.phone,
             profile.email,
-            profile.homeCounty?.name || profile.homeCounty,
-            profile.homeSubCounty?.name || profile.homeSubCounty,
-            profile.ward?.name || profile.ward,
+            profile.homeCounty?.name || profile.homeCounty || '',
+            profile.homeSubCounty?.name || profile.homeSubCounty || '',
+            profile.ward?.name || profile.ward || '',
+            profile.residenceCounty?.name || profile.residenceCounty || '',
+            profile.residenceSubCounty?.name || profile.residenceSubCounty || '',
+            profile.residenceWard?.name || profile.residenceWard || '',
             profile.impairment ? `YES: ${profile.impairmentDetails || ''}` : 'NO',
             profile.publicServiceInfo,
             profile.personalNumber,

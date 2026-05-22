@@ -1,133 +1,71 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { db, pool } from './index'
+import { applicantProfiles, counties, constituencies, wards } from './schema'
+import { eq } from 'drizzle-orm'
 
-const projectRoot = path.resolve('/Users/nozel/Developer/work/MERU_PSB');
-const schemaDir = path.join(projectRoot, 'apps/backend/src/db/schema');
-const backendSrcDir = path.join(projectRoot, 'apps/backend/src');
-const webAppDir = path.join(projectRoot, 'apps/web');
+async function inspectProfiles() {
+    try {
+        const profiles = await db.select().from(applicantProfiles)
+        const countiesList = await db.select().from(counties)
+        const constituenciesList = await db.select().from(constituencies)
+        const wardsList = await db.select().from(wards)
 
-const schemaFiles = fs.readdirSync(schemaDir)
-    .filter(file => file.endsWith('.ts') && !['index.ts', 'relations.ts', 'common.ts'].includes(file));
+        console.log(`Total profiles in DB: ${profiles.length}`)
 
-interface ColumnInfo {
-    name: string;
-    line: string;
-}
+        const countyMap = new Map(countiesList.map(c => [c.id, c.name]))
+        const constMap = new Map(constituenciesList.map(c => [c.id, c.name]))
+        const wardMap = new Map(wardsList.map(w => [w.id, w.name]))
 
-interface TableInfo {
-    exportName: string;
-    dbName: string;
-    columns: ColumnInfo[];
-    file: string;
-}
-
-const tables: TableInfo[] = [];
-const tableRegex = /export\s+const\s+(\w+)\s*=\s*pgTable/g;
-
-for (const file of schemaFiles) {
-    const filePath = path.join(schemaDir, file);
-    const content = fs.readFileSync(filePath, 'utf-8');
-    let match;
-    tableRegex.lastIndex = 0;
-    while ((match = tableRegex.exec(content)) !== null) {
-        const exportName = match[1];
-        
-        const tableStartIndex = content.indexOf(match[0]);
-        const columnsStartIndex = content.indexOf('{', tableStartIndex);
-        
-        let braceCount = 1;
-        let index = columnsStartIndex + 1;
-        while (braceCount > 0 && index < content.length) {
-            if (content[index] === '{') braceCount++;
-            else if (content[index] === '}') braceCount--;
-            index++;
+        // Group by home county
+        const countyCounts: Record<string, number> = {}
+        for (const p of profiles) {
+            const cName = countyMap.get(p.homeCountyId ?? -1) ?? 'Unknown'
+            countyCounts[cName] = (countyCounts[cName] || 0) + 1
         }
-        
-        const tableBlock = content.slice(columnsStartIndex, index);
-        const columnLines = tableBlock.split('\n');
-        const columns: ColumnInfo[] = [];
-        
-        for (const line of columnLines) {
-            const cleanLine = line.trim();
-            if (cleanLine.startsWith('//') || cleanLine.startsWith('...') || cleanLine === '' || cleanLine.startsWith('{') || cleanLine.startsWith('}')) {
-                continue;
-            }
-            
-            const colMatch = cleanLine.match(/^(\w+)\s*:/);
-            if (colMatch) {
-                columns.push({
-                    name: colMatch[1],
-                    line: cleanLine
-                });
-            }
+        console.log('\nProfiles count by Home County:', countyCounts)
+
+        // Find profiles with missing sub-county or ward
+        const missingSubOrWard = profiles.filter(p => !p.homeSubCountyId || !p.wardId)
+        console.log(`\nProfiles with missing Home Sub-County or Ward count: ${missingSubOrWard.length}`)
+
+        if (missingSubOrWard.length > 0) {
+            console.log('Sample of profiles with missing sub-county/ward:')
+            console.log(missingSubOrWard.slice(0, 10).map(p => ({
+                id: p.id,
+                fullName: p.fullName,
+                homeCounty: countyMap.get(p.homeCountyId ?? -1) ?? 'Unknown',
+                homeSubCounty: constMap.get(p.homeSubCountyId ?? -1) ?? 'NULL',
+                ward: wardMap.get(p.wardId ?? -1) ?? 'NULL',
+                residenceCounty: countyMap.get(p.residenceCountyId ?? -1) ?? 'Unknown',
+                residenceSubCounty: constMap.get(p.residenceSubCountyId ?? -1) ?? 'NULL',
+                residenceWard: wardMap.get(p.residenceWardId ?? -1) ?? 'NULL'
+            })))
         }
-        
-        tables.push({
-            exportName,
-            dbName: exportName, // generic
-            columns,
-            file
-        });
+
+        // Show a few fully mapped profiles
+        const fullyMapped = profiles.filter(p => p.homeSubCountyId && p.wardId)
+        console.log(`\nFully mapped profiles count: ${fullyMapped.length}`)
+        if (fullyMapped.length > 0) {
+            console.log('Sample of fully mapped profiles:')
+            console.log(fullyMapped.slice(0, 5).map(p => ({
+                id: p.id,
+                fullName: p.fullName,
+                homeCounty: countyMap.get(p.homeCountyId ?? -1) ?? 'Unknown',
+                homeSubCounty: constMap.get(p.homeSubCountyId ?? -1) ?? 'Unknown',
+                ward: wardMap.get(p.wardId ?? -1) ?? 'Unknown',
+                residenceCounty: countyMap.get(p.residenceCountyId ?? -1) ?? 'Unknown',
+                residenceSubCounty: constMap.get(p.residenceSubCountyId ?? -1) ?? 'Unknown',
+                residenceWard: wardMap.get(p.residenceWardId ?? -1) ?? 'Unknown'
+            })))
+        }
+
+    } catch (e) {
+        console.error(e)
+    } finally {
+        await pool.end()
     }
 }
 
-function getFiles(dir: string): string[] {
-    let results: string[] = [];
-    if (!fs.existsSync(dir)) return results;
-    const list = fs.readdirSync(dir);
-    for (const file of list) {
-        const filePath = path.join(dir, file);
-        const stat = fs.statSync(filePath);
-        if (stat.isDirectory()) {
-            const base = path.basename(filePath);
-            if (['node_modules', '.next', 'dist', 'build', '.git', '.claude'].includes(base)) continue;
-            results = results.concat(getFiles(filePath));
-        } else {
-            if (filePath.endsWith('.ts') || filePath.endsWith('.tsx') || filePath.endsWith('.js') || filePath.endsWith('.jsx')) {
-                results.push(filePath);
-            }
-        }
-    }
-    return results;
-}
+inspectProfiles()
 
-// Find all source files to scan (exclude db folder completely to avoid matches in schemas/seeders/migrations)
-const backendFiles = getFiles(backendSrcDir).filter(f => !f.includes('/db/'));
-const webFiles = getFiles(webAppDir);
-const allFiles = [...backendFiles, ...webFiles];
 
-console.log(`Scanning ${allFiles.length} files...`);
 
-const fileContents = allFiles.map(f => ({
-    path: f,
-    content: fs.readFileSync(f, 'utf-8')
-}));
-
-console.log('\n--- COLUMNS WHOSE NAME APPEARS 0 TIMES IN APPLICATION SOURCE CODE ---');
-let totalUnusedCols = 0;
-for (const t of tables) {
-    const unusedCols = [];
-    for (const col of t.columns) {
-        // Exclude standard Drizzle/db helper columns like 'id', 'createdAt', 'updatedAt' which are very common names
-        if (['id', 'createdAt', 'updatedAt', 'id', 'name', 'status', 'description'].includes(col.name)) {
-            continue;
-        }
-        
-        let found = false;
-        const colWordRegex = new RegExp(`\\b${col.name}\\b`, 'g');
-        for (const file of fileContents) {
-            if (file.content.match(colWordRegex)) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            unusedCols.push(col.name);
-        }
-    }
-    if (unusedCols.length > 0) {
-        console.log(`Table: ${t.exportName} (schema/${t.file}) - Unused Columns: ${unusedCols.join(', ')}`);
-        totalUnusedCols += unusedCols.length;
-    }
-}
-console.log(`\nFound ${totalUnusedCols} potentially unused columns.`);

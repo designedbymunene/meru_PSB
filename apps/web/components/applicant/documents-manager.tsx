@@ -80,11 +80,11 @@ export function DocumentsManager() {
     const documents = response?.data || []
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-3">
             <Card className="border-none shadow-sm bg-muted/20 border-dashed ring-1 ring-border rounded-2xl overflow-hidden">
-                <CardContent className="p-6">
-                    <form onSubmit={handleUpload} className="space-y-6">
-                        <div className="flex items-center gap-3 mb-2">
+                <CardContent className="p-4">
+                    <form onSubmit={handleUpload} className="space-y-3">
+                        <div className="flex items-center gap-3 mb-1">
                             <div className="p-2 bg-primary/10 rounded-lg text-primary">
                                 <Upload className="h-5 w-5" />
                             </div>
@@ -96,8 +96,8 @@ export function DocumentsManager() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
                                 <Label htmlFor="doc-type" className="text-xs font-bold uppercase text-muted-foreground/80 ml-1">Document Category *</Label>
                                 <Select value={documentType} onValueChange={setDocumentType} required>
                                     <SelectTrigger id="doc-type" className="h-11 rounded-xl bg-card border-muted-foreground/20">
@@ -112,7 +112,7 @@ export function DocumentsManager() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
                                 <Label className="text-xs font-bold uppercase text-muted-foreground/80 ml-1">Choose File *</Label>
                                 <FileUpload 
                                     value={file}
@@ -139,7 +139,7 @@ export function DocumentsManager() {
                 </CardContent>
             </Card>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
                 <div className="flex items-center justify-between px-1">
                     <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/60">Your Document Vault</h3>
                     <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50 border-muted-foreground/20">
@@ -153,8 +153,8 @@ export function DocumentsManager() {
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Accessing vault...</p>
                     </div>
                 ) : documents.length === 0 ? (
-                    <div className="text-center py-16 border-2 border-dashed rounded-2xl bg-muted/5 flex flex-col items-center justify-center">
-                        <div className="p-4 bg-muted rounded-full mb-4">
+                    <div className="text-center py-12 border-2 border-dashed rounded-2xl bg-muted/5 flex flex-col items-center justify-center">
+                        <div className="p-4 bg-muted rounded-full mb-3">
                             <FileText className="h-8 w-8 text-muted-foreground/40" />
                         </div>
                         <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-1">Your vault is empty</h4>
@@ -163,13 +163,13 @@ export function DocumentsManager() {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3">
                         {documents.map((doc) => (
                             <div 
                                 key={doc.id} 
-                                className="group relative flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300 gap-4"
+                                className="group relative flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300 gap-3"
                             >
-                                <div className="flex items-center gap-4 min-w-0">
+                                <div className="flex items-center gap-3 min-w-0">
                                     <div className="p-3 rounded-xl bg-primary/5 text-primary border border-primary/10">
                                         {getFileIcon(doc.mimeType)}
                                     </div>

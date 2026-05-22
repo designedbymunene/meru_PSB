@@ -170,35 +170,30 @@ export class ShortlistService {
         const shortlistedIdSet = new Set(shortlistedApps.map(({ app }) => app.id))
         let shortlistedCount = 0
         const fallbackCount = shortlistedApps.filter(({ score }) => score < criteria.minScore).length
-        const updates = []
 
-        for (const { app, score } of scoredApps) {
-            const isShortlisted = shortlistedIdSet.has(app.id)
-            const newStatus = isShortlisted ? 'shortlisted' : 'reviewed'
-            
-            if (isShortlisted) {
-                shortlistedCount++
-            }
+        // Execute all updates in a transaction
+        await db.transaction(async (tx) => {
+            for (const { app, score } of scoredApps) {
+                const isShortlisted = shortlistedIdSet.has(app.id)
+                const newStatus = isShortlisted ? 'shortlisted' : 'reviewed'
+                
+                if (isShortlisted) {
+                    shortlistedCount++
+                }
 
-            const statusNote = isShortlisted && score < criteria.minScore
-                ? `Automated shortlisting score: ${score}/${criteria.minScore} (ranked shortlist fallback)`
-                : `Automated shortlisting score: ${score}/${criteria.minScore}`
+                const statusNote = isShortlisted && score < criteria.minScore
+                    ? `Automated shortlisting score: ${score}/${criteria.minScore} (ranked shortlist fallback)`
+                    : `Automated shortlisting score: ${score}/${criteria.minScore}`
 
-            updates.push(
-                db.update(applications)
+                await tx.update(applications)
                     .set({ 
                         status: newStatus, 
                         notes: (app.notes ? app.notes + '\n' : '') + statusNote,
                         updatedAt: new Date() 
                     })
                     .where(eq(applications.id, app.id))
-            )
-        }
-
-        // Execute all updates
-        if (updates.length > 0) {
-            await Promise.all(updates)
-        }
+            }
+        })
 
         if (shortlistedApps.length > 0) {
             await Promise.all(

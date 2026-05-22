@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { successResponse, ValidationError } from '../utils/errors'
 import { ShortlistService } from '../services/shortlist-service'
+import { AuditService } from '../services/audit-service'
 
 export const shortlistingRouter = new Hono()
 
@@ -19,11 +20,24 @@ shortlistingRouter.post('/criteria', authenticate, requireAdmin, async (c) => {
         throw new ValidationError('Missing required fields: vacancyId, weights, minScore')
     }
 
+    const previousState = await ShortlistService.getCriteria(parseInt(body.vacancyId))
+
     const criteria = await ShortlistService.setCriteria({
         vacancyId: parseInt(body.vacancyId),
         weights: body.weights,
         minScore: parseInt(body.minScore),
         configuredBy: user.userId
+    })
+
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: previousState ? 'UPDATE_SHORTLIST_CRITERIA' : 'CREATE_SHORTLIST_CRITERIA',
+        targetType: 'VACANCY',
+        targetId: parseInt(body.vacancyId),
+        previousState,
+        newState: criteria,
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+        userAgent: c.req.header('user-agent')
     })
 
     return successResponse(c, criteria, 'Shortlisting criteria saved successfully')

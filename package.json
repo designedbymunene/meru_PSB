@@ -5,6 +5,7 @@
     "dev": "NODE_ENV=development pnpm -r --parallel dev",
     "dev:mobile": "pnpm --filter @meru/mobile start --clear",
     "build": "pnpm -r build",
+    "db:reimport": "pnpm --filter @meru/backend db:reimport",
     "lint": "pnpm -r lint",
     "type-check": "pnpm -r type-check"
   },

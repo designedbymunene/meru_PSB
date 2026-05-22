@@ -1,0 +1,6 @@
+ALTER TABLE "applicant_profiles" ADD COLUMN "residence_county_id" integer;--> statement-breakpoint
+ALTER TABLE "applicant_profiles" ADD COLUMN "residence_sub_county_id" integer;--> statement-breakpoint
+ALTER TABLE "applicant_profiles" ADD COLUMN "residence_ward_id" integer;--> statement-breakpoint
+ALTER TABLE "applicant_profiles" ADD CONSTRAINT "applicant_profiles_residence_county_id_counties_id_fk" FOREIGN KEY ("residence_county_id") REFERENCES "public"."counties"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "applicant_profiles" ADD CONSTRAINT "applicant_profiles_residence_sub_county_id_constituencies_id_fk" FOREIGN KEY ("residence_sub_county_id") REFERENCES "public"."constituencies"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "applicant_profiles" ADD CONSTRAINT "applicant_profiles_residence_ward_id_wards_id_fk" FOREIGN KEY ("residence_ward_id") REFERENCES "public"."wards"("id") ON DELETE no action ON UPDATE no action;

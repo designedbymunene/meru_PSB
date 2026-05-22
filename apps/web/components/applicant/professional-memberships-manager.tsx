@@ -90,8 +90,8 @@ export function ProfessionalMembershipsManager() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between bg-muted/20 p-4 rounded-xl border border-dashed border-muted-foreground/20">
+        <div className="space-y-3">
+            <div className="flex items-center justify-between bg-muted/20 py-2 px-3.5 rounded-xl border border-dashed border-muted-foreground/20">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
                         <Plus className="h-5 w-5" />
@@ -117,68 +117,70 @@ export function ProfessionalMembershipsManager() {
                             <Plus className="mr-2 h-4 w-4" /> Add Membership
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] rounded-2xl">
-                        <DialogHeader className="pb-4 border-b">
+                    <DialogContent className="sm:max-w-[500px] rounded-2xl p-0 overflow-hidden flex flex-col">
+                        <DialogHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-800 text-left">
                             <DialogTitle className="text-xl font-bold flex items-center gap-2">
                                 <Plus className="h-5 w-5 text-primary" />
                                 {editing ? 'Edit Membership' : 'Add Membership'}
                             </DialogTitle>
                         </DialogHeader>
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                                <FormField
-                                    control={form.control}
-                                    name="membershipBody"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Membership Body *</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. Kenya Medical Practitioners Council" className="h-11 rounded-lg" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="membershipType"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Membership Type *</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. Full, Associate, Student" className="h-11 rounded-lg" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="registrationNumber"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Registration Number</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. B1158" className="h-11 rounded-lg" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="expiryDate"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Expiry Date</FormLabel>
-                                            <FormControl>
-                                                <Input type="date" className="h-11 rounded-lg" {...field} value={field.value || ''} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="flex justify-end gap-3 pt-6 border-t mt-4">
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
+                                <div className="py-4 px-5 space-y-3">
+                                    <FormField
+                                        control={form.control}
+                                        name="membershipBody"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Membership Body *</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. Kenya Medical Practitioners Council" className="h-11 rounded-lg" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="membershipType"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Membership Type *</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. Full, Associate, Student" className="h-11 rounded-lg" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="registrationNumber"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Registration Number</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. B1158" className="h-11 rounded-lg" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="expiryDate"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Expiry Date</FormLabel>
+                                                <FormControl>
+                                                    <Input type="date" className="h-11 rounded-lg" {...field} value={field.value || ''} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="py-3 px-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 mt-auto">
                                     <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                                     <Button type="submit" disabled={addMutation.isPending || updateMutation.isPending} className="px-8 shadow-lg shadow-primary/20">
                                         {(addMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -191,7 +193,7 @@ export function ProfessionalMembershipsManager() {
                 </Dialog>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 space-y-4">
                         <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
@@ -208,12 +210,12 @@ export function ProfessionalMembershipsManager() {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3">
                         {memberships.map((membership) => (
-                            <div key={membership.id} className="group relative flex items-start justify-between p-5 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
-                                <div className="flex-1 min-w-0 space-y-3">
+                            <div key={membership.id} className="group relative flex items-start justify-between p-4 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
+                                <div className="flex-1 min-w-0 space-y-2">
                                     <div className="space-y-1">
-                                        <h3 className="font-bold text-lg leading-tight text-foreground truncate pr-2">{membership.membershipBody}</h3>
+                                        <h3 className="font-bold text-base leading-tight text-foreground truncate pr-2">{membership.membershipBody}</h3>
                                         <Badge variant="secondary" className="rounded-md font-bold text-[10px] px-2 bg-primary/5 text-primary border-none uppercase tracking-wider h-5">
                                             {membership.membershipType}
                                         </Badge>

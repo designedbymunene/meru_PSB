@@ -5,6 +5,7 @@ import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
 import { BoardService } from '../services/board-service'
 import { successResponse } from '../utils/errors'
+import { AuditService } from '../services/audit-service'
 
 export const boardRouter = new Hono()
 
@@ -36,6 +37,16 @@ boardRouter.post('/resolution', authenticate, requireAdmin, validate(recordResol
         vacancyId: data.vacancyId,
         resolutionText: data.resolutionText,
         adminId: user.userId
+    })
+
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: 'RECORD_BOARD_RESOLUTION',
+        targetType: 'VACANCY',
+        targetId: data.vacancyId,
+        newState: resolution,
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+        userAgent: c.req.header('user-agent')
     })
     
     return successResponse(c, resolution, 'Resolution recorded successfully')

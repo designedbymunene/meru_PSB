@@ -23,7 +23,7 @@ function resolveSourcePath(argv: string[]) {
         if (!existsSync(resolved)) throw new Error(`Backup file not found: ${resolved}`)
         return resolved
     }
-    const defaultBackup = resolve(__dirname, '../../meru_county_psb_backup.sql')
+    const defaultBackup = resolve(__dirname, '../../sql/meru_county_psb_backup.sql')
     if (existsSync(defaultBackup)) return defaultBackup
     throw new Error('No backup file found. Pass one with --source <path>.')
 }
@@ -58,12 +58,60 @@ function emptyToNull(value: string | null | undefined) {
     return trimmed.length > 0 ? value : null
 }
 
-function normalizeKey(value: string | null | undefined) {
-    return (value ?? '')
-        .trim()
+const countyAliases: Record<string, string> = {
+    'muranga': "Murang'a",
+    'homabay': 'Homa Bay',
+    'tharakanithi': 'Tharaka-Nithi',
+    'uasingishu': 'Uasin Gishu',
+    'transnzoia': 'Trans-Nzoia',
+    'elgeiyomarakwet': 'Elgeyo-Marakwet',
+    'elgeyomarakwet': 'Elgeyo-Marakwet',
+    'mery': 'Meru',
+    'meeu': 'Meru',
+    'mwru': 'Meru',
+    'metu': 'Meru',
+    'meri': 'Meru',
+    'maua': 'Meru',
+    'nkubu': 'Meru',
+    'muthara': 'Meru',
+    'chuka': 'Tharaka-Nithi',
+    'eldoret': 'Uasin Gishu',
+    'nanyuki': 'Laikipia',
+    'kitale': 'Trans-Nzoia',
+    'tranzoia': 'Trans-Nzoia',
+}
+
+const constituencyAliases: Record<string, string> = {
+    'tiganiacentral': 'Tigania West',
+    'mutuati': 'Igembe North',
+    'kiengu': 'Igembe Central',
+    'merucentral': 'Central Imenti',
+    'imentieast': 'South Imenti',
+    'embueast': 'Runyenjes',
+    'embuwest': 'Manyatta',
+    'nakurueast': 'Nakuru Town East',
+    'abogeta': 'South Imenti',
+    'igoji': 'South Imenti',
+    'maua': 'Igembe South',
+    'nyahururu': 'Laikipia West',
+}
+
+const wardAliases: Record<string, string> = {
+    'akirangondu': "Akirang'Ondu",
+    'kiegoiantobochiu': 'Kiegoi/Antubochiu',
+    'kiegoiantubochiu': 'Kiegoi/Antubochiu',
+    'abowest': 'Abothuguchi West',
+    'antubetwekiongo': 'Antubetwe Kiongo',
+    'akiongo': 'Antubetwe Kiongo',
+    'kiiruanaaari': 'Kiirua/Naari',
+    'kiiruanaari': 'Kiirua/Naari',
+}
+
+function cleanString(str: string | null | undefined): string {
+    if (!str) return ''
+    return str
         .toLowerCase()
-        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-        .replace(/\s+/g, ' ')
+        .replace(/[^a-z0-9]/g, '')
 }
 
 function matchReferenceId(
@@ -71,19 +119,100 @@ function matchReferenceId(
     entries: Array<{ id: number; name: string }>
 ) {
     if (!value) return null
-    const normalized = normalizeKey(value)
-    const direct = entries.find(entry => normalizeKey(entry.name) === normalized)
+    const cleanedValue = cleanString(value)
+    if (!cleanedValue) return null
+
+    // 1. Direct clean match
+    const direct = entries.find(entry => cleanString(entry.name) === cleanedValue)
     if (direct) return direct.id
+
+    // 2. Sorted words clean match (handles swapped word order e.g. "Imenti Central" vs "Central Imenti")
+    const getSortedWords = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean).sort().join('')
+    const sortedValue = getSortedWords(value)
+    const sortedMatch = entries.find(entry => getSortedWords(entry.name) === sortedValue)
+    if (sortedMatch) return sortedMatch.id
+
+    // 3. Substring clean match
     for (const entry of entries) {
-        const entryKey = normalizeKey(entry.name)
-        if (entryKey.includes(normalized) || normalized.includes(entryKey)) return entry.id
+        const cleanedEntry = cleanString(entry.name)
+        if (cleanedEntry.includes(cleanedValue) || cleanedValue.includes(cleanedEntry)) {
+            return entry.id
+        }
     }
+
     return null
 }
 
+function matchCounty(value: string | null, counties: Array<{ id: number; name: string }>) {
+    if (!value) return null
+    const cleaned = cleanString(value)
+    const aliasName = countyAliases[cleaned]
+    if (aliasName) {
+        const matched = counties.find(c => cleanString(c.name) === cleanString(aliasName))
+        if (matched) return matched.id
+    }
+    return matchReferenceId(value, counties)
+}
+
+function matchConstituency(value: string | null, countyId: number | null, constituencies: Array<{ id: number; name: string; countyId: number }>) {
+    if (!value) return null
+    const cleaned = cleanString(value)
+    const filtered = countyId ? constituencies.filter((c: any) => c.countyId === countyId) : constituencies
+
+    const aliasName = constituencyAliases[cleaned]
+    if (aliasName) {
+        const matched = filtered.find(c => cleanString(c.name) === cleanString(aliasName))
+        if (matched) return matched.id
+    }
+
+    return matchReferenceId(value, filtered)
+}
+
+function getRuleBasedWardAlias(cleaned: string): string | null {
+    if (cleaned.includes('kiegoi') || cleaned.includes('antubochiu') || cleaned.includes('antobochiu')) return 'Kiegoi/Antubochiu';
+    if (cleaned.includes('akirang')) return "Akirang'Ondu";
+    if (cleaned.includes('abowest') || cleaned.includes('abothuguchiwest')) return 'Abothuguchi West';
+    if (cleaned.includes('aboeast') || cleaned.includes('abothuguchieast')) return 'Abothuguchi East';
+    if (cleaned.includes('abocentral') || cleaned.includes('abothuguchicentral')) return 'Abothuguchi Central';
+    if (cleaned.includes('kiongo')) return 'Antubetwe Kiongo';
+    if (cleaned.includes('kiirua') || cleaned.includes('naari')) return 'Kiirua/Naari';
+    if (cleaned.includes('kigucwa') || cleaned.includes('kiguchwa')) return 'Kiguchwa';
+    if (cleaned.includes('mirigamieruwest') || cleaned.includes('mirigamieruw')) return 'Ntima West';
+    if (cleaned.includes('mirigamierueast') || cleaned.includes('mirigamierue')) return 'Ntima East';
+    if (cleaned.includes('sobea') || cleaned.includes('visoi')) return 'Visoi';
+    if (cleaned.includes('kagaarib') || cleaned.includes('kagaarinorth')) return 'Kagaari North';
+    if (cleaned.includes('kagaarisouth')) return 'Kagaari South';
+    if (cleaned.includes('kagaari')) {
+        if (cleaned.includes('n') || cleaned.includes('w')) return 'Kagaari North';
+        if (cleaned.includes('s')) return 'Kagaari South';
+        return 'Kagaari North'; // default fallback
+    }
+    return null;
+}
+
+function matchWard(value: string | null, constituencyId: number | null, wards: Array<{ id: number; name: string; constituencyId: number }>) {
+    if (!value) return null
+    const cleaned = cleanString(value)
+    const filtered = constituencyId ? wards.filter((w: any) => w.constituencyId === constituencyId) : wards
+
+    const aliasName = wardAliases[cleaned] || getRuleBasedWardAlias(cleaned)
+    if (aliasName) {
+        const matched = filtered.find(w => cleanString(w.name) === cleanString(aliasName))
+        if (matched) return matched.id
+    }
+
+    return matchReferenceId(value, filtered)
+}
+
 async function loadReferenceRows(client: any, tableName: string) {
-    const res = await client.query(`SELECT id, name FROM public.${tableName} ORDER BY id`)
-    return res.rows as Array<{ id: number; name: string }>
+    let query = `SELECT id, name FROM public.${tableName} ORDER BY id`
+    if (tableName === 'constituencies') {
+        query = `SELECT id, name, county_id as "countyId" FROM public.${tableName} ORDER BY id`
+    } else if (tableName === 'wards') {
+        query = `SELECT id, name, constituency_id as "constituencyId" FROM public.${tableName} ORDER BY id`
+    }
+    const res = await client.query(query)
+    return res.rows
 }
 
 async function getTableColumns(client: any, tableName: string) {
@@ -274,9 +403,40 @@ async function processAndInsertBatch(client: any, block: CopyBlock, rows: any[],
             data.full_name = emptyToNull(r.full_name) || emptyToNull(r.applicant_name)
             data.phone_number = emptyToNull(r.phone_number) || emptyToNull(r.phone) || emptyToNull(r.email)
             data.ethnicity_id = matchReferenceId(r.ethnicity, refs.ethnicities)
-            data.home_county_id = matchReferenceId(r.home_county, refs.counties)
-            data.home_sub_county_id = matchReferenceId(r.home_sub_county, refs.constituencies)
-            data.ward_id = matchReferenceId(r.ward, refs.wards)
+            
+            // Optimized hierarchical location matching
+            const homeCountyId = matchCounty(r.home_county, refs.counties)
+            data.home_county_id = homeCountyId
+
+            // Filter wards under this county to narrow search space and prevent cross-county duplicates
+            const countyConstituencyIds = homeCountyId 
+                ? refs.constituencies.filter((c: any) => c.countyId === homeCountyId).map((c: any) => c.id)
+                : []
+            const countyWards = countyConstituencyIds.length > 0
+                ? refs.wards.filter((w: any) => countyConstituencyIds.includes(w.constituencyId))
+                : refs.wards
+
+            const wardId = matchWard(r.ward, null, countyWards)
+            data.ward_id = wardId
+
+            // Resolve Constituency
+            let homeSubCountyId: number | null = null
+            if (wardId) {
+                const matchedWard = refs.wards.find((w: any) => w.id === wardId)
+                if (matchedWard) {
+                    homeSubCountyId = matchedWard.constituencyId
+                }
+            }
+            if (!homeSubCountyId && r.home_sub_county) {
+                homeSubCountyId = matchConstituency(r.home_sub_county, homeCountyId, refs.constituencies)
+            }
+            data.home_sub_county_id = homeSubCountyId
+
+            // Residence location - default to home
+            data.residence_county_id = data.home_county_id
+            data.residence_sub_county_id = data.home_sub_county_id
+            data.residence_ward_id = data.ward_id
+
             data.date_of_birth = r.date_of_birth || (r.birth_year ? `${r.birth_year}-01-01` : null)
             data.has_no_experience = r.has_no_experience || false
             data.has_no_certificates = r.has_no_certificates || false

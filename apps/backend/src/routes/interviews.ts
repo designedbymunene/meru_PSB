@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { successResponse, ValidationError, NotFoundError } from '../utils/errors'
 import { InterviewService } from '../services/interview-service'
+import { AuditService } from '../services/audit-service'
 
 export const interviewsRouter = new Hono()
 
@@ -27,6 +28,16 @@ interviewsRouter.post('/schedule', authenticate, requireAdmin, async (c) => {
         virtualLink: body.virtualLink,
         panelMembers: body.panelMembers,
         adminId: user.userId
+    })
+
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: 'SCHEDULE_INTERVIEW',
+        targetType: 'INTERVIEW',
+        targetId: interview.id,
+        newState: interview,
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+        userAgent: c.req.header('user-agent')
     })
 
     return successResponse(c, interview, 'Interview scheduled successfully')
@@ -57,6 +68,16 @@ interviewsRouter.post('/bulk-schedule', authenticate, requireAdmin, async (c) =>
         adminId: user.userId
     })
 
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: 'BULK_SCHEDULE_INTERVIEWS',
+        targetType: 'VACANCY',
+        targetId: parseInt(body.vacancyId),
+        newState: { count: interviews.length, applicationIds: body.applicationIds },
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+        userAgent: c.req.header('user-agent')
+    })
+
     return successResponse(c, interviews, 'Interviews scheduled successfully')
 })
 
@@ -77,13 +98,27 @@ interviewsRouter.get('/admin/:vacancyId/default-panel', authenticate, requireAdm
  * Sets default panel members for a vacancy.
  */
 interviewsRouter.post('/admin/:vacancyId/default-panel', authenticate, requireAdmin, async (c) => {
+    const user = c.get('user')
     const vacancyId = parseInt(c.req.param('vacancyId') || '0')
     const body = await c.req.json()
 
     if (isNaN(vacancyId)) throw new ValidationError('Invalid vacancyId')
     if (!Array.isArray(body.userIds)) throw new ValidationError('userIds must be an array')
 
+    const previousState = await InterviewService.getDefaultPanel(vacancyId)
     const result = await InterviewService.setDefaultPanel(vacancyId, body.userIds)
+
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: 'SET_DEFAULT_PANEL',
+        targetType: 'VACANCY',
+        targetId: vacancyId,
+        previousState,
+        newState: result,
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+        userAgent: c.req.header('user-agent')
+    })
+
     return successResponse(c, result, 'Default panel updated successfully')
 })
 
@@ -104,13 +139,27 @@ interviewsRouter.get('/admin/:vacancyId/criteria', authenticate, requireAdmin, a
  * Sets interview criteria for a vacancy.
  */
 interviewsRouter.post('/admin/:vacancyId/criteria', authenticate, requireAdmin, async (c) => {
+    const user = c.get('user')
     const vacancyId = parseInt(c.req.param('vacancyId') || '0')
     const body = await c.req.json()
 
     if (isNaN(vacancyId)) throw new ValidationError('Invalid vacancyId')
     if (!Array.isArray(body.criteria)) throw new ValidationError('criteria must be an array')
 
+    const previousState = await InterviewService.getInterviewCriteria(vacancyId)
     const result = await InterviewService.setInterviewCriteria(vacancyId, body.criteria)
+
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: 'SET_INTERVIEW_CRITERIA',
+        targetType: 'VACANCY',
+        targetId: vacancyId,
+        previousState,
+        newState: result,
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+        userAgent: c.req.header('user-agent')
+    })
+
     return successResponse(c, result, 'Interview criteria updated successfully')
 })
 
@@ -140,6 +189,9 @@ interviewsRouter.post('/:interviewId/score', authenticate, async (c) => {
         conflictOfInterest: !!body.conflictOfInterest,
         declarationNotes: body.declarationNotes
     })
+
+    // We don't audit panel member scores in the main audit log (too verbose)
+    // but they are tracked in interview_scores table.
 
     return successResponse(c, result, 'Score submitted successfully')
 })
@@ -188,8 +240,20 @@ interviewsRouter.patch('/admin/:id/status', authenticate, requireAdmin, async (c
     if (isNaN(id)) throw new ValidationError('Invalid interview ID')
     if (!body.status) throw new ValidationError('Status is required')
 
+    const previousState = await InterviewService.getInterviewById(id)
     const interview = await InterviewService.updateInterviewStatus(id, body.status, user.userId)
     if (!interview) throw new NotFoundError('Interview')
+
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: 'UPDATE_INTERVIEW_STATUS',
+        targetType: 'INTERVIEW',
+        targetId: id,
+        previousState,
+        newState: interview,
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+        userAgent: c.req.header('user-agent')
+    })
 
     return successResponse(c, interview, 'Interview status updated successfully')
 })
@@ -207,6 +271,7 @@ interviewsRouter.patch('/admin/:id/reschedule', authenticate, requireAdmin, asyn
     if (isNaN(id)) throw new ValidationError('Invalid interview ID')
     if (!body.scheduledAt || !body.venue) throw new ValidationError('Scheduled date and venue are required')
 
+    const previousState = await InterviewService.getInterviewById(id)
     const interview = await InterviewService.rescheduleInterview(id, {
         scheduledAt: new Date(body.scheduledAt),
         venue: body.venue,
@@ -214,6 +279,17 @@ interviewsRouter.patch('/admin/:id/reschedule', authenticate, requireAdmin, asyn
         adminId: user.userId
     })
     if (!interview) throw new NotFoundError('Interview')
+
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: 'RESCHEDULE_INTERVIEW',
+        targetType: 'INTERVIEW',
+        targetId: id,
+        previousState,
+        newState: interview,
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+        userAgent: c.req.header('user-agent')
+    })
 
     return successResponse(c, interview, 'Interview rescheduled successfully')
 })

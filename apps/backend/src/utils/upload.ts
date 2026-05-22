@@ -1,14 +1,11 @@
 import multer from 'multer'
 import path from 'path'
-import { fileURLToPath } from 'url'
 import fs from 'fs'
-import { getUploadConfig } from './env'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import { getAppConfig, getUploadConfig } from './env'
 
 // Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '../../uploads')
+const { UPLOAD_DIR } = getAppConfig()
+const uploadDir = path.isAbsolute(UPLOAD_DIR) ? UPLOAD_DIR : path.resolve(process.cwd(), UPLOAD_DIR)
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true })
 }

@@ -3,9 +3,10 @@ import { authenticate, optionalAuthenticate } from '../middleware/auth'
 import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
 import { createVacancySchema, updateVacancySchema } from '@meru/shared'
-import { successResponse } from '../utils/errors'
+import { successResponse, NotFoundError } from '../utils/errors'
 import { VacancyService } from '../services/vacancy-service'
 import { publicRateLimiter } from '../middleware/rateLimiter'
+import { AuditService } from '../services/audit-service'
 
 export const vacanciesRouter = new Hono()
 
@@ -62,6 +63,17 @@ vacanciesRouter.post(
         const data = c.get('validatedData') as any
 
         const newVacancy = await VacancyService.create(data, user.userId, requestId)
+
+        await AuditService.logAction({
+            adminId: user.userId,
+            action: 'CREATE_VACANCY',
+            targetType: 'VACANCY',
+            targetId: newVacancy.id,
+            newState: newVacancy,
+            ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+            userAgent: c.req.header('user-agent')
+        })
+
         return successResponse(c, newVacancy, 'Vacancy created successfully', 201)
     }
 )
@@ -75,9 +87,24 @@ vacanciesRouter.put(
     async (c) => {
         const requestId = c.get('requestId')
         const id = parseInt(c.req.param('id') || '0')
+        const user = c.get('user')
         const data = c.get('validatedData') as any
 
+        const previousState = await VacancyService.get(id, user.userId, requestId)
+
         const updatedVacancy = await VacancyService.update(id, data, requestId)
+
+        await AuditService.logAction({
+            adminId: user.userId,
+            action: 'UPDATE_VACANCY',
+            targetType: 'VACANCY',
+            targetId: id,
+            previousState,
+            newState: updatedVacancy,
+            ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+            userAgent: c.req.header('user-agent')
+        })
+
         return successResponse(c, updatedVacancy, 'Vacancy updated successfully')
     }
 )
@@ -86,8 +113,22 @@ vacanciesRouter.put(
 vacanciesRouter.delete('/:id', authenticate, requireAdmin, async (c) => {
     const requestId = c.get('requestId')
     const id = parseInt(c.req.param('id') || '0')
+    const user = c.get('user')
+
+    const previousState = await VacancyService.get(id, user.userId, requestId)
 
     await VacancyService.delete(id, requestId)
+
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: 'DELETE_VACANCY',
+        targetType: 'VACANCY',
+        targetId: id,
+        previousState,
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+        userAgent: c.req.header('user-agent')
+    })
+
     return successResponse(c, null, 'Vacancy deleted successfully')
 })
 

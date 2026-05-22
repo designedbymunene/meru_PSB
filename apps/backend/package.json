@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsup src/index.ts --format esm --clean",
+    "build": "tsup",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -18,6 +18,7 @@
     "db:reset": "tsx src/db/reset.ts",
     "db:import-users-profiles": "tsx src/db/import-users-profiles.ts",
     "db:import-comprehensive": "tsx src/db/import-comprehensive.ts",
+    "db:reimport": "pnpm db:reset && pnpm db:seed && pnpm db:import-comprehensive",
     "db:cleanup": "tsx src/db/cleanup.ts",
     "db:create-admin": "tsx src/db/create-admin.ts",
     "test": "tsx --test src/__tests__/**/*.test.ts",

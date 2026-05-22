@@ -29,8 +29,18 @@ async function extractSqlData(filePath: string) {
             }
         } else if (currentTable === 'profiles') {
             const parts = line.split('\t');
-            if (parts.length >= 9) {
-                profiles.push({ id: parts[0], userId: parts[1], name: parts[2], idNumber: parts[3], phone: parts[7], email: parts[8] });
+            if (parts.length >= 12) {
+                profiles.push({ 
+                    id: parts[0], 
+                    userId: parts[1], 
+                    name: parts[2], 
+                    idNumber: parts[3], 
+                    phone: parts[7], 
+                    email: parts[8],
+                    homeCounty: parts[9],
+                    homeSubCounty: parts[10],
+                    ward: parts[11]
+                });
             }
         }
     }
@@ -45,7 +55,13 @@ async function extractSqlData(filePath: string) {
             idNumber: profile.idNumber,
             phone: profile.phone,
             email: profile.email,
-            role: userObj ? userObj.role : 'N/A'
+            role: userObj ? userObj.role : 'N/A',
+            homeCounty: profile.homeCounty,
+            homeSubCounty: profile.homeSubCounty,
+            ward: profile.ward,
+            residenceCounty: profile.homeCounty, // Default to home
+            residenceSubCounty: profile.homeSubCounty, // Default to home
+            residenceWard: profile.ward // Default to home
         };
     });
 

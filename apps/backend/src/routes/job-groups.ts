@@ -6,6 +6,7 @@ import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
 import { createJobGroupSchema, updateJobGroupSchema } from '@meru/shared'
 import { NotFoundError, successResponse } from '../utils/errors'
+import { AuditService } from '../services/audit-service'
 
 export const jobGroupsRouter = new Hono()
 
@@ -46,6 +47,7 @@ jobGroupsRouter.post(
     requireAdmin,
     validate(createJobGroupSchema),
     async (c) => {
+        const user = c.get('user')
         const data = c.get('validatedData' as never) as {
             name: string
             description?: string
@@ -65,6 +67,16 @@ jobGroupsRouter.post(
             })
             .returning()
 
+        await AuditService.logAction({
+            adminId: user.userId,
+            action: 'CREATE_JOB_GROUP',
+            targetType: 'JOB_GROUP',
+            targetId: newJobGroup.id,
+            newState: newJobGroup,
+            ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+            userAgent: c.req.header('user-agent')
+        })
+
         return successResponse(c, newJobGroup, 'Job Group created successfully', 201)
     }
 )
@@ -77,6 +89,7 @@ jobGroupsRouter.put(
     validate(updateJobGroupSchema),
     async (c) => {
         const id = parseInt(c.req.param('id') || '0')
+        const user = c.get('user')
         const data = c.get('validatedData' as never) as Partial<{
             name: string
             description: string
@@ -85,15 +98,30 @@ jobGroupsRouter.put(
             status: string
         }>
 
+        const previousState = await db.query.jobGroups.findFirst({
+            where: eq(jobGroups.id, id)
+        })
+
+        if (!previousState) {
+            throw new NotFoundError('Job Group')
+        }
+
         const [updatedJobGroup] = await db
             .update(jobGroups)
             .set(data)
             .where(eq(jobGroups.id, id))
             .returning()
 
-        if (!updatedJobGroup) {
-            throw new NotFoundError('Job Group')
-        }
+        await AuditService.logAction({
+            adminId: user.userId,
+            action: 'UPDATE_JOB_GROUP',
+            targetType: 'JOB_GROUP',
+            targetId: id,
+            previousState,
+            newState: updatedJobGroup,
+            ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+            userAgent: c.req.header('user-agent')
+        })
 
         return successResponse(c, updatedJobGroup, 'Job Group updated successfully')
     }
@@ -102,15 +130,30 @@ jobGroupsRouter.put(
 // DELETE /api/job-groups/:id - Delete job group (admin only)
 jobGroupsRouter.delete('/:id', authenticate, requireAdmin, async (c) => {
     const id = parseInt(c.req.param('id') || '0')
+    const user = c.get('user')
+
+    const previousState = await db.query.jobGroups.findFirst({
+        where: eq(jobGroups.id, id)
+    })
+
+    if (!previousState) {
+        throw new NotFoundError('Job Group')
+    }
 
     const [deletedJobGroup] = await db
         .delete(jobGroups)
         .where(eq(jobGroups.id, id))
         .returning()
 
-    if (!deletedJobGroup) {
-        throw new NotFoundError('Job Group')
-    }
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: 'DELETE_JOB_GROUP',
+        targetType: 'JOB_GROUP',
+        targetId: id,
+        previousState,
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+        userAgent: c.req.header('user-agent')
+    })
 
     return successResponse(c, null, 'Job Group deleted successfully')
 })

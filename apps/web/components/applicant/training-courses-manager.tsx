@@ -87,6 +87,29 @@ export function TrainingCoursesManager() {
             if (editing) {
                 await updateMutation.mutateAsync({ courseId: editing.id, data: cleanedData })
             } else {
+                if (profile?.hasNoTrainings) {
+                    await updateProfile.mutateAsync({
+                        fullName: profile.fullName || '',
+                        idNumber: profile.idNumber || '',
+                        gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
+                        dateOfBirth: profile.dateOfBirth || '',
+                        ethnicityId: profile.ethnicityId || 0,
+                        phoneNumber: profile.phoneNumber || '',
+                        email: profile.email || '',
+                        homeCountyId: profile.homeCountyId || 0,
+                        homeSubCountyId: profile.homeSubCountyId || 0,
+                        wardId: profile.wardId || 0,
+                        impairment: profile.impairment || false,
+                        impairmentDetails: profile.impairmentDetails || '',
+                        publicServiceInfo: profile.publicServiceInfo || '',
+                        personalNumber: profile.personalNumber || '',
+                        hasNoExperience: profile.hasNoExperience || false,
+                        hasNoCertificates: profile.hasNoCertificates || false,
+                        hasNoMemberships: profile.hasNoMemberships || false,
+                        hasNoTrainings: false,
+                        hasNoReferees: profile.hasNoReferees || false,
+                    })
+                }
                 await addMutation.mutateAsync(cleanedData)
             }
             setIsDialogOpen(false)
@@ -109,8 +132,8 @@ export function TrainingCoursesManager() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between bg-muted/20 p-4 rounded-xl border border-dashed border-muted-foreground/20">
+        <div className="space-y-3">
+            <div className="flex items-center justify-between bg-muted/20 py-2 px-3.5 rounded-xl border border-dashed border-muted-foreground/20">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
                         <GraduationCap className="h-5 w-5" />
@@ -143,95 +166,97 @@ export function TrainingCoursesManager() {
                             <Plus className="mr-2 h-4 w-4" /> Add Course
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] rounded-2xl">
-                        <DialogHeader className="pb-4 border-b">
+                    <DialogContent className="sm:max-w-[500px] rounded-2xl p-0 overflow-hidden flex flex-col">
+                        <DialogHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-800 text-left">
                             <DialogTitle className="text-xl font-bold flex items-center gap-2">
                                 <GraduationCap className="h-5 w-5 text-primary" />
                                 {editing ? 'Edit Course' : 'Add Course'}
                             </DialogTitle>
                         </DialogHeader>
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                                <FormField
-                                    control={form.control}
-                                    name="courseName"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Course Name *</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. Project Management Professional" className="h-11 rounded-lg" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="institution"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Institution</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. Kenya School of Government" className="h-11 rounded-lg" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="grid grid-cols-2 gap-4">
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
+                                <div className="py-4 px-5 space-y-3">
                                     <FormField
                                         control={form.control}
-                                        name="year"
+                                        name="courseName"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Year Completed</FormLabel>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Course Name *</FormLabel>
                                                 <FormControl>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="2023"
-                                                        className="h-11 rounded-lg"
+                                                    <Input placeholder="e.g. Project Management Professional" className="h-11 rounded-lg" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="institution"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Institution</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. Kenya School of Government" className="h-11 rounded-lg" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <FormField
+                                            control={form.control}
+                                            name="year"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Year Completed</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="number"
+                                                            placeholder="2023"
+                                                            className="h-11 rounded-lg"
+                                                            {...field}
+                                                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                                                            value={field.value || ''}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="grade"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Grade/Score</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="e.g. Pass, 85%" className="h-11 rounded-lg" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <FormField
+                                        control={form.control}
+                                        name="description"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Description</FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        placeholder="Brief description of the course content..."
+                                                        rows={2}
+                                                        className="rounded-lg resize-none"
                                                         {...field}
-                                                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                                                        value={field.value || ''}
                                                     />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
-                                    <FormField
-                                        control={form.control}
-                                        name="grade"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Grade/Score</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="e.g. Pass, 85%" className="h-11 rounded-lg" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
                                 </div>
-                                <FormField
-                                    control={form.control}
-                                    name="description"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Description</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    placeholder="Brief description of the course content..."
-                                                    rows={3}
-                                                    className="rounded-lg resize-none"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="flex justify-end gap-3 pt-6 border-t mt-4">
+                                <div className="py-3 px-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3 mt-auto">
                                     <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                                     <Button type="submit" disabled={addMutation.isPending || updateMutation.isPending} className="px-8 shadow-lg shadow-primary/20">
                                         {(addMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -245,59 +270,56 @@ export function TrainingCoursesManager() {
             </div>
 
             {/* Not Included Toggle */}
-            <div className="flex items-center space-x-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                <Checkbox
-                    id="hasNoTrainings"
-                    checked={profile?.hasNoTrainings || false}
-                    onCheckedChange={async (checked) => {
-                        if (!profile) return
-                        await updateProfile.mutateAsync({
-                            fullName: profile.fullName || '',
-                            idNumber: profile.idNumber || '',
-                            gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
-                            dateOfBirth: profile.dateOfBirth || '',
-                            ethnicityId: profile.ethnicityId || 0,
-                            phoneNumber: profile.phoneNumber || '',
-                            email: profile.email || '',
-                            homeCountyId: profile.homeCountyId || 0,
-                            homeSubCountyId: profile.homeSubCountyId || 0,
-                            wardId: profile.wardId || 0,
-                            impairment: profile.impairment || false,
-                            impairmentDetails: profile.impairmentDetails || '',
-                            publicServiceInfo: profile.publicServiceInfo || '',
-                            personalNumber: profile.personalNumber || '',
-                            hasNoExperience: profile.hasNoExperience || false,
-                            hasNoCertificates: profile.hasNoCertificates || false,
-                            hasNoMemberships: profile.hasNoMemberships || false,
-                            hasNoTrainings: Boolean(checked),
-                            hasNoReferees: profile.hasNoReferees || false,
-                        })
-                    }}
-                    disabled={updateProfile.isPending || trainingCourses.length > 0}
-                    className="h-5 w-5 rounded-md"
-                />
-                <div className="grid gap-1.5 leading-none">
-                    <Label
-                        htmlFor="hasNoTrainings"
-                        className={cn(
-                            "text-sm font-semibold cursor-pointer select-none",
-                            trainingCourses.length > 0 ? "text-slate-400 cursor-not-allowed" : "text-slate-700 dark:text-slate-300"
-                        )}
-                    >
-                        I have no training courses to add
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                        {trainingCourses.length > 0 
-                            ? "Remove existing training records first to mark this section as Not Applicable."
-                            : "Check this if you do not hold any training certifications."}
-                    </p>
+            {trainingCourses.length === 0 && (
+                <div className="flex items-center space-x-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                    <Checkbox
+                        id="hasNoTrainings"
+                        checked={profile?.hasNoTrainings || false}
+                        onCheckedChange={async (checked) => {
+                            if (!profile) return
+                            await updateProfile.mutateAsync({
+                                fullName: profile.fullName || '',
+                                idNumber: profile.idNumber || '',
+                                gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
+                                dateOfBirth: profile.dateOfBirth || '',
+                                ethnicityId: profile.ethnicityId || 0,
+                                phoneNumber: profile.phoneNumber || '',
+                                email: profile.email || '',
+                                homeCountyId: profile.homeCountyId || 0,
+                                homeSubCountyId: profile.homeSubCountyId || 0,
+                                wardId: profile.wardId || 0,
+                                impairment: profile.impairment || false,
+                                impairmentDetails: profile.impairmentDetails || '',
+                                publicServiceInfo: profile.publicServiceInfo || '',
+                                personalNumber: profile.personalNumber || '',
+                                hasNoExperience: profile.hasNoExperience || false,
+                                hasNoCertificates: profile.hasNoCertificates || false,
+                                hasNoMemberships: profile.hasNoMemberships || false,
+                                hasNoTrainings: Boolean(checked),
+                                hasNoReferees: profile.hasNoReferees || false,
+                            })
+                        }}
+                        disabled={updateProfile.isPending}
+                        className="h-5 w-5 rounded-md"
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                        <Label
+                            htmlFor="hasNoTrainings"
+                            className="text-sm font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300"
+                        >
+                            I have no training courses to add
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                            Check this if you do not hold any training certifications.
+                        </p>
+                    </div>
+                    {updateProfile.isPending && (
+                        <Loader2 className="h-4 w-4 animate-spin text-primary ml-auto" />
+                    )}
                 </div>
-                {updateProfile.isPending && (
-                    <Loader2 className="h-4 w-4 animate-spin text-primary ml-auto" />
-                )}
-            </div>
+            )}
 
-            <div className="space-y-4">
+            <div className="space-y-3">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 space-y-4">
                         <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
@@ -314,12 +336,12 @@ export function TrainingCoursesManager() {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3">
                         {trainingCourses.map((course: any) => (
-                            <div key={course.id} className="group relative flex items-start justify-between p-5 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
-                                <div className="flex-1 min-w-0 space-y-3">
+                            <div key={course.id} className="group relative flex items-start justify-between p-4 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
+                                <div className="flex-1 min-w-0 space-y-2">
                                     <div className="space-y-1">
-                                        <h3 className="font-bold text-lg leading-tight text-foreground truncate pr-2">{course.courseName}</h3>
+                                        <h3 className="font-bold text-base leading-tight text-foreground truncate pr-2">{course.courseName}</h3>
                                         <p className="text-[13px] text-muted-foreground font-medium flex items-center gap-1.5">
                                             <GraduationCap className="h-3.5 w-3.5 opacity-60" />
                                             {course.institution || 'No institution set'}

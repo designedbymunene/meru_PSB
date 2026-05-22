@@ -27,6 +27,10 @@ export const applicantProfiles = pgTable('applicant_profiles', {
     homeSubCountyId: integer('home_sub_county_id').references(() => constituencies.id),
     wardId: integer('ward_id').references(() => wards.id),
 
+    residenceCountyId: integer('residence_county_id').references(() => counties.id),
+    residenceSubCountyId: integer('residence_sub_county_id').references(() => constituencies.id),
+    residenceWardId: integer('residence_ward_id').references(() => wards.id),
+
     // Status/Metadata
     impairment: boolean('impairment').default(false).notNull(),
     impairmentDetails: text('impairment_details'), // Details if impairment is true

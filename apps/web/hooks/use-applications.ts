@@ -123,7 +123,7 @@ export function useExportApplications() {
     return useMutation({
         mutationFn: (filters?: ApplicationFilters) => applicationApi.exportApplications(filters),
         onSuccess: (data) => {
-            const url = window.URL.createObjectURL(new Blob([data]));
+            const url = window.URL.createObjectURL(data);
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `applicants_export_${new Date().toISOString().split('T')[0]}.csv`);

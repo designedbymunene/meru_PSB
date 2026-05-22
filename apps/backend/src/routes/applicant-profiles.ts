@@ -15,6 +15,7 @@ import { requireAdmin } from '../middleware/admin'
 import { successResponse, NotFoundError, ForbiddenError, ValidationError, ConflictError } from '../utils/errors'
 import { calculateProfileCompletion } from '../utils/profile-completion'
 import { logger } from '../utils/logger'
+import { auditLog } from '../middleware/audit-logger'
 import {
     applicantProfileSchema,
     updateApplicantProfileSchema,
@@ -538,7 +539,7 @@ registerSubResourceRoutes({
 // ============ ADMIN ENDPOINTS ============
 
 // GET /api/applicant-profiles/admin/all - Get all profiles (admin only)
-applicantProfilesRouter.get('/admin/all', authenticate, requireAdmin, async (c) => {
+applicantProfilesRouter.get('/admin/all', authenticate, requireAdmin, auditLog('VIEW_ALL_PROFILES', 'APPLICANT_PROFILE'), async (c) => {
     const query = c.req.query()
     const filters = profileFiltersSchema.safeParse(query)
 
@@ -639,7 +640,7 @@ applicantProfilesRouter.get('/admin/all', authenticate, requireAdmin, async (c) 
 })
 
 // GET /api/applicant-profiles/admin/export - Export profiles (admin only)
-applicantProfilesRouter.get('/admin/export', authenticate, requireAdmin, async (c) => {
+applicantProfilesRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EXPORT_DATA', 'APPLICANT_PROFILE'), async (c) => {
     const query = c.req.query()
     const filters = profileFiltersSchema.safeParse(query)
 
@@ -676,40 +677,109 @@ applicantProfilesRouter.get('/admin/export', authenticate, requireAdmin, async (
                         fullName: true
                     }
                 },
+                homeCounty: true,
+                homeSubCounty: true,
+                ward: true,
+                residenceCounty: true,
+                residenceSubCounty: true,
+                residenceWard: true,
+                ethnicity: true,
                 qualifications: true,
                 professionalDetails: true,
                 trainingCourses: true,
                 professionalMemberships: true,
                 employmentHistory: true,
-                referees: true,
-                documents: true
+                referees: true
             }
         })
 
-        // Transform to flat structure for CSV export
-        const exportData = profiles.map(profile => ({
-            name: profile.fullName,
-            idNumber: profile.idNumber,
-            gender: profile.gender,
-            dateOfBirth: profile.dateOfBirth,
-            ethnicity: profile.ethnicityId,
-            phoneNumber: profile.phoneNumber,
-            email: profile.email,
-            county: profile.homeCountyId,
-            subCounty: profile.homeSubCountyId,
-            ward: profile.wardId,
-            impairment: profile.impairment,
-            userPhone: (profile.user as any)?.phoneNumber,
-            userEmail: (profile.user as any)?.email,
-            qualificationsCount: profile.qualifications.length,
-            professionalDetailsCount: profile.professionalDetails.length,
-            trainingCoursesCount: profile.trainingCourses.length,
-            membershipCount: profile.professionalMemberships.length,
-            employmentHistoryCount: profile.employmentHistory.length,
-            refereesCount: profile.referees?.length || 0
-        }))
+        const escapeCsv = (field: any): string => {
+            if (field === null || field === undefined) return ''
+            let stringField = String(field)
+            
+            // Prevent CSV injection
+            const injectionChars = ['=', '+', '-', '@', '\t', '\r']
+            if (injectionChars.some(char => stringField.startsWith(char))) {
+                stringField = `'${stringField}`
+            }
 
-        return successResponse(c, exportData)
+            if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+                return `"${stringField.replace(/"/g, '""')}"`
+            }
+            return stringField
+        }
+
+        const headers = [
+            'Applicant Name', 'ID-Number', 'Gender', 'Date of Birth', 
+            'Ethnicity', 'Tel. Contact', 'Email', 'Home County', 'Home Sub County', 'Ward', 
+            'Residence County', 'Residence Sub County', 'Residence Ward',
+            'Impairment', 'Information on Public Service', 'Personal/Employment Number.', 
+            'Qualification', 'Professional/Technical Details', 'Relevant Courses and Training Details', 
+            'Membership', 'Employment history', 'Referees'
+        ]
+
+        const csvRows = [headers.join(',')]
+
+        for (const profile of profiles) {
+            const qualificationsStr = (profile.qualifications || []).map((q: any) =>
+                `${q.level} :: ${q.course} :: ${q.grade || 'N/A'} :: ${q.institution} :: ${q.yearStart} - ${q.yearEnd || 'Present'}`
+            ).join('\n')
+
+            const profDetails = (profile.professionalDetails || []).map((p: any) =>
+                `${p.issuingBody || p.registrationBody} :: ${p.registrationNumber} :: ${p.expiryDate ? new Date(p.expiryDate).toISOString().split('T')[0] : 'N/A'}`
+            ).join('\n')
+
+            const trainings = (profile.trainingCourses || []).map((t: any) =>
+                `${t.institution} :: ${t.courseName} :: ${t.grade || 'N/A'} :: ${t.year || 'N/A'}`
+            ).join('\n')
+
+            const memberships = (profile.professionalMemberships || []).map((m: any) =>
+                `${m.membershipBody} :: ${m.registrationNumber} :: ${m.membershipType} :: ${m.expiryDate ? new Date(m.expiryDate).toISOString().split('T')[0] : 'N/A'}`
+            ).join('\n')
+
+            const employment = (profile.employmentHistory || []).map((e: any) =>
+                `${e.startDate ? new Date(e.startDate).toISOString().split('T')[0] : 'N/A'} - ${e.endDate ? new Date(e.endDate).toISOString().split('T')[0] : 'Present'} :: ${e.jobTitle} :: ${e.jobGroup || 'N/A'} :: ${e.organization}`
+            ).join('\n')
+
+            const refereesStr = (profile.referees || []).map((r: any) =>
+                `${r.fullName} :: ${r.organization} :: ${r.designation} :: ${r.phone} :: ${r.email}`
+            ).join('\n')
+
+            const row = [
+                profile.fullName,
+                profile.idNumber,
+                profile.gender,
+                profile.dateOfBirth,
+                profile.ethnicity?.name || '',
+                profile.phoneNumber,
+                profile.email,
+                profile.homeCounty?.name || '',
+                profile.homeSubCounty?.name || '',
+                profile.ward?.name || '',
+                profile.residenceCounty?.name || '',
+                profile.residenceSubCounty?.name || '',
+                profile.residenceWard?.name || '',
+                profile.impairment ? `YES: ${profile.impairmentDetails || ''}` : 'NO',
+                profile.publicServiceInfo,
+                profile.personalNumber,
+                qualificationsStr,
+                profDetails,
+                trainings,
+                memberships,
+                employment,
+                refereesStr
+            ].map(escapeCsv).join(',')
+
+            csvRows.push(row)
+        }
+
+        const csvContent = csvRows.join('\n')
+        return new Response(csvContent, {
+            headers: {
+                'Content-Type': 'text/csv',
+                'Content-Disposition': `attachment; filename="applicant_profiles_export_${new Date().toISOString().split('T')[0]}.csv"`
+            }
+        })
     } catch (error) {
         logger.error({ err: error }, 'Failed to export admin profiles')
         throw error

@@ -80,6 +80,9 @@ export function useRegister() {
             toast.success('Registration successful', {
                 description: 'Your account has been created!',
             })
+
+            // Redirect to dashboard
+            router.push('/dashboard')
         },
         onError: (error: unknown) => {
             toast.error('Registration failed', {

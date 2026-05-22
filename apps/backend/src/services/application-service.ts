@@ -45,7 +45,7 @@ export class ApplicationService {
                 throw new ValidationError('This vacancy is no longer accepting applications.')
             }
 
-            // 5. Check for duplicate application
+            // 5. Check for duplicate application or existing draft
             const existing = await tx.query.applications.findFirst({
                 where: and(
                     eq(applications.applicantId, userId),
@@ -54,10 +54,27 @@ export class ApplicationService {
             })
 
             if (existing) {
-                throw new ConflictError('You have already applied for this vacancy.')
+                // If it's already submitted (not a draft), throw error
+                if (existing.status !== 'draft') {
+                    throw new ConflictError('You have already applied for this vacancy.')
+                }
+
+                // If it's a draft, update it to pending and capture snapshot
+                const [updatedApplication] = await tx
+                    .update(applications)
+                    .set({
+                        status: 'pending',
+                        profileSnapshot: profile,
+                        appliedAt: new Date(),
+                        updatedAt: new Date()
+                    })
+                    .where(eq(applications.id, existing.id))
+                    .returning()
+
+                return updatedApplication
             }
 
-            // 6. Create application with snapshot
+            // 6. Create new application with snapshot
             const [newApplication] = await tx
                 .insert(applications)
                 .values({

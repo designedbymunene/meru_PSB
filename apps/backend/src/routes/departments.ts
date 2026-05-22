@@ -6,6 +6,7 @@ import { requireAdmin } from '../middleware/admin'
 import { validate } from '../middleware/validation'
 import { createDepartmentSchema, updateDepartmentSchema } from '@meru/shared'
 import { NotFoundError, successResponse } from '../utils/errors'
+import { AuditService } from '../services/audit-service'
 
 export const departmentsRouter = new Hono()
 
@@ -46,6 +47,7 @@ departmentsRouter.post(
     requireAdmin,
     validate(createDepartmentSchema),
     async (c) => {
+        const user = c.get('user')
         const data = c.get('validatedData' as never) as {
             name: string
             description?: string
@@ -61,6 +63,16 @@ departmentsRouter.post(
             })
             .returning()
 
+        await AuditService.logAction({
+            adminId: user.userId,
+            action: 'CREATE_DEPARTMENT',
+            targetType: 'DEPARTMENT',
+            targetId: newDepartment.id,
+            newState: newDepartment,
+            ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+            userAgent: c.req.header('user-agent')
+        })
+
         return successResponse(c, newDepartment, 'Department created successfully', 201)
     }
 )
@@ -73,11 +85,20 @@ departmentsRouter.put(
     validate(updateDepartmentSchema),
     async (c) => {
         const id = parseInt(c.req.param('id') || '0')
+        const user = c.get('user')
         const data = c.get('validatedData' as never) as Partial<{
             name: string
             description: string
             status: string
         }>
+
+        const previousState = await db.query.departments.findFirst({
+            where: eq(departments.id, id)
+        })
+
+        if (!previousState) {
+            throw new NotFoundError('Department')
+        }
 
         const [updatedDepartment] = await db
             .update(departments)
@@ -85,9 +106,16 @@ departmentsRouter.put(
             .where(eq(departments.id, id))
             .returning()
 
-        if (!updatedDepartment) {
-            throw new NotFoundError('Department')
-        }
+        await AuditService.logAction({
+            adminId: user.userId,
+            action: 'UPDATE_DEPARTMENT',
+            targetType: 'DEPARTMENT',
+            targetId: id,
+            previousState,
+            newState: updatedDepartment,
+            ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+            userAgent: c.req.header('user-agent')
+        })
 
         return successResponse(c, updatedDepartment, 'Department updated successfully')
     }
@@ -96,15 +124,30 @@ departmentsRouter.put(
 // DELETE /api/departments/:id - Delete department (admin only)
 departmentsRouter.delete('/:id', authenticate, requireAdmin, async (c) => {
     const id = parseInt(c.req.param('id') || '0')
+    const user = c.get('user')
+
+    const previousState = await db.query.departments.findFirst({
+        where: eq(departments.id, id)
+    })
+
+    if (!previousState) {
+        throw new NotFoundError('Department')
+    }
 
     const [deletedDepartment] = await db
         .delete(departments)
         .where(eq(departments.id, id))
         .returning()
 
-    if (!deletedDepartment) {
-        throw new NotFoundError('Department')
-    }
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: 'DELETE_DEPARTMENT',
+        targetType: 'DEPARTMENT',
+        targetId: id,
+        previousState,
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('remote-addr'),
+        userAgent: c.req.header('user-agent')
+    })
 
     return successResponse(c, null, 'Department deleted successfully')
 })

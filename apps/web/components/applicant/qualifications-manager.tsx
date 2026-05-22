@@ -175,6 +175,29 @@ export function QualificationsManager() {
                     data,
                 })
             } else {
+                if (profile?.hasNoCertificates) {
+                    await updateProfile.mutateAsync({
+                        fullName: profile.fullName || '',
+                        idNumber: profile.idNumber || '',
+                        gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
+                        dateOfBirth: profile.dateOfBirth || '',
+                        ethnicityId: profile.ethnicityId || 0,
+                        phoneNumber: profile.phoneNumber || '',
+                        email: profile.email || '',
+                        homeCountyId: profile.homeCountyId || 0,
+                        homeSubCountyId: profile.homeSubCountyId || 0,
+                        wardId: profile.wardId || 0,
+                        impairment: profile.impairment || false,
+                        impairmentDetails: profile.impairmentDetails || '',
+                        publicServiceInfo: profile.publicServiceInfo || '',
+                        personalNumber: profile.personalNumber || '',
+                        hasNoExperience: profile.hasNoExperience || false,
+                        hasNoCertificates: false,
+                        hasNoMemberships: profile.hasNoMemberships || false,
+                        hasNoTrainings: profile.hasNoTrainings || false,
+                        hasNoReferees: profile.hasNoReferees || false,
+                    })
+                }
                 await addMutation.mutateAsync(data)
             }
             setIsDialogOpen(false)
@@ -211,8 +234,8 @@ export function QualificationsManager() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between bg-muted/20 p-4 rounded-xl border border-dashed border-muted-foreground/20">
+        <div className="space-y-3">
+            <div className="flex items-center justify-between bg-muted/20 py-2 px-3.5 rounded-xl border border-dashed border-muted-foreground/20">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
                         <GraduationCap className="h-5 w-5" />
@@ -242,7 +265,7 @@ export function QualificationsManager() {
                         </Button>
                     </SheetTrigger>
                     <SheetContent className="w-full sm:max-w-md border-l border-slate-200 dark:border-slate-800 p-0 flex flex-col" side="right">
-                        <SheetHeader className="p-6 border-b border-slate-100 dark:border-slate-800 text-left">
+                        <SheetHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-800 text-left">
                             <SheetTitle className="text-2xl font-bold flex items-center gap-2">
                                 <GraduationCap className="h-6 w-6 text-primary" />
                                 {editingQualification ? 'Edit Qualification' : 'Add New Qualification'}
@@ -253,11 +276,11 @@ export function QualificationsManager() {
                         </SheetHeader>
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
-                                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                <div className="flex-1 overflow-y-auto py-4 px-5 space-y-3">
                                     {/* Level & Course Section */}
-                                    <div className="space-y-4">
+                                    <div className="space-y-3">
                                         <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-l-2 border-primary/30 pl-2">Level & Course</h4>
-                                        <div className="space-y-6">
+                                        <div className="space-y-3">
                                             <FormField
                                                 control={form.control}
                                                 name="level"
@@ -302,7 +325,7 @@ export function QualificationsManager() {
                                                             </SelectContent>
                                                         </Select>
                                                         {showOtherLevelInput && (
-                                                            <div className="mt-3 animate-in fade-in slide-in-from-top-2">
+                                                            <div className="mt-2.5 animate-in fade-in slide-in-from-top-2">
                                                                 <Input 
                                                                     placeholder="Enter custom level (e.g. Higher Diploma)" 
                                                                     className="h-11 rounded-lg"
@@ -317,7 +340,7 @@ export function QualificationsManager() {
                                             />
 
                                             {!isLevel1To4(selectedLevelCode) && (
-                                                <div className="space-y-4">
+                                                <div className="space-y-3">
                                                     <FormField
                                                         control={form.control}
                                                         name="courseId"
@@ -415,7 +438,7 @@ export function QualificationsManager() {
                                     </div>
 
                                 {/* Institution Section */}
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-l-2 border-primary/30 pl-2">Institution</h4>
                                     <FormField
                                         control={form.control}
@@ -532,9 +555,9 @@ export function QualificationsManager() {
                                 </div>
 
                                 {/* Grade & Years Section */}
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-l-2 border-primary/30 pl-2">Performance & Duration</h4>
-                                    <div className="space-y-6">
+                                    <div className="space-y-3">
                                         <div className="w-full">
                                             <FormField
                                                 control={form.control}
@@ -554,7 +577,7 @@ export function QualificationsManager() {
                                                 )}
                                             />
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-2 gap-3">
                                             <FormField 
                                                 control={form.control} 
                                                 name="yearStart" 
@@ -600,18 +623,18 @@ export function QualificationsManager() {
                                 </div>
                                 </div>
 
-                                <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 flex gap-3 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] mt-auto">
+                                <div className="py-3 px-5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 flex gap-3 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] mt-auto">
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        className="flex-1 h-12 rounded-2xl font-bold border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
+                                        className="flex-1 h-10 rounded-xl font-bold border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
                                         onClick={() => setIsDialogOpen(false)}
                                     >
                                         Cancel
                                     </Button>
                                     <Button
                                         type="submit"
-                                        className="flex-[2] h-12 rounded-2xl font-bold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98] transition-all"
+                                        className="flex-[2] h-10 rounded-xl font-bold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 active:scale-[0.98] transition-all"
                                         disabled={addMutation.isPending || updateMutation.isPending}
                                     >
                                         {(addMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -625,59 +648,56 @@ export function QualificationsManager() {
             </div>
 
             {/* Not Included Toggle */}
-            <div className="flex items-center space-x-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                <Checkbox
-                    id="hasNoCertificates"
-                    checked={profile?.hasNoCertificates || false}
-                    onCheckedChange={async (checked) => {
-                        if (!profile) return
-                        await updateProfile.mutateAsync({
-                            fullName: profile.fullName || '',
-                            idNumber: profile.idNumber || '',
-                            gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
-                            dateOfBirth: profile.dateOfBirth || '',
-                            ethnicityId: profile.ethnicityId || 0,
-                            phoneNumber: profile.phoneNumber || '',
-                            email: profile.email || '',
-                            homeCountyId: profile.homeCountyId || 0,
-                            homeSubCountyId: profile.homeSubCountyId || 0,
-                            wardId: profile.wardId || 0,
-                            impairment: profile.impairment || false,
-                            impairmentDetails: profile.impairmentDetails || '',
-                            publicServiceInfo: profile.publicServiceInfo || '',
-                            personalNumber: profile.personalNumber || '',
-                            hasNoExperience: profile.hasNoExperience || false,
-                            hasNoCertificates: Boolean(checked),
-                            hasNoMemberships: profile.hasNoMemberships || false,
-                            hasNoTrainings: profile.hasNoTrainings || false,
-                            hasNoReferees: profile.hasNoReferees || false,
-                        })
-                    }}
-                    disabled={updateProfile.isPending || qualifications.length > 0}
-                    className="h-5 w-5 rounded-md"
-                />
-                <div className="grid gap-1.5 leading-none">
-                    <Label
-                        htmlFor="hasNoCertificates"
-                        className={cn(
-                            "text-sm font-semibold cursor-pointer select-none",
-                            qualifications.length > 0 ? "text-slate-400 cursor-not-allowed" : "text-slate-700 dark:text-slate-300"
-                        )}
-                    >
-                        I have no academic history to add
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                        {qualifications.length > 0 
-                            ? "Remove existing qualifications first to mark this section as Not Applicable."
-                            : "Check this if you do not hold any academic qualifications."}
-                    </p>
+            {qualifications.length === 0 && (
+                <div className="flex items-center space-x-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                    <Checkbox
+                        id="hasNoCertificates"
+                        checked={profile?.hasNoCertificates || false}
+                        onCheckedChange={async (checked) => {
+                            if (!profile) return
+                            await updateProfile.mutateAsync({
+                                fullName: profile.fullName || '',
+                                idNumber: profile.idNumber || '',
+                                gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
+                                dateOfBirth: profile.dateOfBirth || '',
+                                ethnicityId: profile.ethnicityId || 0,
+                                phoneNumber: profile.phoneNumber || '',
+                                email: profile.email || '',
+                                homeCountyId: profile.homeCountyId || 0,
+                                homeSubCountyId: profile.homeSubCountyId || 0,
+                                wardId: profile.wardId || 0,
+                                impairment: profile.impairment || false,
+                                impairmentDetails: profile.impairmentDetails || '',
+                                publicServiceInfo: profile.publicServiceInfo || '',
+                                personalNumber: profile.personalNumber || '',
+                                hasNoExperience: profile.hasNoExperience || false,
+                                hasNoCertificates: Boolean(checked),
+                                hasNoMemberships: profile.hasNoMemberships || false,
+                                hasNoTrainings: profile.hasNoTrainings || false,
+                                hasNoReferees: profile.hasNoReferees || false,
+                            })
+                        }}
+                        disabled={updateProfile.isPending}
+                        className="h-5 w-5 rounded-md"
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                        <Label
+                            htmlFor="hasNoCertificates"
+                            className="text-sm font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300"
+                        >
+                            I have no academic history to add
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                            Check this if you do not hold any academic qualifications.
+                        </p>
+                    </div>
+                    {updateProfile.isPending && (
+                        <Loader2 className="h-4 w-4 animate-spin text-primary ml-auto" />
+                    )}
                 </div>
-                {updateProfile.isPending && (
-                    <Loader2 className="h-4 w-4 animate-spin text-primary ml-auto" />
-                )}
-            </div>
+            )}
 
-            <div className="space-y-4">
+            <div className="space-y-3">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 space-y-4">
                         <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
@@ -694,44 +714,50 @@ export function QualificationsManager() {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {qualifications.map((qual) => (
-                            <div key={qual.id} className="group relative bg-card border rounded-2xl p-5 hover:border-primary/40 hover:shadow-md transition-all duration-300">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><GraduationCap className="h-5 w-5" /></div>
-                                        <div className="min-w-0">
-                                            <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate pr-2">{qual.course}</h3>
-                                            <Badge variant="secondary" className="font-bold text-[10px] px-2 bg-primary/5 text-primary border-none uppercase tracking-wider h-5">
-                                                {formatKNQFLevel(qual.level)}
-                                            </Badge>
+                    <div className="max-h-[calc(100vh-380px)] overflow-y-auto pr-2 -mr-2">
+                        <div className="grid grid-cols-1 gap-3 pt-1 pb-3">
+                            {qualifications.map((qual) => (
+                                <div key={qual.id} className="group relative flex items-start justify-between p-4 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
+                                    <div className="flex-1 min-w-0 space-y-2">
+                                        <div className="flex items-start gap-3">
+                                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                                                <GraduationCap className="h-5 w-5" />
+                                            </div>
+                                            <div className="min-w-0 flex-1 space-y-1.5">
+                                                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base leading-tight break-words">{qual.course}</h3>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    <Badge variant="secondary" className="font-semibold text-[10px] px-2 bg-primary/5 text-primary border-none uppercase tracking-wider h-auto py-0.5 whitespace-normal break-words max-w-full">
+                                                        {formatKNQFLevel(qual.level)}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2 pl-[52px]">
+                                            <div className="flex items-center gap-2 text-[13px] text-muted-foreground font-medium break-words">
+                                                <School className="h-3.5 w-3.5 opacity-60 flex-shrink-0" />
+                                                <span>{qual.institution}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-bold uppercase tracking-wider">
+                                                    <Calendar className="h-3.5 w-3.5 opacity-60" />
+                                                    <span>{qual.yearStart} - {qual.yearEnd || 'Present'}</span>
+                                                </div>
+                                                {qual.grade && (
+                                                    <Badge variant="outline" className="text-[10px] py-0 h-5 border-slate-200 dark:border-slate-700 font-bold uppercase bg-slate-50 dark:bg-slate-900">
+                                                        <Award className="h-3 w-3 mr-1 opacity-60" />
+                                                        {qual.grade}
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 transition-colors" onClick={() => handleEdit(qual)}><Edit2 className="h-3.5 w-3.5" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10 transition-colors" onClick={() => setDeletingId(qual.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    <div className="flex gap-1 ml-4 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => handleEdit(qual)}><Edit2 className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={() => setDeletingId(qual.id)}><Trash2 className="h-4 w-4" /></Button>
                                     </div>
                                 </div>
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2 text-[13px] text-muted-foreground font-medium">
-                                        <School className="h-3.5 w-3.5 opacity-60" />
-                                        <span className="truncate">{qual.institution}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-                                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-bold uppercase tracking-wider">
-                                            <Calendar className="h-3.5 w-3.5 opacity-60" />
-                                            <span>{qual.yearStart} - {qual.yearEnd || 'Present'}</span>
-                                        </div>
-                                        {qual.grade && (
-                                            <Badge variant="outline" className="text-[10px] py-0 h-5 border-slate-200 dark:border-slate-700 font-bold uppercase bg-slate-50 dark:bg-slate-900">
-                                                <Award className="h-3 w-3 mr-1 opacity-60" />
-                                                {qual.grade}
-                                            </Badge>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>

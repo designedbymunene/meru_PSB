@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { cn } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -55,7 +56,7 @@ export function ResponsiveDialog({
   children,
   className = 'max-w-2xl',
   mobileLayout = 'sheet',
-  contentClassName = 'max-h-[70vh] overflow-y-auto',
+  contentClassName = 'max-h-[70vh]',
 }: ResponsiveDialogProps) {
   const [isMobile, setIsMobile] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -76,17 +77,17 @@ export function ResponsiveDialog({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          className="h-[90vh] rounded-t-2xl flex flex-col"
+          className="h-[90vh] rounded-t-2xl flex flex-col p-0"
         >
-          <SheetHeader className="border-b pb-4">
-            <SheetTitle className="text-xl">{title}</SheetTitle>
+          <SheetHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-800 text-left">
+            <SheetTitle className="text-xl font-bold">{title}</SheetTitle>
             {description && (
-              <SheetDescription className="text-sm text-slate-500">
+              <SheetDescription className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 {description}
               </SheetDescription>
             )}
           </SheetHeader>
-          <div className="overflow-y-auto flex-1 py-6">{children}</div>
+          <div className="overflow-y-auto flex-1 py-4 px-5">{children}</div>
         </SheetContent>
       </Sheet>
     )
@@ -95,14 +96,16 @@ export function ResponsiveDialog({
   // Desktop: Modal Dialog (or mobile if mobileLayout='modal')
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={className}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+      <DialogContent className={cn("p-0 flex flex-col overflow-hidden", className)}>
+        <DialogHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-800 text-left">
+          <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
           {description && (
-            <DialogDescription>{description}</DialogDescription>
+            <DialogDescription className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {description}
+            </DialogDescription>
           )}
         </DialogHeader>
-        <div className={contentClassName}>{children}</div>
+        <div className={cn("overflow-y-auto py-4 px-5", contentClassName)}>{children}</div>
       </DialogContent>
     </Dialog>
   )

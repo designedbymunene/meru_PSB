@@ -69,6 +69,29 @@ export function EmploymentHistoryManager() {
                     data,
                 })
             } else {
+                if (profile?.hasNoExperience) {
+                    await updateProfile.mutateAsync({
+                        fullName: profile.fullName || '',
+                        idNumber: profile.idNumber || '',
+                        gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
+                        dateOfBirth: profile.dateOfBirth || '',
+                        ethnicityId: profile.ethnicityId || 0,
+                        phoneNumber: profile.phoneNumber || '',
+                        email: profile.email || '',
+                        homeCountyId: profile.homeCountyId || 0,
+                        homeSubCountyId: profile.homeSubCountyId || 0,
+                        wardId: profile.wardId || 0,
+                        impairment: profile.impairment || false,
+                        impairmentDetails: profile.impairmentDetails || '',
+                        publicServiceInfo: profile.publicServiceInfo || '',
+                        personalNumber: profile.personalNumber || '',
+                        hasNoExperience: false,
+                        hasNoCertificates: profile.hasNoCertificates || false,
+                        hasNoMemberships: profile.hasNoMemberships || false,
+                        hasNoTrainings: profile.hasNoTrainings || false,
+                        hasNoReferees: profile.hasNoReferees || false,
+                    })
+                }
                 await addMutation.mutateAsync(data)
             }
             setIsDialogOpen(false)
@@ -98,8 +121,8 @@ export function EmploymentHistoryManager() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between bg-muted/20 p-4 rounded-xl border border-dashed border-muted-foreground/20">
+        <div className="space-y-3">
+            <div className="flex items-center justify-between bg-muted/20 py-2 px-3.5 rounded-xl border border-dashed border-muted-foreground/20">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg text-primary">
                         <Briefcase className="h-5 w-5" />
@@ -122,18 +145,18 @@ export function EmploymentHistoryManager() {
                     className="max-w-2xl"
                 >
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                            <div className="grid grid-cols-2 gap-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 pt-1">
+                            <div className="grid grid-cols-2 gap-3">
                                 <FormField control={form.control} name="jobTitle" render={({ field }) => <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Job Title *</FormLabel><FormControl><Input placeholder="e.g. Software Engineer" className="h-11 rounded-lg" {...field} /></FormControl><FormMessage /></FormItem>} />
                                 <FormField control={form.control} name="organization" render={({ field }) => <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Organization *</FormLabel><FormControl><Input placeholder="e.g. ABC Company" className="h-11 rounded-lg" {...field} /></FormControl><FormMessage /></FormItem>} />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3">
                                 <FormField control={form.control} name="startDate" render={({ field }) => <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Start Date *</FormLabel><FormControl><Input type="date" className="h-11 rounded-lg" {...field} /></FormControl><FormMessage /></FormItem>} />
-                                <FormField control={form.control} name="endDate" render={({ field }) => <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">End Date</FormLabel><FormControl><Input type="date" className="h-11 rounded-lg" {...field} value={field.value || ''} /></FormControl><FormDescription className="text-[10px]">Leave blank if currently working here</FormDescription><FormMessage /></FormItem>} />
+                                <FormField control={form.control} name="endDate" render={({ field }) => <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">End Date</FormLabel><FormControl><Input type="date" className="h-11 rounded-lg" {...field} value={field.value || ''} /></FormControl><FormDescription className="text-[10px] mt-1">Leave blank if currently working here</FormDescription><FormMessage /></FormItem>} />
                             </div>
                             <FormField control={form.control} name="jobGroup" render={({ field }) => <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Job Group (Optional)</FormLabel><FormControl><Input placeholder="e.g. L, M, N..." className="h-11 rounded-lg" {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <FormField control={form.control} name="responsibilities" render={({ field }) => <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Responsibilities</FormLabel><FormControl><Textarea placeholder="Describe your key responsibilities and achievements..." rows={4} className="rounded-lg resize-none" {...field} /></FormControl><FormMessage /></FormItem>} />
-                            <div className="flex justify-end gap-3 pt-6 border-t mt-4">
+                            <FormField control={form.control} name="responsibilities" render={({ field }) => <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Responsibilities</FormLabel><FormControl><Textarea placeholder="Describe your key responsibilities and achievements..." rows={3} className="rounded-lg resize-none" {...field} /></FormControl><FormMessage /></FormItem>} />
+                            <div className="flex justify-end gap-3 pt-3 border-t mt-4">
                                 <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                                 <Button type="submit" disabled={addMutation.isPending || updateMutation.isPending} className="px-8 shadow-lg shadow-primary/20">
                                     {(addMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -158,59 +181,56 @@ export function EmploymentHistoryManager() {
             </div>
 
             {/* Not Included Toggle */}
-            <div className="flex items-center space-x-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                <Checkbox
-                    id="hasNoExperience"
-                    checked={profile?.hasNoExperience || false}
-                    onCheckedChange={async (checked) => {
-                        if (!profile) return
-                        await updateProfile.mutateAsync({
-                            fullName: profile.fullName || '',
-                            idNumber: profile.idNumber || '',
-                            gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
-                            dateOfBirth: profile.dateOfBirth || '',
-                            ethnicityId: profile.ethnicityId || 0,
-                            phoneNumber: profile.phoneNumber || '',
-                            email: profile.email || '',
-                            homeCountyId: profile.homeCountyId || 0,
-                            homeSubCountyId: profile.homeSubCountyId || 0,
-                            wardId: profile.wardId || 0,
-                            impairment: profile.impairment || false,
-                            impairmentDetails: profile.impairmentDetails || '',
-                            publicServiceInfo: profile.publicServiceInfo || '',
-                            personalNumber: profile.personalNumber || '',
-                            hasNoExperience: Boolean(checked),
-                            hasNoCertificates: profile.hasNoCertificates || false,
-                            hasNoMemberships: profile.hasNoMemberships || false,
-                            hasNoTrainings: profile.hasNoTrainings || false,
-                            hasNoReferees: profile.hasNoReferees || false,
-                        })
-                    }}
-                    disabled={updateProfile.isPending || employmentHistory.length > 0}
-                    className="h-5 w-5 rounded-md"
-                />
-                <div className="grid gap-1.5 leading-none">
-                    <Label
-                        htmlFor="hasNoExperience"
-                        className={cn(
-                            "text-sm font-semibold cursor-pointer select-none",
-                            employmentHistory.length > 0 ? "text-slate-400 cursor-not-allowed" : "text-slate-700 dark:text-slate-300"
-                        )}
-                    >
-                        I have no employment history to add
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                        {employmentHistory.length > 0 
-                            ? "Remove existing experience records first to mark this section as Not Applicable."
-                            : "Check this if you do not hold any professional work experience."}
-                    </p>
+            {employmentHistory.length === 0 && (
+                <div className="flex items-center space-x-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                    <Checkbox
+                        id="hasNoExperience"
+                        checked={profile?.hasNoExperience || false}
+                        onCheckedChange={async (checked) => {
+                            if (!profile) return
+                            await updateProfile.mutateAsync({
+                                fullName: profile.fullName || '',
+                                idNumber: profile.idNumber || '',
+                                gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
+                                dateOfBirth: profile.dateOfBirth || '',
+                                ethnicityId: profile.ethnicityId || 0,
+                                phoneNumber: profile.phoneNumber || '',
+                                email: profile.email || '',
+                                homeCountyId: profile.homeCountyId || 0,
+                                homeSubCountyId: profile.homeSubCountyId || 0,
+                                wardId: profile.wardId || 0,
+                                impairment: profile.impairment || false,
+                                impairmentDetails: profile.impairmentDetails || '',
+                                publicServiceInfo: profile.publicServiceInfo || '',
+                                personalNumber: profile.personalNumber || '',
+                                hasNoExperience: Boolean(checked),
+                                hasNoCertificates: profile.hasNoCertificates || false,
+                                hasNoMemberships: profile.hasNoMemberships || false,
+                                hasNoTrainings: profile.hasNoTrainings || false,
+                                hasNoReferees: profile.hasNoReferees || false,
+                            })
+                        }}
+                        disabled={updateProfile.isPending}
+                        className="h-5 w-5 rounded-md"
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                        <Label
+                            htmlFor="hasNoExperience"
+                            className="text-sm font-semibold cursor-pointer select-none text-slate-700 dark:text-slate-300"
+                        >
+                            I have no employment history to add
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                            Check this if you do not hold any professional work experience.
+                        </p>
+                    </div>
+                    {updateProfile.isPending && (
+                        <Loader2 className="h-4 w-4 animate-spin text-primary ml-auto" />
+                    )}
                 </div>
-                {updateProfile.isPending && (
-                    <Loader2 className="h-4 w-4 animate-spin text-primary ml-auto" />
-                )}
-            </div>
+            )}
 
-            <div className="space-y-4">
+            <div className="space-y-3">
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 space-y-4">
                         <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
@@ -227,12 +247,12 @@ export function EmploymentHistoryManager() {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3">
                         {employmentHistory.map((emp) => (
-                            <div key={emp.id} className="group relative flex items-start justify-between p-5 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
-                                <div className="flex-1 min-w-0 space-y-3">
+                            <div key={emp.id} className="group relative flex items-start justify-between p-4 bg-card border rounded-2xl hover:border-primary/40 hover:shadow-md transition-all duration-300">
+                                <div className="flex-1 min-w-0 space-y-2">
                                     <div className="space-y-1">
-                                        <h3 className="font-bold text-lg leading-tight text-foreground truncate">{emp.jobTitle}</h3>
+                                        <h3 className="font-bold text-base leading-tight text-foreground truncate">{emp.jobTitle}</h3>
                                         <div className="flex items-center gap-2">
                                             <Badge variant="secondary" className="rounded-md font-bold text-[10px] px-2 bg-primary/5 text-primary border-none uppercase tracking-wider">
                                                 {emp.organization}
