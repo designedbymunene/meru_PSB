@@ -1,4 +1,4 @@
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 import { format } from 'date-fns'
 import { CalendarIcon, EyeIcon } from 'lucide-react'
 import { UnifiedCard } from '@/components/shared/cards/unified-card'

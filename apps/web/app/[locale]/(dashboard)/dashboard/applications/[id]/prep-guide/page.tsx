@@ -1,6 +1,7 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 import { ArrowLeftIcon, BookOpen, CheckCircle2, FileText, Users, Award, Briefcase, AlertCircle, HelpCircle, Sparkles, ShieldCheck, Clock, Check } from 'lucide-react'
 import { useApplication } from '@/hooks/use-applications'
 import { Button } from '@/components/ui/button'

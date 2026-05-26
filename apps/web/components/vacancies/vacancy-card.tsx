@@ -1,4 +1,4 @@
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 import { CalendarIcon, UsersIcon, BuildingIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { UnifiedCard } from '@/components/shared/cards/unified-card'

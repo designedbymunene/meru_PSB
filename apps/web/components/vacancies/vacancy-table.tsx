@@ -76,7 +76,9 @@ export function VacancyTable({ data }: VacancyTableProps) {
             header: "Deadline",
             cell: ({ row }) => {
                 const date = new Date(row.original.closingDate)
-                const isExpired = date < new Date()
+                const expiryDate = new Date(date)
+                expiryDate.setHours(23, 59, 59, 999)
+                const isExpired = new Date() > expiryDate
                 return (
                     <div className="flex items-center gap-2 text-sm">
                         <Calendar className={`h-3.5 w-3.5 shrink-0 ${isExpired ? 'text-red-400' : 'opacity-40'}`} />

@@ -43,7 +43,9 @@ export default function VacanciesScreen() {
 
     const getStatusInfo = (status: string, closingDate: string) => {
         const isClosed = status?.toUpperCase() === 'CLOSED';
-        const isExpired = new Date(closingDate) < new Date();
+        const expiryDate = new Date(closingDate);
+        expiryDate.setHours(23, 59, 59, 999);
+        const isExpired = expiryDate < new Date();
 
         if (isClosed) return { label: 'Closed', color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-100 dark:border-red-900/30' };
         if (isExpired) return { label: 'Expired', color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-100 dark:border-orange-900/30' };

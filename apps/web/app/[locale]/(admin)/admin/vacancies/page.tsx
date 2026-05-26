@@ -184,7 +184,9 @@ function VacanciesPageContent() {
             header: "Deadline",
             cell: ({ row }) => {
                 const date = new Date(row.original.closingDate)
-                const isExpired = date < new Date() && row.original.status === 'open'
+                const expiryDate = new Date(date)
+                expiryDate.setHours(23, 59, 59, 999)
+                const isExpired = new Date() > expiryDate && row.original.status === 'open'
                 return (
                     <div className="flex flex-col gap-0.5">
                         <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">{format(date, "PP")}</span>

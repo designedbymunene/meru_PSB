@@ -1,7 +1,8 @@
 'use client'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
+import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import type { AxiosError } from '@meru/shared'
 import * as authApi from '@/lib/api/auth'
@@ -20,6 +21,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export function useLogin() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const queryClient = useQueryClient()
     const { setUser } = useAuthContext()
 
@@ -38,8 +40,11 @@ export function useLogin() {
                 description: `Welcome back, ${user.fullName}!`,
             })
 
-            // Redirect based on role
-            if (user.role === 'admin') {
+            // Redirect based on callbackUrl or role
+            const callbackUrl = searchParams.get('callbackUrl')
+            if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
+                router.push(callbackUrl)
+            } else if (user.role === 'admin') {
                 router.push('/admin')
             } else {
                 router.push('/dashboard')
@@ -55,6 +60,7 @@ export function useLogin() {
 
 export function useRegister() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const queryClient = useQueryClient()
     const { setUser } = useAuthContext()
 
@@ -73,8 +79,13 @@ export function useRegister() {
                 description: 'Your account has been created!',
             })
 
-            // Redirect to dashboard
-            router.push('/dashboard')
+            // Redirect based on callbackUrl or default to dashboard
+            const callbackUrl = searchParams.get('callbackUrl')
+            if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
+                router.push(callbackUrl)
+            } else {
+                router.push('/dashboard')
+            }
         },
         onError: (error: unknown) => {
             toast.error('Registration failed', {

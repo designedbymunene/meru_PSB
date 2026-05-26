@@ -1,5 +1,22 @@
 version: '3.8'
 
+# IMPORTANT: Safe Rebuild Commands
+# ================================
+# To rebuild ONLY the frontend (safe - won't affect database):
+#   docker compose up -d --build web
+#
+# To rebuild ONLY the backend API (safe - won't affect database):
+#   docker compose up -d --build api
+#
+# To rebuild everything (CAUTION - may run migrations):
+#   docker compose --profile migrate up -d --build
+#
+# To run migrations manually (when needed):
+#   docker compose --profile migrate up migrate
+#
+# NEVER run: docker compose down && docker compose up -d --build
+# This will rebuild everything and potentially destroy your database!
+
 services:
   db:
     image: postgres:15
@@ -45,6 +62,8 @@ services:
     command: >
       sh -c "npx drizzle-kit migrate --config drizzle.config.ts"
     restart: "no"
+    profiles:
+      - manual  # Only run when explicitly enabled: docker compose --profile migrate up migrate
 
   api:
     build:
@@ -56,8 +75,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     env_file:
       - apps/backend/.env
     environment:
@@ -88,6 +105,24 @@ services:
     ports:
       - "3001:3001"
     restart: unless-stopped
+
+  # Database backup service (manual only)
+  backup:
+    image: postgres:15
+    container_name: meru-backup
+    environment:
+      POSTGRES_DB: meru_county_psb
+      POSTGRES_USER: meru_county
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    command: >
+      sh -c "pg_dump -h db -U meru_county -d meru_county_psb > /backups/backup_$$(date +%Y%m%d_%H%M%S).sql"
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles:
+      - backup  # Run: docker compose --profile backup up backup
 
 volumes:
   postgres_data:

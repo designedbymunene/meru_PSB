@@ -1,13 +1,24 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import type { Metadata } from 'next'
+import { useState, Suspense } from 'react'
+import { useRouter } from '@/i18n/routing'
 import { RegisterForm } from '@/components/auth'
 import { MultiStepProfileForm } from '@/components/forms'
 import type { RegisterInput } from '@meru/shared'
 
 export default function RegisterPage() {
+    return (
+        <Suspense fallback={
+            <div className="w-full max-w-md h-[400px] flex items-center justify-center bg-card rounded-xl border animate-pulse mx-auto">
+                <div className="text-muted-foreground text-sm">Loading registration...</div>
+            </div>
+        }>
+            <RegisterPageContent />
+        </Suspense>
+    )
+}
+
+function RegisterPageContent() {
     const [step, setStep] = useState<'account' | 'profile'>('account')
     const [registrationData, setRegistrationData] = useState<RegisterInput | null>(null)
     const router = useRouter()

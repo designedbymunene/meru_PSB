@@ -1,6 +1,7 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 import { format } from 'date-fns'
 import { ArrowLeftIcon, BuildingIcon, CalendarIcon, FileTextIcon, ListTodoIcon, MapPinIcon, UsersIcon, BriefcaseIcon, Calendar as CalendarIcon2, Bell, BookOpen, Download, Navigation, Clock, CheckCircle2, Video, Share2Icon, XCircle, AlertCircle } from 'lucide-react'
 import { useApplication } from '@/hooks/use-applications'

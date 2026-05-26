@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useVacancy, useVacancyPdfs } from '@/hooks/use-vacancies'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'

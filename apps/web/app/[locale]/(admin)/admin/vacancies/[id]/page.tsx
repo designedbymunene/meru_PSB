@@ -296,9 +296,13 @@ export default function VacancyDetailPage({ params }: { params: Promise<{ id: st
                                 <div>
                                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Closing Date</p>
                                     <p className="text-sm font-medium">{format(new Date(vacancy.closingDate), 'PPP')}</p>
-                                    {new Date(vacancy.closingDate) < new Date() && (
-                                        <Badge variant="destructive" className="mt-1 text-[10px]">Closed/Expired</Badge>
-                                    )}
+                                    {(() => {
+                                        const closingDate = new Date(vacancy.closingDate)
+                                        closingDate.setHours(23, 59, 59, 999)
+                                        return new Date() > closingDate && (
+                                            <Badge variant="destructive" className="mt-1 text-[10px]">Closed/Expired</Badge>
+                                        )
+                                    })()}
                                 </div>
                             </div>
                         </CardContent>

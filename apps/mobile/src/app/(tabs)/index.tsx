@@ -252,7 +252,9 @@ export default function DashboardScreen() {
 
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5 px-5">
                             {(vacancies || []).map((item: any, idx: number) => {
-                                const isExpired = new Date(item.closingDate) < new Date();
+                                const expiryDate = new Date(item.closingDate);
+                                expiryDate.setHours(23, 59, 59, 999);
+                                const isExpired = expiryDate < new Date();
                                 const isClosed = item.status?.toUpperCase() === 'CLOSED';
                                 const statusLabel = isClosed ? 'Closed' : isExpired ? 'Expired' : 'Open';
                                 const statusColor = isClosed ? 'text-red-600' : isExpired ? 'text-orange-600' : 'text-green-600';

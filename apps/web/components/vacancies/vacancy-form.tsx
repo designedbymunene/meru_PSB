@@ -3,7 +3,7 @@
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/i18n/routing"
 import { useCreateVacancy, useUpdateVacancy } from "@/hooks/use-vacancies"
 import { useDepartments } from "@/hooks/use-departments"
 import { useJobGroups } from "@/hooks/use-job-groups"

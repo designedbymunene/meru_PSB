@@ -2,7 +2,7 @@
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 import Link from 'next/link'
 import { Loader2, Mail, Lock, User, Eye, EyeOff, Building } from 'lucide-react'
 import { useState } from 'react'

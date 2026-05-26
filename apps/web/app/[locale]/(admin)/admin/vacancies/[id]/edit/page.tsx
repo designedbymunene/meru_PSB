@@ -4,7 +4,7 @@ import { VacancyForm } from "@/components/vacancies/vacancy-form"
 import { useVacancy } from "@/hooks/use-vacancies"
 import { Skeleton } from "@/components/ui/skeleton"
 import { use } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/i18n/routing"
 
 export default function EditVacancyPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)

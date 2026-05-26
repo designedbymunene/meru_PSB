@@ -73,3 +73,4 @@ pnpm-workspace.yaml.bak
 # Backups and Dumps
 apps/backend/*.sql
 apps/backend/*.dump
+backups/

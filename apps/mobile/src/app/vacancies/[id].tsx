@@ -52,7 +52,9 @@ export default function JobDetailsScreen() {
 
     const getStatusInfo = (status: string, closingDate: string) => {
         const isClosed = status?.toUpperCase() === 'CLOSED';
-        const isExpired = new Date(closingDate) < new Date();
+        const expiryDate = new Date(closingDate);
+        expiryDate.setHours(23, 59, 59, 999);
+        const isExpired = expiryDate < new Date();
 
         if (isClosed) return { label: 'Closed', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950/20' };
         if (isExpired) return { label: 'Expired', color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/20' };
@@ -84,7 +86,9 @@ export default function JobDetailsScreen() {
     }
 
     const status = getStatusInfo(job.status, job.closingDate);
-    const isExpired = new Date(job.closingDate) < new Date() || job.status?.toUpperCase() === 'CLOSED';
+    const expiryDate = new Date(job.closingDate);
+    expiryDate.setHours(23, 59, 59, 999);
+    const isExpired = expiryDate < new Date() || job.status?.toUpperCase() === 'CLOSED';
 
     const formatCurrency = (amount: string) => {
         return new Intl.NumberFormat('en-KE', {
