@@ -20,7 +20,6 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function useLogin() {
-    const router = useRouter()
     const searchParams = useSearchParams()
     const queryClient = useQueryClient()
     const { setUser } = useAuthContext()
@@ -40,15 +39,16 @@ export function useLogin() {
                 description: `Welcome back, ${user.fullName}!`,
             })
 
-            // Redirect based on callbackUrl or role
+            // Redirect based on callbackUrl or role using a hard redirect to avoid Next.js client-side route caching
+            const locale = window.location.pathname.split('/')[1]
+            const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
+
             const callbackUrl = searchParams.get('callbackUrl')
-            if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
-                router.push(callbackUrl)
-            } else if (user.role === 'admin') {
-                router.push('/admin')
-            } else {
-                router.push('/dashboard')
-            }
+            const targetUrl = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
+                ? callbackUrl
+                : (user.role === 'admin' ? '/admin' : '/dashboard')
+
+            window.location.href = `${localePrefix}${targetUrl}`
         },
         onError: (error: unknown) => {
             toast.error('Login failed', {
@@ -59,7 +59,6 @@ export function useLogin() {
 }
 
 export function useRegister() {
-    const router = useRouter()
     const searchParams = useSearchParams()
     const queryClient = useQueryClient()
     const { setUser } = useAuthContext()
@@ -79,13 +78,16 @@ export function useRegister() {
                 description: 'Your account has been created!',
             })
 
-            // Redirect based on callbackUrl or default to dashboard
+            // Redirect based on callbackUrl or default to dashboard using a hard redirect to avoid Next.js client-side route caching
+            const locale = window.location.pathname.split('/')[1]
+            const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
+
             const callbackUrl = searchParams.get('callbackUrl')
-            if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
-                router.push(callbackUrl)
-            } else {
-                router.push('/dashboard')
-            }
+            const targetUrl = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
+                ? callbackUrl
+                : '/dashboard'
+
+            window.location.href = `${localePrefix}${targetUrl}`
         },
         onError: (error: unknown) => {
             toast.error('Registration failed', {
