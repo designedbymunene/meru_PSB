@@ -74,7 +74,8 @@ vacanciesRouter.post(
             userAgent: c.req.header('user-agent')
         })
 
-        return successResponse(c, newVacancy, 'Vacancy created successfully', 201)
+        const { createdAt, updatedAt, creator, ...responseVacancy } = newVacancy as any
+        return successResponse(c, responseVacancy, 'Vacancy created successfully', 201)
     }
 )
 
@@ -105,7 +106,8 @@ vacanciesRouter.put(
             userAgent: c.req.header('user-agent')
         })
 
-        return successResponse(c, updatedVacancy, 'Vacancy updated successfully')
+        const { createdAt, updatedAt, creator, ...responseVacancy } = updatedVacancy as any
+        return successResponse(c, responseVacancy, 'Vacancy updated successfully')
     }
 )
 

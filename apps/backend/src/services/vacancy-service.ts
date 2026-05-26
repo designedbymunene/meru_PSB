@@ -1,4 +1,4 @@
-import { db, vacancies, vacancyDocuments, applications, departments, jobGroups, users } from '../db'
+import { db, vacancies, vacancyDocuments, applications, departments, jobGroups } from '../db'
 import { eq, desc, and, inArray, sql, or, ilike } from 'drizzle-orm'
 import { NotFoundError } from '../utils/errors'
 import fs from 'fs/promises'
@@ -89,18 +89,12 @@ export class VacancyService {
 
         const departmentIds = [...new Set(vacancyList.map(v => v.departmentId).filter(Boolean))] as number[]
         const jobGroupIds = [...new Set(vacancyList.map(v => v.jobGroupId))]
-        const creatorIds = [...new Set(vacancyList.map(v => v.createdBy))]
 
-        const [departmentList, jobGroupList, creatorList, applicationCounts] = await Promise.all([
+        const [departmentList, jobGroupList, applicationCounts] = await Promise.all([
             departmentIds.length > 0
                 ? db.select().from(departments).where(inArray(departments.id, departmentIds))
                 : Promise.resolve([]),
             db.select().from(jobGroups).where(inArray(jobGroups.id, jobGroupIds)),
-            db.select({
-                id: users.id,
-                fullName: users.fullName,
-                email: users.email
-            }).from(users).where(inArray(users.id, creatorIds)),
             db.select({
                 vacancyId: applications.vacancyId,
                 count: sql<number>`count(*)::int`
@@ -112,16 +106,17 @@ export class VacancyService {
 
         const departmentMap = new Map(departmentList.map(d => [d.id, d]))
         const jobGroupMap = new Map(jobGroupList.map(jg => [jg.id, jg]))
-        const creatorMap = new Map(creatorList.map(u => [u.id, u]))
         const applicationCountMap = new Map(applicationCounts.map(ac => [ac.vacancyId, ac.count]))
 
-        const allVacancies = vacancyList.map(vacancy => ({
-            ...vacancy,
-            department: vacancy.departmentId ? departmentMap.get(vacancy.departmentId) ?? null : null,
-            jobGroup: jobGroupMap.get(vacancy.jobGroupId) ?? null,
-            creator: creatorMap.get(vacancy.createdBy) ?? null,
-            applicationsCount: applicationCountMap.get(vacancy.id) || 0
-        }))
+        const allVacancies = vacancyList.map(vacancy => {
+            const { createdAt, updatedAt, creator: _creator, ...vacancyBase } = vacancy as any
+            return {
+                ...vacancyBase,
+                department: vacancy.departmentId ? departmentMap.get(vacancy.departmentId) ?? null : null,
+                jobGroup: jobGroupMap.get(vacancy.jobGroupId) ?? null,
+                applicationsCount: applicationCountMap.get(vacancy.id) || 0
+            }
+        })
 
         return {
             data: allVacancies,
@@ -181,7 +176,9 @@ export class VacancyService {
             .from(applications)
             .where(eq(applications.vacancyId, id))
 
-        return { ...vacancy, hasApplied, applicationsCount }
+        const { createdAt, updatedAt, creator: _creator, ...vacancyBase } = vacancy as any
+
+        return { ...vacancyBase, hasApplied, applicationsCount }
     }
 
     static async create(data: {
