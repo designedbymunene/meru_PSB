@@ -16,7 +16,7 @@ async function handleProxy(
     const headers = new Headers()
 
     // 1. Copy incoming headers (filtering host, connection etc to avoid conflicts)
-    const headersToSkip = ['host', 'connection', 'content-length']
+    const headersToSkip = ['host', 'connection', 'content-length', 'cookie']
     request.headers.forEach((value, key) => {
         if (!headersToSkip.includes(key.toLowerCase())) {
             headers.set(key, value)
@@ -26,6 +26,7 @@ async function handleProxy(
     // 2. Inject authorization token from HttpOnly cookie if present
     const cookieStore = await cookies()
     const accessToken = cookieStore.get('accessToken')?.value
+    
     if (accessToken) {
         headers.set('Authorization', `Bearer ${accessToken}`)
     }

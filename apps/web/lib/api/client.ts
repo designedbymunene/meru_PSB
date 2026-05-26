@@ -37,4 +37,6 @@ export const apiClient = createApiClient({
     isDebug: process.env.NODE_ENV === 'development'
 })
 
+apiClient.defaults.withCredentials = true
+
 export default apiClient

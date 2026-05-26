@@ -14,7 +14,7 @@ const adminRoutes = ['/admin']
 // Routes that are only for unauthenticated users
 const authRoutes = ['/login', '/register', '/forgot-password']
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // Check if the pathname has a locale prefix
