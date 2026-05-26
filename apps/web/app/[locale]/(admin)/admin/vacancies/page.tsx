@@ -118,42 +118,63 @@ function VacanciesPageContent() {
 
     const columns: ColumnDef<VacancyWithRelations>[] = [
         {
-            accessorKey: "advertisementNumber",
-            header: "Ref No.",
-            cell: ({ row }) => (
-                <span className="font-mono text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    {row.original.advertisementNumber}
-                </span>
-            )
-        },
-        {
             accessorKey: "title",
-            header: "Vacancy Details",
-            cell: ({ row }) => (
-                <div className="flex flex-col gap-0.5 max-w-[300px]">
-                    <span className="font-semibold text-sm truncate">{row.original.title}</span>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Building2 className="h-3 w-3" />
-                        <span className="truncate">{row.original.department?.name}</span>
+            header: "Vacancies",
+            cell: ({ row }) => {
+                const vacancy = row.original
+                return (
+                    <div className="flex flex-col gap-1 py-1 max-w-[320px] md:max-w-[400px]">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-sm text-slate-900 dark:text-white whitespace-normal break-words leading-snug">
+                                {vacancy.title}
+                            </span>
+                            <Badge variant={vacancy.status === 'open' ? 'default' : 'secondary'} className="capitalize h-4.5 text-[9px] px-1.5 font-semibold">
+                                {vacancy.status}
+                            </Badge>
+                        </div>
+                        <div className="flex flex-col gap-0.5 text-xs text-slate-500 dark:text-slate-400">
+                            {vacancy.department && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <Building2 className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                                    <span className="whitespace-normal break-words leading-tight">{vacancy.department.name}</span>
+                                </div>
+                            )}
+                            <span className="font-mono text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
+                                Ref: {vacancy.advertisementNumber}
+                            </span>
+                        </div>
                     </div>
-                </div>
-            )
+                )
+            }
         },
         {
             accessorKey: "jobGroup",
-            header: "Group & Salary",
+            header: "Job Group",
             cell: ({ row }) => {
-                const jg = row.original.jobGroup
-                if (!jg) return <span className="text-muted-foreground text-xs">-</span>
+                const vacancy = row.original
+                const jg = vacancy.jobGroup
                 return (
-                    <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-1 py-1">
                         <div className="flex items-center gap-1.5">
-                            <Briefcase className="h-3 w-3 text-primary/60" />
-                            <span className="text-xs font-medium">{jg.name}</span>
+                            <Briefcase className="h-3.5 w-3.5 text-primary/60 shrink-0" />
+                            <Badge variant="outline" className="w-fit text-[10px] font-semibold border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 uppercase tracking-wide">
+                                {jg?.name || 'Job Group'}
+                            </Badge>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">
-                            {formatSalaryRange(jg.salaryMin, jg.salaryMax)}
-                        </span>
+                        {jg && (
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                                {formatSalaryRange(jg.salaryMin, jg.salaryMax)}
+                            </span>
+                        )}
+                        <div className="flex flex-col gap-0.5 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                            <div className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300">
+                                <Users className="h-3.5 w-3.5 shrink-0 opacity-60 text-slate-500" />
+                                <span>{formatNumber(vacancy.applicationsCount || 0)} Applicants</span>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground font-medium ml-4.5">
+                                ({formatNumber(vacancy.openPositions)} {vacancy.openPositions === 1 ? 'position' : 'positions'} open)
+                            </span>
+                        </div>
                     </div>
                 )
             }
@@ -165,36 +186,12 @@ function VacanciesPageContent() {
                 const date = new Date(row.original.closingDate)
                 const isExpired = date < new Date() && row.original.status === 'open'
                 return (
-                    <div className="flex flex-col">
-                        <span className="text-xs">{format(date, "PP")}</span>
-                        {isExpired && <span className="text-[10px] text-destructive font-bold uppercase tracking-tight">Expired</span>}
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">{format(date, "PP")}</span>
+                        {isExpired && <span className="text-[9px] text-destructive font-bold uppercase tracking-wider">Expired</span>}
                     </div>
                 )
             },
-        },
-        {
-            accessorKey: "status",
-            header: "Status",
-            cell: ({ row }) => (
-                <Badge variant={row.original.status === 'open' ? 'default' : 'secondary'} className="capitalize h-5 text-[10px] px-2">
-                    {row.original.status}
-                </Badge>
-            ),
-        },
-        {
-            accessorKey: "applicationsCount",
-            header: () => (
-                <div className="flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5" />
-                    <span>Apps</span>
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="flex flex-col">
-                    <span className="font-bold text-sm">{formatNumber(row.original.applicationsCount || 0)}</span>
-                    <span className="text-[10px] text-muted-foreground">{formatNumber(row.original.openPositions)} pos.</span>
-                </div>
-            )
         },
         {
             id: "actions",

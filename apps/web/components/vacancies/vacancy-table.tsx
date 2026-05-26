@@ -30,48 +30,46 @@ export function VacancyTable({ data }: VacancyTableProps) {
     const columns: ColumnDef<VacancyWithRelations>[] = [
         {
             accessorKey: "title",
-            header: "Position",
+            header: "Vacancies",
             cell: ({ row }) => {
                 const vacancy = row.original
                 return (
-                    <div className="flex flex-col gap-0.5 py-1">
-                        <span className="font-medium text-sm text-slate-900 dark:text-white group-hover:text-primary transition-colors">
+                    <div className="flex flex-col gap-1 py-1 max-w-[320px] md:max-w-[400px]">
+                        <span className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-primary transition-colors whitespace-normal break-words leading-snug">
                             {vacancy.title}
                         </span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-slate-400 font-medium uppercase">
-                                {vacancy.advertisementNumber}
+                        <div className="flex flex-col gap-0.5 text-xs text-slate-500 dark:text-slate-400">
+                            {vacancy.department && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <Building className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                                    <span className="whitespace-normal break-words leading-tight">{vacancy.department.name}</span>
+                                </div>
+                            )}
+                            <span className="text-[10px] text-slate-400 font-medium uppercase mt-0.5">
+                                Advert No: {vacancy.advertisementNumber}
                             </span>
-                            <Badge variant="outline" className="text-[9px] h-4.5 py-0 font-medium border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 px-1.5 uppercase">
-                                {vacancy.jobGroup?.name || 'JG'}
-                            </Badge>
                         </div>
                     </div>
                 )
             },
         },
         {
-            accessorKey: "department",
-            header: "Department",
+            accessorKey: "jobGroup",
+            header: "Job Group",
             cell: ({ row }) => {
-                const dept = row.original.department
+                const vacancy = row.original
                 return (
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <Building className="h-3.5 w-3.5 opacity-40" />
-                        <span className="truncate max-w-[200px]">{dept?.name || "General"}</span>
+                    <div className="flex flex-col gap-1 py-1">
+                        <Badge variant="outline" className="w-fit text-[10px] font-semibold border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 uppercase tracking-wide">
+                            {vacancy.jobGroup?.name || 'Job Group'}
+                        </Badge>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                            <Users className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                            <span>{vacancy.openPositions} {vacancy.openPositions === 1 ? 'Position' : 'Positions'}</span>
+                        </div>
                     </div>
                 )
             },
-        },
-        {
-            accessorKey: "openPositions",
-            header: "Positions",
-            cell: ({ row }) => (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Users className="h-3.5 w-3.5 opacity-40" />
-                    {row.original.openPositions}
-                </div>
-            ),
         },
         {
             accessorKey: "closingDate",
@@ -81,8 +79,8 @@ export function VacancyTable({ data }: VacancyTableProps) {
                 const isExpired = date < new Date()
                 return (
                     <div className="flex items-center gap-2 text-sm">
-                        <Calendar className={`h-3.5 w-3.5 ${isExpired ? 'text-red-400' : 'opacity-40'}`} />
-                        <span className={isExpired ? 'text-red-500 font-medium' : 'text-slate-500'}>
+                        <Calendar className={`h-3.5 w-3.5 shrink-0 ${isExpired ? 'text-red-400' : 'opacity-40'}`} />
+                        <span className={isExpired ? 'text-red-500 font-semibold' : 'text-slate-500'}>
                             {format(date, 'MMM dd, yyyy')}
                         </span>
                     </div>
@@ -117,7 +115,7 @@ export function VacancyTable({ data }: VacancyTableProps) {
                     {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
                             {headerGroup.headers.map((header) => (
-                                <TableHead key={header.id} className="font-medium text-xs text-slate-500 uppercase tracking-wider px-8 py-4">
+                                <TableHead key={header.id} className="font-medium text-xs text-slate-500 uppercase tracking-wider px-4 md:px-6 py-4">
                                     {header.isPlaceholder
                                         ? null
                                         : flexRender(
@@ -138,7 +136,7 @@ export function VacancyTable({ data }: VacancyTableProps) {
                                 className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0"
                             >
                                 {row.getVisibleCells().map((cell) => (
-                                    <TableCell key={cell.id} className="px-8 py-4">
+                                    <TableCell key={cell.id} className="px-4 md:px-6 py-4">
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                     </TableCell>
                                 ))}

@@ -18,9 +18,10 @@ import { useTranslations } from 'next-intl'
 interface VacancyListProps {
     filters?: VacancyFilters
     limit?: number
+    initialData?: any
 }
 
-export function VacancyList({ filters: manualFilters, limit }: VacancyListProps) {
+export function VacancyList({ filters: manualFilters, limit, initialData }: VacancyListProps) {
     const t = useTranslations('Vacancies')
     const [search] = useQueryState('search')
     const [status] = useQueryState('status', { defaultValue: 'open' })
@@ -35,7 +36,7 @@ export function VacancyList({ filters: manualFilters, limit }: VacancyListProps)
         jobGroupId: jobGroupId || undefined,
     }
 
-    const { data, isLoading, error } = useVacancies(activeFilters)
+    const { data, isLoading, error } = useVacancies(activeFilters, initialData)
     const [view, setView] = useState<'grid' | 'table'>('table')
 
     if (isLoading) {

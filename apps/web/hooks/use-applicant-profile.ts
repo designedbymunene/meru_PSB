@@ -10,15 +10,18 @@ import type {
     CreateTrainingCourseInput,
     CreateProfessionalMembershipInput,
     CreateEmploymentHistoryInput,
+    ApiResponse,
+    ApplicantProfileWithRelations,
 } from '@/types'
 import { toast } from 'sonner'
 
 // ===== Profile Hooks =====
 
-export function useMyProfile() {
+export function useMyProfile(initialData?: ApiResponse<ApplicantProfileWithRelations>) {
     return useQuery({
         queryKey: QUERY_KEYS.MY_PROFILE,
         queryFn: () => applicantProfileApi.getMyProfile(),
+        initialData,
     })
 }
 
@@ -795,10 +798,11 @@ export function useDeleteEmploymentHistory(profileId: number) {
 
 // ===== Referees Hooks =====
 
-export function useMyReferees() {
+export function useMyReferees(initialData?: ApiResponse<any[]>) {
     return useQuery({
         queryKey: ['my-referees'],
         queryFn: () => applicantProfileApi.getMyReferees(),
+        initialData,
     })
 }
 

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname } from "@/i18n/routing"
 import {
   LayoutDashboard,
   Briefcase,
@@ -82,11 +82,6 @@ const navData: Record<string, NavItem[]> = {
     },
   ],
   governance: [
-    {
-      title: "Board",
-      url: "/admin/board",
-      icon: Scale,
-    },
     {
       title: "Reports",
       url: "/admin/reports",

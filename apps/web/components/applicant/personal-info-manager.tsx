@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -447,19 +448,39 @@ export function PersonalInfoManager() {
                             <FormField
                                 control={form.control}
                                 name="publicServiceInfo"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs uppercase tracking-wider font-bold text-muted-foreground/70">Public Service History</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                className="rounded-xl border-muted-foreground/20 min-h-[120px] resize-none"
-                                                placeholder="Details about current or previous public service employment..."
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
+                                render={({ field }) => {
+                                    const charCount = (field.value || '').length
+                                    const isCloseToLimit = charCount >= 450
+                                    const isOverLimit = charCount > 500
+                                    return (
+                                        <FormItem className="relative flex flex-col">
+                                            <div className="flex justify-between items-center">
+                                                <FormLabel className="text-xs uppercase tracking-wider font-bold text-muted-foreground/70">
+                                                    Public Service History
+                                                </FormLabel>
+                                                <span className={cn(
+                                                    "text-[10px] font-bold tracking-wider transition-colors",
+                                                    isOverLimit ? "text-destructive animate-pulse" : isCloseToLimit ? "text-amber-500" : "text-muted-foreground/45"
+                                                )}>
+                                                    {charCount}/500
+                                                </span>
+                                            </div>
+                                            <FormControl>
+                                                <Textarea
+                                                    className={cn(
+                                                        "rounded-xl border-muted-foreground/20 min-h-[120px] resize-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all",
+                                                        isOverLimit && "border-destructive focus-visible:ring-destructive/20",
+                                                        isCloseToLimit && !isOverLimit && "border-amber-500/50 focus-visible:ring-amber-500/20"
+                                                    )}
+                                                    placeholder="Details about current or previous public service employment..."
+                                                    maxLength={500}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )
+                                }}
                             />
 
                             <FormField

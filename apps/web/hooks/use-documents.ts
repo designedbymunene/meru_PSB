@@ -3,11 +3,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as documentsApi from '@/lib/api/documents'
 import { toast } from 'sonner'
+import type { ApiResponse, ApplicantDocument } from '@/types'
 
-export function useMyDocuments() {
+export function useMyDocuments(initialData?: ApiResponse<ApplicantDocument[]>) {
     return useQuery({
         queryKey: ['my-documents'],
         queryFn: () => documentsApi.getMyDocuments(),
+        initialData,
     })
 }
 

@@ -59,7 +59,7 @@ export default function Home() {
             {/* Government Badge */}
             <div className="inline-flex items-center gap-2 bg-background/50 backdrop-blur-md rounded-full px-4 py-1.5 text-xs font-semibold border border-border shadow-sm">
               <ShieldCheckIcon className="h-3.5 w-3.5 text-primary" />
-              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-indigo-600 dark:to-indigo-400 bg-clip-text text-transparent">
                 {t("badge")}
               </span>
             </div>
@@ -75,7 +75,7 @@ export default function Home() {
                   {t("title", {
                     highlight: ""
                   })}
-                  <span className="block bg-gradient-to-r from-primary via-primary to-secondary bg-clip-text text-transparent pb-2">
+                  <span className="block bg-gradient-to-r from-primary via-primary to-indigo-600 dark:to-indigo-400 bg-clip-text text-transparent pb-2">
                     {t("publicService")}
                   </span>
                 </h1>

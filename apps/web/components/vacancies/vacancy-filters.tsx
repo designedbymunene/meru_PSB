@@ -26,14 +26,21 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
-export function VacancyFilters() {
+import type { ApiResponse, Department, JobGroup } from '@/types'
+
+interface VacancyFiltersProps {
+    initialDepartments?: ApiResponse<Department[]>
+    initialJobGroups?: ApiResponse<JobGroup[]>
+}
+
+export function VacancyFilters({ initialDepartments, initialJobGroups }: VacancyFiltersProps) {
     const [search, setSearch] = useQueryState('search', { defaultValue: '', shallow: false })
     const [status, setStatus] = useQueryState('status', { shallow: false })
     const [departmentId, setDepartmentId] = useQueryState('departmentId', { shallow: false })
     const [jobGroupId, setJobGroupId] = useQueryState('jobGroupId', { shallow: false })
 
-    const { data: departmentsData } = useDepartments()
-    const { data: jobGroupsData } = useJobGroups()
+    const { data: departmentsData } = useDepartments(initialDepartments)
+    const { data: jobGroupsData } = useJobGroups(initialJobGroups)
 
     const departments = departmentsData?.data || []
     const jobGroups = jobGroupsData?.data || []

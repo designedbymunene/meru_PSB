@@ -9,28 +9,15 @@ function deleteCookie(name: string) {
 
 export const apiClient = createApiClient({
     baseURL: `${API_URL}/api`,
-    getAccessToken: async () => {
-        if (typeof window === 'undefined') return null
-        return localStorage.getItem('accessToken')
-    },
-    getRefreshToken: async () => {
-        if (typeof window === 'undefined') return null
-        return localStorage.getItem('refreshToken')
-    },
-    onTokenRefresh: async (accessToken) => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('accessToken', accessToken)
-            // Also update cookie for middleware
-            const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString()
-            document.cookie = `accessToken=${accessToken}; expires=${expires}; path=/`
-        }
-    },
+    getAccessToken: async () => null,
+    getRefreshToken: async () => null,
+    onTokenRefresh: async () => {},
     onLogout: async () => {
         if (typeof window !== 'undefined') {
-            localStorage.removeItem('accessToken')
-            localStorage.removeItem('refreshToken')
             localStorage.removeItem('user')
-            deleteCookie('accessToken')
+            deleteCookie('userRole')
+            deleteCookie('viewAsApplicant')
+            await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
             window.location.href = '/login'
         }
     },

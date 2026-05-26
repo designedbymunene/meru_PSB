@@ -31,25 +31,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         // Check for stored user on mount
         const storedUser = localStorage.getItem('user')
-        const accessToken = localStorage.getItem('accessToken')
 
-        if (storedUser && accessToken) {
+        if (storedUser) {
             try {
                 const parsedUser = JSON.parse(storedUser)
                 setUserState(parsedUser)
-                // Sync token and role to cookie for middleware
-                setCookie('accessToken', accessToken)
-                setCookie('userRole', parsedUser.role)
             } catch {
                 localStorage.removeItem('user')
-                localStorage.removeItem('accessToken')
-                localStorage.removeItem('refreshToken')
-                deleteCookie('accessToken')
                 deleteCookie('userRole')
             }
         } else {
-            // If we don't have both, ensure cookie is also cleared to prevent middleware loops
-            deleteCookie('accessToken')
+            // If we don't have a user, ensure the role cookie is cleared to prevent middleware loops
             deleteCookie('userRole')
         }
         setIsLoading(false)
@@ -59,30 +51,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserState(newUser)
         if (newUser) {
             localStorage.setItem('user', JSON.stringify(newUser))
-            // Sync token and role to cookie
-            const token = localStorage.getItem('accessToken')
-            if (token) {
-                setCookie('accessToken', token)
-                setCookie('userRole', newUser.role)
-                // Clear view as applicant flag on new login
-                deleteCookie('viewAsApplicant')
-            }
+            // The BFF proxy already sets accessToken, refreshToken, and userRole cookies on successful login/register.
+            // Just ensure viewAsApplicant is cleared.
+            deleteCookie('viewAsApplicant')
         } else {
             localStorage.removeItem('user')
-            deleteCookie('accessToken')
             deleteCookie('userRole')
         }
     }
 
     const logout = () => {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
         localStorage.removeItem('user')
-        deleteCookie('accessToken')
         deleteCookie('userRole')
         deleteCookie('viewAsApplicant')
         setUserState(null)
-        window.location.href = '/login'
+        
+        // Trigger server-side logout to revoke cookies
+        fetch('/api/auth/logout', { method: 'POST' })
+            .catch(() => {})
+            .finally(() => {
+                window.location.href = '/login'
+            })
     }
 
     const switchView = (target: 'admin' | 'applicant') => {

@@ -411,7 +411,7 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                                                                 <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500">Status</FormLabel>
                                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                                     <FormControl>
-                                                                        <SelectTrigger className="h-12 rounded-xl border-slate-200 focus:ring-primary/20">
+                                                                        <SelectTrigger className="h-auto min-h-12 py-3 rounded-xl border-slate-200 focus:ring-primary/20">
                                                                             <SelectValue placeholder="Select status" />
                                                                         </SelectTrigger>
                                                                     </FormControl>
@@ -468,7 +468,7 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                                                                 value={field.value?.toString()}
                                                             >
                                                                 <FormControl>
-                                                                    <SelectTrigger className="h-12 rounded-xl border-slate-200 focus:ring-primary/20">
+                                                                    <SelectTrigger className="h-auto min-h-12 py-3 rounded-xl border-slate-200 focus:ring-primary/20">
                                                                         <SelectValue placeholder={isLoadingDepartments ? "Loading..." : "Select Department"} />
                                                                     </SelectTrigger>
                                                                 </FormControl>
@@ -492,7 +492,7 @@ export function VacancyForm({ initialData, mode }: VacancyFormProps) {
                                                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-500">Job Group</FormLabel>
                                                             <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value?.toString()}>
                                                                 <FormControl>
-                                                                    <SelectTrigger className="h-12 rounded-xl border-slate-200 focus:ring-primary/20">
+                                                                    <SelectTrigger className="h-auto min-h-12 py-3 rounded-xl border-slate-200 focus:ring-primary/20">
                                                                         <SelectValue placeholder={isLoadingJobGroups ? "Loading..." : "Select Job Group"} />
                                                                     </SelectTrigger>
                                                                 </FormControl>

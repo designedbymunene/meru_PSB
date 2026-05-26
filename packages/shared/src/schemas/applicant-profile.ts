@@ -136,7 +136,7 @@ export const applicantProfileSchema = z.object({
     wardId: z.coerce.number({ required_error: 'Please select your ward', invalid_type_error: 'Please select a valid ward' }).min(1, 'Please select a valid ward'),
     impairment: z.boolean().default(false),
     impairmentDetails: z.string().optional(),
-    publicServiceInfo: z.string().optional(),
+    publicServiceInfo: z.string().max(500, 'Public service history must be at most 500 characters').optional(),
     personalNumber: z.string().optional(),
     
     // N/A Flags

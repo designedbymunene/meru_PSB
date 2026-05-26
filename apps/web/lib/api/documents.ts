@@ -1,19 +1,5 @@
 import apiClient from './client'
-import type { ApiResponse } from '@/types'
-
-export interface ApplicantDocument {
-    id: number
-    userId: number
-    documentType: string
-    originalName: string
-    filename: string
-    filePath: string
-    fileSize: number
-    mimeType: string
-    status: string
-    rejectionReason?: string
-    createdAt: string
-}
+import type { ApiResponse, ApplicantDocument } from '@/types'
 
 export async function getMyDocuments(): Promise<ApiResponse<ApplicantDocument[]>> {
     const { data } = await apiClient.get<ApiResponse<ApplicantDocument[]>>(

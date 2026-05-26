@@ -43,9 +43,11 @@ export function VacancyCard({ vacancy }: VacancyCardProps) {
                 <span className="text-slate-600 dark:text-slate-400">{vacancy.openPositions} Positions</span>
             </div>
             {vacancy.department && (
-                <div className="flex items-center gap-2">
-                    <BuildingIcon className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="text-slate-600 dark:text-slate-400">{vacancy.department.name}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                    <BuildingIcon className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <span className="text-slate-600 dark:text-slate-400 truncate" title={vacancy.department.name}>
+                        {vacancy.department.name}
+                    </span>
                 </div>
             )}
         </div>

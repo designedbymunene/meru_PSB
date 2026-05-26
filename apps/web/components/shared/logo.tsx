@@ -46,6 +46,7 @@ export function Logo({
                     "object-contain drop-shadow-md",
                     className
                 )}
+                style={{ width: `${width}px`, height: 'auto' }}
                 priority
             />
         </div>

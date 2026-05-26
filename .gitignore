@@ -61,6 +61,7 @@ coverage/
 .idea/
 .claude/
 .agents/
+.antigravitycli/
 .vercel
 skills-lock.json
 

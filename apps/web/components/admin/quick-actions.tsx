@@ -23,13 +23,7 @@ export function QuickActions() {
             icon: PlusCircle,
             color: "text-blue-600 bg-blue-50 dark:bg-blue-900/20",
         },
-        {
-            title: "Board Pack Generator",
-            description: "Prepare documents for board review",
-            href: "/admin/board",
-            icon: Scale,
-            color: "text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20",
-        },
+
         {
             title: "Reports & Analytics",
             description: "Recruitment KPIs and diversity metrics",

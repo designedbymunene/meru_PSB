@@ -28,15 +28,20 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 
-export function VacancyDetail() {
+interface VacancyDetailProps {
+    initialVacancy?: any
+    initialPdfs?: any
+}
+
+export function VacancyDetail({ initialVacancy, initialPdfs }: VacancyDetailProps) {
     const params = useParams()
     const router = useRouter()
     const id = Number(params?.id)
     const { user } = useAuthContext()
     const [applyDialogOpen, setApplyDialogOpen] = useState(false)
 
-    const { data: vacancyData, isLoading, error } = useVacancy(id)
-    const { data: pdfsData } = useVacancyPdfs(id)
+    const { data: vacancyData, isLoading, error } = useVacancy(id, initialVacancy)
+    const { data: pdfsData } = useVacancyPdfs(id, initialPdfs)
     const { data: profileResponse } = useMyProfile()
     const profile = profileResponse?.data
 

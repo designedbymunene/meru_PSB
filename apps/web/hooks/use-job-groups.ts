@@ -3,13 +3,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as jobGroupApi from '@/lib/api/job-groups'
 import { QUERY_KEYS } from '@/lib/constants'
-import type { CreateJobGroupData } from '@/types'
+import type { CreateJobGroupData, ApiResponse, JobGroup } from '@/types'
 import { toast } from 'sonner'
 
-export function useJobGroups() {
+export function useJobGroups(initialData?: ApiResponse<JobGroup[]>) {
     return useQuery({
         queryKey: QUERY_KEYS.JOB_GROUPS,
         queryFn: () => jobGroupApi.getJobGroups(),
+        initialData,
     })
 }
 

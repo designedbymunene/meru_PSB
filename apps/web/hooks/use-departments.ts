@@ -3,13 +3,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as departmentApi from '@/lib/api/departments'
 import { QUERY_KEYS } from '@/lib/constants'
-import type { CreateDepartmentData } from '@/types'
+import type { CreateDepartmentData, ApiResponse, Department } from '@/types'
 import { toast } from 'sonner'
 
-export function useDepartments() {
+export function useDepartments(initialData?: ApiResponse<Department[]>) {
     return useQuery({
         queryKey: QUERY_KEYS.DEPARTMENTS,
         queryFn: () => departmentApi.getDepartments(),
+        initialData,
     })
 }
 

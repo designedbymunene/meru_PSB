@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuthContext } from "@/hooks/use-auth"
 import Link from "next/link"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter, usePathname } from "@/i18n/routing"
 
 import { cn } from "@/lib/utils"
 import { ChevronRight, LogOut, Settings, User as UserIcon, ChevronsUpDown, ShieldCheck, Users, FileText, UserCircle } from "lucide-react"

@@ -92,11 +92,11 @@ export function UnifiedCard({
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 truncate">
+              <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 whitespace-normal break-words">
                 {title}
               </h3>
               {subtitle && (
-                <p className="text-xs font-extrabold text-primary uppercase tracking-widest mb-1">
+                <p className="text-xs font-extrabold text-primary uppercase tracking-widest mb-1 whitespace-normal break-words" title={typeof subtitle === 'string' ? subtitle : undefined}>
                   {subtitle}
                 </p>
               )}

@@ -3,16 +3,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as vacancyApi from '@/lib/api/vacancies'
 import { QUERY_KEYS } from '@/lib/constants'
-import type { VacancyFilters, CreateVacancyData, UpdateVacancyData } from '@/types'
+import type { VacancyFilters, CreateVacancyData, UpdateVacancyData, ApiResponse, VacancyWithRelations, VacancyDocument } from '@/types'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
 // --- Queries ---
 
-export function useVacancies(filters?: VacancyFilters) {
+export function useVacancies(filters?: VacancyFilters, initialData?: ApiResponse<VacancyWithRelations[]>) {
     return useQuery({
         queryKey: [...QUERY_KEYS.VACANCIES, filters],
         queryFn: () => vacancyApi.getVacancies(filters),
+        initialData,
     })
 }
 
@@ -23,19 +24,21 @@ export function useVacancyStats() {
     })
 }
 
-export function useVacancy(id: number) {
+export function useVacancy(id: number, initialData?: ApiResponse<VacancyWithRelations>) {
     return useQuery({
         queryKey: QUERY_KEYS.VACANCY(id),
         queryFn: () => vacancyApi.getVacancy(id),
         enabled: !!id,
+        initialData,
     })
 }
 
-export function useVacancyPdfs(id: number) {
+export function useVacancyPdfs(id: number, initialData?: ApiResponse<VacancyDocument[]>) {
     return useQuery({
         queryKey: QUERY_KEYS.VACANCY_PDFS(id),
         queryFn: () => vacancyApi.getVacancyPdfs(id),
         enabled: !!id,
+        initialData,
     })
 }
 

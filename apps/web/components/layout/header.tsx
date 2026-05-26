@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname } from "@/i18n/routing"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { UserNav } from "@/components/layout/user-nav"
