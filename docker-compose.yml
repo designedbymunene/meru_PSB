@@ -96,12 +96,15 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: https://api.merucountypublicserviceboard.or.ke
+      cache_from:
+        - web:latest
     container_name: meru-web
     depends_on:
       - api
     environment:
       NODE_ENV: production
       PORT: 3001
+      INTERNAL_BACKEND_URL: http://api:3000
     ports:
       - "3001:3001"
     restart: unless-stopped
