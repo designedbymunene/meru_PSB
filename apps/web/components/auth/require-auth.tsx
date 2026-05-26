@@ -17,20 +17,25 @@ export function RequireAuth({ children, allowedRoles }: RequireAuthProps) {
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
-            router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`)
+            // Use window.location.href for proper redirect that triggers middleware
+            const locale = window.location.pathname.split('/')[1]
+            const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
+            window.location.href = `${localePrefix}/login?callbackUrl=${encodeURIComponent(pathname)}`
         }
 
         if (!isLoading && isAuthenticated && allowedRoles && user) {
             if (!allowedRoles.includes(user.role)) {
-                // Redirect to appropriate page based on role
+                // Redirect to appropriate page based on role using hard redirect
+                const locale = window.location.pathname.split('/')[1]
+                const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
                 if (user.role === 'admin') {
-                    router.push('/admin')
+                    window.location.href = `${localePrefix}/admin`
                 } else {
-                    router.push('/dashboard')
+                    window.location.href = `${localePrefix}/dashboard`
                 }
             }
         }
-    }, [isLoading, isAuthenticated, user, allowedRoles, router, pathname])
+    }, [isLoading, isAuthenticated, user, allowedRoles, pathname])
 
     if (isLoading) {
         return (

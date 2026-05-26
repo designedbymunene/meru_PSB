@@ -40,15 +40,18 @@ export function useLogin() {
             })
 
             // Redirect based on callbackUrl or role using a hard redirect to avoid Next.js client-side route caching
-            const locale = window.location.pathname.split('/')[1]
-            const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
+            // Use setTimeout to ensure cookies are properly set before redirecting
+            setTimeout(() => {
+                const locale = window.location.pathname.split('/')[1]
+                const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
 
-            const callbackUrl = searchParams.get('callbackUrl')
-            const targetUrl = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
-                ? callbackUrl
-                : (user.role === 'admin' ? '/admin' : '/dashboard')
+                const callbackUrl = searchParams.get('callbackUrl')
+                const targetUrl = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
+                    ? callbackUrl
+                    : (user.role === 'admin' ? '/admin' : '/dashboard')
 
-            window.location.href = `${localePrefix}${targetUrl}`
+                window.location.href = `${localePrefix}${targetUrl}`
+            }, 100)
         },
         onError: (error: unknown) => {
             toast.error('Login failed', {
@@ -79,15 +82,18 @@ export function useRegister() {
             })
 
             // Redirect based on callbackUrl or default to dashboard using a hard redirect to avoid Next.js client-side route caching
-            const locale = window.location.pathname.split('/')[1]
-            const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
+            // Use setTimeout to ensure cookies are properly set before redirecting
+            setTimeout(() => {
+                const locale = window.location.pathname.split('/')[1]
+                const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
 
-            const callbackUrl = searchParams.get('callbackUrl')
-            const targetUrl = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
-                ? callbackUrl
-                : '/dashboard'
+                const callbackUrl = searchParams.get('callbackUrl')
+                const targetUrl = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
+                    ? callbackUrl
+                    : '/dashboard'
 
-            window.location.href = `${localePrefix}${targetUrl}`
+                window.location.href = `${localePrefix}${targetUrl}`
+            }, 100)
         },
         onError: (error: unknown) => {
             toast.error('Registration failed', {

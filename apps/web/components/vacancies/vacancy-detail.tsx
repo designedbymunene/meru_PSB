@@ -238,9 +238,13 @@ export function VacancyDetail({ initialVacancy, initialPdfs }: VacancyDetailProp
                                     </div>
 
                                     {!user ? (
-                                        <Button 
-                                            size="lg" 
-                                            onClick={() => router.push(`/login?callbackUrl=/vacancies/${vacancy.id}`)}
+                                        <Button
+                                            size="lg"
+                                            onClick={() => {
+                                                const locale = window.location.pathname.split('/')[1]
+                                                const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
+                                                window.location.href = `${localePrefix}/login?callbackUrl=/vacancies/${vacancy.id}`
+                                            }}
                                             className="w-full h-10 text-sm shadow-md shadow-primary/10 transition-all hover:scale-[1.01] active:scale-[0.99]"
                                         >
                                             Login to Apply
