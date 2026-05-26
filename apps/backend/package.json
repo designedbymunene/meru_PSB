@@ -1,6 +1,6 @@
 {
   "name": "@meru/backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Meru County Recruitment Portal Backend",
   "main": "src/index.ts",
   "type": "module",
