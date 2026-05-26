@@ -20,18 +20,6 @@ function setCookie(name: string, value: string, days = 7) {
     document.cookie = `${name}=${value}; expires=${expires}; path=/`
 }
 
-function getCookie(name: string): string | null {
-    if (typeof document === 'undefined') return null
-    const nameEQ = name + '='
-    const ca = document.cookie.split(';')
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i]
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length)
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length)
-    }
-    return null
-}
-
 function deleteCookie(name: string) {
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
 }
@@ -43,20 +31,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         // Check for stored user on mount
         const storedUser = localStorage.getItem('user')
-        const userRoleCookie = getCookie('userRole')
+        const accessToken = localStorage.getItem('accessToken')
 
-        // If storedUser is present but userRole cookie is missing, the session has expired.
-        // We must sync localStorage to avoid infinite redirect loops.
-        if (storedUser && userRoleCookie) {
+        if (storedUser && accessToken) {
             try {
                 const parsedUser = JSON.parse(storedUser)
                 setUserState(parsedUser)
+                // Sync token and role to cookie for middleware
+                setCookie('accessToken', accessToken)
+                setCookie('userRole', parsedUser.role)
             } catch {
                 localStorage.removeItem('user')
+                localStorage.removeItem('accessToken')
+                localStorage.removeItem('refreshToken')
+                deleteCookie('accessToken')
                 deleteCookie('userRole')
             }
         } else {
-            localStorage.removeItem('user')
+            // If we don't have both, ensure cookie is also cleared to prevent middleware loops
+            deleteCookie('accessToken')
             deleteCookie('userRole')
         }
         setIsLoading(false)
@@ -66,27 +59,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserState(newUser)
         if (newUser) {
             localStorage.setItem('user', JSON.stringify(newUser))
-            // The BFF proxy already sets accessToken, refreshToken, and userRole cookies on successful login/register.
-            // Just ensure viewAsApplicant is cleared.
-            deleteCookie('viewAsApplicant')
+            // Sync token and role to cookie
+            const token = localStorage.getItem('accessToken')
+            if (token) {
+                setCookie('accessToken', token)
+                setCookie('userRole', newUser.role)
+                // Clear view as applicant flag on new login
+                deleteCookie('viewAsApplicant')
+            }
         } else {
             localStorage.removeItem('user')
+            deleteCookie('accessToken')
             deleteCookie('userRole')
         }
     }
 
     const logout = () => {
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
         localStorage.removeItem('user')
+        deleteCookie('accessToken')
         deleteCookie('userRole')
         deleteCookie('viewAsApplicant')
         setUserState(null)
-        
-        // Trigger server-side logout to revoke cookies
-        fetch('/api/auth/logout', { method: 'POST' })
-            .catch(() => {})
-            .finally(() => {
-                window.location.href = '/login'
-            })
+        window.location.href = '/login'
     }
 
     const switchView = (target: 'admin' | 'applicant') => {

@@ -11,7 +11,7 @@ const protectedRoutes = ['/dashboard']
 // Routes that require admin role
 const adminRoutes = ['/admin']
 
-// Routes that are only for unauthenticated users (excluded from SSR/BFF)
+// Routes that are only for unauthenticated users
 const authRoutes = ['/login', '/register', '/forgot-password']
 
 export function middleware(request: NextRequest) {
@@ -29,22 +29,19 @@ export function middleware(request: NextRequest) {
         pathnameWithoutLocale = '/' + parts.slice(2).join('/')
     }
 
-    // Check for access token and role in cookies
+    // Check for access token and role in cookies (set by client-side for middleware)
     const accessToken = request.cookies.get('accessToken')?.value
     const userRole = request.cookies.get('userRole')?.value
     const viewAsApplicant = request.cookies.get('viewAsApplicant')?.value
 
-    // For auth routes, let them pass through without SSR/BFF - handle client-side only
+    // For auth routes, redirect based on role if already logged in
     if (authRoutes.some((route) => pathnameWithoutLocale.startsWith(route))) {
-        // If already logged in, redirect based on role
         if (accessToken) {
             if (userRole === 'admin') {
                 return NextResponse.redirect(new URL('/admin', request.url))
             }
             return NextResponse.redirect(new URL('/dashboard', request.url))
         }
-        // Skip all middleware processing for auth routes - let them be client-side only
-        return intlMiddleware(request)
     }
 
     // For protected routes (applicant side)

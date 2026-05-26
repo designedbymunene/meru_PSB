@@ -26,7 +26,11 @@ export function useLogin() {
     return useMutation({
         mutationFn: (credentials: LoginCredentials) => authApi.login(credentials),
         onSuccess: (response) => {
-            const { user } = response.data
+            const { user, accessToken, refreshToken } = response.data
+
+            // Store tokens in localStorage
+            localStorage.setItem('accessToken', accessToken)
+            localStorage.setItem('refreshToken', refreshToken)
 
             // Update auth context
             setUser(user)
@@ -61,7 +65,11 @@ export function useRegister() {
     return useMutation({
         mutationFn: (userData: RegisterData) => authApi.register(userData),
         onSuccess: (response) => {
-            const { user } = response.data
+            const { user, accessToken, refreshToken } = response.data
+
+            // Store tokens in localStorage
+            localStorage.setItem('accessToken', accessToken)
+            localStorage.setItem('refreshToken', refreshToken)
 
             // Update auth context
             setUser(user)
