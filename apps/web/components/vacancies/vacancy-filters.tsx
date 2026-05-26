@@ -35,7 +35,7 @@ interface VacancyFiltersProps {
 
 export function VacancyFilters({ initialDepartments, initialJobGroups }: VacancyFiltersProps) {
     const [search, setSearch] = useQueryState('search', { defaultValue: '', shallow: false })
-    const [status, setStatus] = useQueryState('status', { shallow: false })
+    const [status, setStatus] = useQueryState('status', { defaultValue: 'open', shallow: false })
     const [departmentId, setDepartmentId] = useQueryState('departmentId', { shallow: false })
     const [jobGroupId, setJobGroupId] = useQueryState('jobGroupId', { shallow: false })
 

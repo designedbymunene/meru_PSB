@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-const INTERNAL_BACKEND_URL = process.env.INTERNAL_BACKEND_URL || 'http://localhost:4000'
+const INTERNAL_BACKEND_URL = process.env.INTERNAL_BACKEND_URL || 'http://127.0.0.1:4000'
 
 async function handleProxy(
     request: NextRequest,

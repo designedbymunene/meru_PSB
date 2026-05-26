@@ -159,7 +159,8 @@ if (NODE_ENV !== 'test') {
   server = serve(
     {
       fetch: app.fetch,
-      port: PORT
+      port: PORT,
+      hostname: '0.0.0.0'
     },
     (info) => {
       logger.info(

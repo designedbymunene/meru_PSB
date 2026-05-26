@@ -1,7 +1,7 @@
 import { createApiClient } from '@meru/shared'
 import { cookies } from 'next/headers'
 
-const INTERNAL_BACKEND_URL = process.env.INTERNAL_BACKEND_URL || 'http://localhost:4000'
+const INTERNAL_BACKEND_URL = process.env.INTERNAL_BACKEND_URL || 'http://127.0.0.1:4000'
 
 export const serverApiClient = createApiClient({
     baseURL: `${INTERNAL_BACKEND_URL}/api`,

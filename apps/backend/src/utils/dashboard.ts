@@ -16,30 +16,52 @@ export type DashboardVacancy = Vacancy & {
 export type DashboardStatus = 'Open' | 'Closed' | 'Expired'
 
 export const getDashboardApplicationProgress = (status: string) => {
-    switch (status) {
+    const s = status.toLowerCase()
+    switch (s) {
+        case 'pending':
+            return 15
+        case 'under_review':
+            return 30
         case 'reviewed':
-            return 70
+            return 45
+        case 'shortlisted':
+            return 65
+        case 'interviewing':
+            return 80
+        case 'interviewed':
+            return 90
         case 'accepted':
+        case 'offered':
             return 100
         case 'rejected':
             return 100
-        case 'pending':
         default:
-            return 45
+            return 10
     }
 }
 
 export const getDashboardApplicationNextStep = (status: string) => {
-    switch (status) {
-        case 'reviewed':
-            return 'Interview Scheduling'
-        case 'accepted':
-            return 'Offer Letter'
-        case 'rejected':
-            return 'Application Closed'
+    const s = status.toLowerCase()
+    switch (s) {
         case 'pending':
-        default:
             return 'Document Verification'
+        case 'under_review':
+            return 'HR Qualification Review'
+        case 'reviewed':
+            return 'Shortlist Consideration'
+        case 'shortlisted':
+            return 'Interview Scheduling'
+        case 'interviewing':
+            return 'Interview Assessment'
+        case 'interviewed':
+            return 'Final Committee Decision'
+        case 'accepted':
+        case 'offered':
+            return 'Contract Signing'
+        case 'rejected':
+            return 'Application Concluded'
+        default:
+            return 'Initial Processing'
     }
 }
 

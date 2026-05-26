@@ -8,10 +8,10 @@ import {
 } from '../utils/dashboard'
 
 test('dashboard helpers - derive application state and vacancy badge', async () => {
-    assert.strictEqual(getDashboardApplicationProgress('pending'), 45)
-    assert.strictEqual(getDashboardApplicationProgress('reviewed'), 70)
+    assert.strictEqual(getDashboardApplicationProgress('pending'), 15)
+    assert.strictEqual(getDashboardApplicationProgress('reviewed'), 45)
     assert.strictEqual(getDashboardApplicationNextStep('pending'), 'Document Verification')
-    assert.strictEqual(getDashboardApplicationNextStep('reviewed'), 'Interview Scheduling')
+    assert.strictEqual(getDashboardApplicationNextStep('reviewed'), 'Shortlist Consideration')
 
     const badge = getDashboardVacancyBadge({
         id: 1,
@@ -109,7 +109,7 @@ test('dashboard helpers - build combined payload', async () => {
                 description: 'Role description',
                 departmentId: 20,
                 jobGroupId: 103,
-                closingDate: '2026-05-25',
+                closingDate: '2026-12-25',
                 openPositions: 2,
                 jobRequirements: [],
                 jobResponsibilities: [],
@@ -149,7 +149,7 @@ test('dashboard helpers - build combined payload', async () => {
     })
 
     assert.strictEqual(dashboard.ongoingActivity?.id, 'app_102')
-    assert.strictEqual(dashboard.ongoingActivity?.status, 'PENDING')
+    assert.strictEqual(dashboard.ongoingActivity?.status, 'Pending')
     assert.strictEqual(dashboard.recommended.length, 1)
     assert.strictEqual(dashboard.recommended[0].title, 'Chief Officer')
     assert.strictEqual(dashboard.recommended[0].jobGroup.code, 'H')

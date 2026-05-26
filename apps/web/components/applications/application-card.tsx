@@ -21,11 +21,15 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
         <UnifiedCard
             title={application.vacancy.title}
             subtitle={(application.vacancy as any)?.department?.name}
-            badge={<ApplicationStatusBadge status={application.status} />}
             metadata={
-                <div className="flex items-center gap-2 text-sm">
-                    <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
-                    <span>Applied: {format(new Date(application.appliedAt), 'MMM dd, yyyy')}</span>
+                <div className="space-y-3">
+                    <div className="flex">
+                        <ApplicationStatusBadge status={application.status} />
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                        <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
+                        <span className="font-medium">Applied: {format(new Date(application.appliedAt), 'MMM dd, yyyy')}</span>
+                    </div>
                 </div>
             }
             actions={
