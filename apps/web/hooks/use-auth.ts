@@ -1,8 +1,7 @@
 'use client'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from '@/i18n/routing'
-import { useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import type { AxiosError } from '@meru/shared'
 import * as authApi from '@/lib/api/auth'
@@ -20,7 +19,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function useLogin() {
-    const searchParams = useSearchParams()
+    const router = useRouter()
     const queryClient = useQueryClient()
     const { setUser } = useAuthContext()
 
@@ -39,19 +38,12 @@ export function useLogin() {
                 description: `Welcome back, ${user.fullName}!`,
             })
 
-            // Redirect based on callbackUrl or role using a hard redirect to avoid Next.js client-side route caching
-            // Use setTimeout to ensure cookies are properly set before redirecting
-            setTimeout(() => {
-                const locale = window.location.pathname.split('/')[1]
-                const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
-
-                const callbackUrl = searchParams.get('callbackUrl')
-                const targetUrl = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
-                    ? callbackUrl
-                    : (user.role === 'admin' ? '/admin' : '/dashboard')
-
-                window.location.href = `${localePrefix}${targetUrl}`
-            }, 100)
+            // Redirect based on role
+            if (user.role === 'admin') {
+                router.push('/admin')
+            } else {
+                router.push('/dashboard')
+            }
         },
         onError: (error: unknown) => {
             toast.error('Login failed', {
@@ -62,7 +54,7 @@ export function useLogin() {
 }
 
 export function useRegister() {
-    const searchParams = useSearchParams()
+    const router = useRouter()
     const queryClient = useQueryClient()
     const { setUser } = useAuthContext()
 
@@ -81,19 +73,8 @@ export function useRegister() {
                 description: 'Your account has been created!',
             })
 
-            // Redirect based on callbackUrl or default to dashboard using a hard redirect to avoid Next.js client-side route caching
-            // Use setTimeout to ensure cookies are properly set before redirecting
-            setTimeout(() => {
-                const locale = window.location.pathname.split('/')[1]
-                const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
-
-                const callbackUrl = searchParams.get('callbackUrl')
-                const targetUrl = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
-                    ? callbackUrl
-                    : '/dashboard'
-
-                window.location.href = `${localePrefix}${targetUrl}`
-            }, 100)
+            // Redirect to dashboard
+            router.push('/dashboard')
         },
         onError: (error: unknown) => {
             toast.error('Registration failed', {

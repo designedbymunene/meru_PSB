@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter, usePathname } from '@/i18n/routing'
+import { useRouter, usePathname } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { useAuthContext } from '@/providers'
 
@@ -17,25 +17,20 @@ export function RequireAuth({ children, allowedRoles }: RequireAuthProps) {
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
-            // Use window.location.href for proper redirect that triggers middleware
-            const locale = window.location.pathname.split('/')[1]
-            const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
-            window.location.href = `${localePrefix}/login?callbackUrl=${encodeURIComponent(pathname)}`
+            router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`)
         }
 
         if (!isLoading && isAuthenticated && allowedRoles && user) {
             if (!allowedRoles.includes(user.role)) {
-                // Redirect to appropriate page based on role using hard redirect
-                const locale = window.location.pathname.split('/')[1]
-                const localePrefix = ['en', 'sw'].includes(locale) ? `/${locale}` : ''
+                // Redirect to appropriate page based on role
                 if (user.role === 'admin') {
-                    window.location.href = `${localePrefix}/admin`
+                    router.push('/admin')
                 } else {
-                    window.location.href = `${localePrefix}/dashboard`
+                    router.push('/dashboard')
                 }
             }
         }
-    }, [isLoading, isAuthenticated, user, allowedRoles, pathname])
+    }, [isLoading, isAuthenticated, user, allowedRoles, router, pathname])
 
     if (isLoading) {
         return (
