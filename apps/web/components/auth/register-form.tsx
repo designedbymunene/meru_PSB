@@ -262,6 +262,9 @@ export function RegisterForm({ onSuccess }: RegisterFormProps = {}) {
                         Sign in to portal
                     </Link>
                 </div>
+                <div className="text-xs text-center text-slate-500 dark:text-slate-500">
+                    Version 0.1.0
+                </div>
             </CardFooter>
         </Card>
     )

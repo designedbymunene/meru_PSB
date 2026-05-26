@@ -149,6 +149,9 @@ export function LoginForm() {
                         Create account
                     </Link>
                 </div>
+                <div className="text-xs text-center text-muted-foreground">
+                    Version 0.1.0
+                </div>
             </CardFooter>
         </Card>
     )
