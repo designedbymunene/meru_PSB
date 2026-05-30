@@ -116,7 +116,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/admin">
+              <Link href="/admin" aria-label="Go to admin dashboard">
                 <Logo size="md" variant="icon" />
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">Meru Portal</span>

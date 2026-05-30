@@ -59,21 +59,23 @@ export function LoginForm() {
             </CardHeader>
             <CardContent>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" aria-label="Login form">
                         <FormField
                             control={form.control}
                             name="email"
                             render={({ field }) => (
                                 <FormItem id="email">
-                                    <FormLabel>Email</FormLabel>
+                                    <FormLabel htmlFor="email">Email</FormLabel>
                                     <FormControl>
                                         <div className="relative">
                                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <Input
+                                                id="email"
                                                 type="email"
                                                 placeholder="john@example.com"
                                                 className="pl-10"
                                                 disabled={isPending}
+                                                aria-required="true"
                                                 {...field}
                                             />
                                         </div>
@@ -87,15 +89,17 @@ export function LoginForm() {
                             name="password"
                             render={({ field }) => (
                                 <FormItem id="password">
-                                    <FormLabel>Password</FormLabel>
+                                    <FormLabel htmlFor="password">Password</FormLabel>
                                     <FormControl>
                                         <div className="relative">
                                             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                             <Input
+                                                id="password"
                                                 type={showPassword ? 'text' : 'password'}
                                                 placeholder="••••••••"
                                                 className="pl-10 pr-10"
                                                 disabled={isPending}
+                                                aria-required="true"
                                                 {...field}
                                             />
                                             <Button
@@ -105,6 +109,7 @@ export function LoginForm() {
                                                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                                                 onClick={() => setShowPassword(!showPassword)}
                                                 disabled={isPending}
+                                                aria-label={showPassword ? 'Hide password' : 'Show password'}
                                             >
                                                 {showPassword ? (
                                                     <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -125,11 +130,12 @@ export function LoginForm() {
                             <Link
                                 href="/forgot-password"
                                 className="text-sm text-primary hover:underline"
+                                aria-label="Go to forgot password page"
                             >
                                 Forgot password?
                             </Link>
                         </div>
-                        <Button type="submit" className="w-full" disabled={isPending}>
+                        <Button type="submit" className="w-full" disabled={isPending} aria-busy={isPending}>
                             {isPending ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -145,7 +151,7 @@ export function LoginForm() {
             <CardFooter className="flex flex-col space-y-4">
                 <div className="text-sm text-center text-muted-foreground">
                     Don&apos;t have an account?{' '}
-                    <Link href="/register" className="text-primary hover:underline font-medium">
+                    <Link href="/register" className="text-primary hover:underline font-medium" aria-label="Go to registration page">
                         Create account
                     </Link>
                 </div>

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sidebar"
 import { UserNav } from "@/components/layout/user-nav"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { ErrorBoundary } from "@/components/error-boundary"
 // import { LanguageSwitcher } from "@/components/layout/language-switcher"
 
 export default function AdminLayout({
@@ -49,9 +50,11 @@ export default function AdminLayout({
                     </div>
                 </header>
                 <main className="flex flex-1 flex-col gap-4 p-4 pt-0 w-full">
-                    <div className="w-full py-4">
-                        {children}
-                    </div>
+                    <ErrorBoundary>
+                        <div className="w-full py-4">
+                            {children}
+                        </div>
+                    </ErrorBoundary>
                 </main>
             </SidebarInset>
         </SidebarProvider>

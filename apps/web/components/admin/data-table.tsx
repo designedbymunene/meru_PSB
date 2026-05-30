@@ -89,19 +89,20 @@ export function DataTable<TData, TValue>({
                                 table.getColumn(searchKey)?.setFilterValue(event.target.value)
                             }
                             className="max-w-sm"
+                            aria-label={`Search by ${searchPlaceholder}`}
                         />
                     </div>
                 ) : <div className="flex-1" />}
-                {toolbar && <div className="flex items-center gap-2">{toolbar}</div>}
+                {toolbar && <div className="flex items-center gap-2" role="toolbar">{toolbar}</div>}
             </div>
-            <div className="rounded-md border">
-                <Table>
+            <div className="rounded-md border" role="region" aria-label="Data table">
+                <Table role="table" aria-label="Data results table">
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
+                            <TableRow key={headerGroup.id} role="row">
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead key={header.id} className="px-6">
+                                        <TableHead key={header.id} className="px-6" role="columnheader">
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
@@ -116,13 +117,15 @@ export function DataTable<TData, TValue>({
                     </TableHeader>
                     <TableBody>
                         {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
+                            table.getRowModel().rows.map((row, idx) => (
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
+                                    role="row"
+                                    aria-rowindex={idx + 1}
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className="px-6 py-4">
+                                        <TableCell key={cell.id} className="px-6 py-4" role="cell">
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext()
@@ -132,10 +135,11 @@ export function DataTable<TData, TValue>({
                                 </TableRow>
                             ))
                         ) : (
-                            <TableRow>
+                            <TableRow role="row">
                                 <TableCell
                                     colSpan={columns.length}
                                     className="h-24 text-center"
+                                    role="cell"
                                 >
                                     <div className="flex h-full items-center justify-center text-muted-foreground p-4">
                                         No results found.
@@ -147,8 +151,8 @@ export function DataTable<TData, TValue>({
                 </Table>
             </div>
             {!manualPagination && (
-                <div className="flex items-center justify-between space-x-2 py-4">
-                    <div className="flex-1 text-sm text-muted-foreground">
+                <div className="flex items-center justify-between space-x-2 py-4" role="navigation" aria-label="Table pagination">
+                    <div className="flex-1 text-sm text-muted-foreground" role="status" aria-live="polite">
                         {formatNumber(table.getFilteredSelectedRowModel().rows.length)} of{" "}
                         {formatNumber(table.getFilteredRowModel().rows.length)} row(s) selected.
                     </div>
@@ -158,6 +162,7 @@ export function DataTable<TData, TValue>({
                             size="sm"
                             onClick={() => table.previousPage()}
                             disabled={!table.getCanPreviousPage()}
+                            aria-label="Go to previous page"
                         >
                             <ChevronLeft className="h-4 w-4" />
                             Previous
@@ -167,6 +172,7 @@ export function DataTable<TData, TValue>({
                             size="sm"
                             onClick={() => table.nextPage()}
                             disabled={!table.getCanNextPage()}
+                            aria-label="Go to next page"
                         >
                             Next
                             <ChevronRight className="h-4 w-4" />
