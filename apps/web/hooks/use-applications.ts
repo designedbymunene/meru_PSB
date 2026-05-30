@@ -12,6 +12,7 @@ import type {
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import type { AxiosError } from '@meru/shared'
+import { trackApplicationSubmitted, trackFormError } from '@/lib/analytics'
 
 // Helper function to extract error message from API response
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -66,7 +67,10 @@ export function useCreateApplication() {
     return useMutation({
         mutationFn: ({ data }: { data: CreateApplicationData }) =>
             applicationApi.createApplication({ data }),
-        onSuccess: () => {
+        onSuccess: (response) => {
+            // Track application submission
+            trackApplicationSubmitted(response.data.vacancyId)
+
             toast.success('Application submitted successfully', {
                 description: 'Good luck with your job application!',
             })
@@ -75,6 +79,9 @@ export function useCreateApplication() {
             router.push('/dashboard/applications')
         },
         onError: (error: unknown) => {
+            // Track form errors
+            trackFormError('application-form', error instanceof Error ? error.message : 'Unknown error')
+
             toast.error('Submission failed', {
                 description: getErrorMessage(error, 'Could not submit application'),
             })

@@ -8,6 +8,7 @@ import * as authApi from '@/lib/api/auth'
 import { useAuthContext } from '@/providers'
 import { QUERY_KEYS } from '@/lib/constants'
 import type { LoginCredentials, RegisterData } from '@/types'
+import { trackFormError } from '@/lib/analytics'
 
 // Helper function to extract error message from API response
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -50,6 +51,8 @@ export function useLogin() {
             }
         },
         onError: (error: unknown) => {
+            trackFormError('login-form', error instanceof Error ? error.message : 'Unknown error')
+            
             toast.error('Login failed', {
                 description: getErrorMessage(error, 'Invalid email or password'),
             })
@@ -85,6 +88,8 @@ export function useRegister() {
             router.push('/dashboard')
         },
         onError: (error: unknown) => {
+            trackFormError('register-form', error instanceof Error ? error.message : 'Unknown error')
+            
             toast.error('Registration failed', {
                 description: getErrorMessage(error, 'Could not create account'),
             })
