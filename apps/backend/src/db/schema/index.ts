@@ -27,6 +27,7 @@ export * from './applicant-documents'
 export * from './shortlisting'
 export * from './interviews'
 export * from './board'
+export * from './notifications'
 
 
 // Import tables and relations for schema object
@@ -63,6 +64,7 @@ import { shortlistCriteria } from './shortlisting'
 import { interviews, interviewScores, vacancyPanelMembers, interviewCriteria, interviewCriteriaScores } from './interviews'
 import { boardResolutions } from './board'
 import { downloadCategories, downloadFiles } from './downloads'
+import { notifications, notificationPreferences } from './notifications'
 
 
 export * from './relations'
@@ -136,6 +138,8 @@ export const schema = {
     boardResolutions,
     downloadCategories,
     downloadFiles,
+    notifications,
+    notificationPreferences,
     // Relations
     usersRelations,
     vacanciesRelations,

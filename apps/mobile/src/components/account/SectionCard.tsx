@@ -10,6 +10,7 @@ interface SectionCardProps {
     onEdit?: () => void;
     onDelete?: () => void;
     variant?: 'default' | 'flat' | 'outline';
+    hideHeader?: boolean;
 }
 
 export const SectionCard: React.FC<SectionCardProps> = ({
@@ -19,7 +20,8 @@ export const SectionCard: React.FC<SectionCardProps> = ({
     subtitle,
     onEdit,
     onDelete,
-    variant = 'default'
+    variant = 'default',
+    hideHeader = false,
 }) => {
     const isFlat = variant === 'flat';
     const isOutline = variant === 'outline';
@@ -33,46 +35,48 @@ export const SectionCard: React.FC<SectionCardProps> = ({
             }`}
         >
             <View>
-                <View className="flex-row items-center justify-between mb-5">
-                    <View className="flex-1 flex-row items-center">
-                        {icon && (
-                            <View className="mr-3 w-8 h-8 rounded-xl bg-white dark:bg-gray-800 items-center justify-center shadow-sm">
-                                {icon}
-                            </View>
-                        )}
-                        <View className="flex-1">
-                            <Text className="text-gray-900 dark:text-white font-black text-sm tracking-tight" numberOfLines={1}>
-                                {title}
-                            </Text>
-                            {subtitle && (
-                                <Text className="text-gray-400 dark:text-gray-500 text-[10px] font-bold mt-0.5 uppercase tracking-tighter">
-                                    {subtitle}
+                {!hideHeader && (
+                    <View className="flex-row items-center justify-between mb-5">
+                        <View className="flex-1 flex-row items-center">
+                            {icon && (
+                                <View className="mr-3 w-8 h-8 rounded-xl bg-white dark:bg-gray-800 items-center justify-center shadow-sm">
+                                    {icon}
+                                </View>
+                            )}
+                            <View className="flex-1">
+                                <Text className="text-gray-900 dark:text-white font-black text-sm tracking-tight" numberOfLines={1}>
+                                    {title}
                                 </Text>
+                                {subtitle && (
+                                    <Text className="text-gray-400 dark:text-gray-500 text-[10px] font-bold mt-0.5 uppercase tracking-tighter">
+                                        {subtitle}
+                                    </Text>
+                                )}
+                            </View>
+                        </View>
+                        
+                        <View className="flex-row space-x-2 ml-2">
+                            {onEdit && (
+                                <TouchableOpacity 
+                                    onPress={onEdit}
+                                    activeOpacity={0.7}
+                                    className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 items-center justify-center"
+                                >
+                                    <Edit2 size={14} color="#3b82f6" strokeWidth={2.5} />
+                                </TouchableOpacity>
+                            )}
+                            {onDelete && (
+                                <TouchableOpacity 
+                                    onPress={onDelete}
+                                    activeOpacity={0.7}
+                                    className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 items-center justify-center"
+                                >
+                                    <Trash2 size={14} color="#ef4444" strokeWidth={2.5} />
+                                </TouchableOpacity>
                             )}
                         </View>
                     </View>
-                    
-                    <View className="flex-row space-x-2 ml-2">
-                        {onEdit && (
-                            <TouchableOpacity 
-                                onPress={onEdit}
-                                activeOpacity={0.7}
-                                className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 items-center justify-center"
-                            >
-                                <Edit2 size={14} color="#3b82f6" strokeWidth={2.5} />
-                            </TouchableOpacity>
-                        )}
-                        {onDelete && (
-                            <TouchableOpacity 
-                                onPress={onDelete}
-                                activeOpacity={0.7}
-                                className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 items-center justify-center"
-                            >
-                                <Trash2 size={14} color="#ef4444" strokeWidth={2.5} />
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                </View>
+                )}
 
                 <View>
                     {children}

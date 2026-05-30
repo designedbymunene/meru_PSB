@@ -1,5 +1,5 @@
 import { db } from '../db'
-import { users } from '../db/schema'
+import { users, notifications } from '../db/schema'
 import { eq } from 'drizzle-orm'
 import { logger } from '../utils/logger'
 
@@ -10,6 +10,16 @@ export type PushNotificationPayload = {
     data?: Record<string, any>
     sound?: 'default' | null
     priority?: 'default' | 'normal' | 'high'
+}
+
+export type NotificationType = 'application_status' | 'interview_reminder' | 'document_request' | 'application_update' | 'general'
+
+export interface CreateNotificationParams {
+    userId: number
+    type: NotificationType
+    title: string
+    message: string
+    data?: Record<string, any>
 }
 
 export class NotificationService {
@@ -92,6 +102,116 @@ export class NotificationService {
             to: tokens,
             title,
             body,
+            data
+        })
+    }
+
+    /**
+     * Create an in-app notification for a user
+     */
+    static async createInAppNotification(params: CreateNotificationParams) {
+        const [notification] = await db
+            .insert(notifications)
+            .values({
+                userId: params.userId,
+                type: params.type,
+                title: params.title,
+                message: params.message,
+                data: params.data || null,
+                read: false
+            })
+            .returning()
+
+        return notification
+    }
+
+    /**
+     * Create in-app notifications for multiple users
+     */
+    static async createInAppNotificationsForUsers(
+        userIds: number[],
+        params: Omit<CreateNotificationParams, 'userId'>
+    ) {
+        const notificationsToInsert = userIds.map(userId => ({
+            userId,
+            type: params.type,
+            title: params.title,
+            message: params.message,
+            data: params.data || null,
+            read: false
+        }))
+
+        await db.insert(notifications).values(notificationsToInsert)
+    }
+
+    /**
+     * Notify user of application status change
+     */
+    static async notifyApplicationStatusChange(
+        userId: number,
+        applicationId: number,
+        jobTitle: string,
+        newStatus: string
+    ) {
+        return this.createInAppNotification({
+            userId,
+            type: 'application_status',
+            title: 'Application Status Updated',
+            message: `Your application for ${jobTitle} has been updated to: ${newStatus}`,
+            data: { applicationId, jobTitle, newStatus }
+        })
+    }
+
+    /**
+     * Notify user of interview schedule
+     */
+    static async notifyInterviewScheduled(
+        userId: number,
+        interviewId: number,
+        jobTitle: string,
+        scheduleDate: string,
+        scheduleTime: string
+    ) {
+        return this.createInAppNotification({
+            userId,
+            type: 'interview_reminder',
+            title: 'Interview Scheduled',
+            message: `You have an interview scheduled for ${jobTitle} on ${scheduleDate} at ${scheduleTime}`,
+            data: { interviewId, jobTitle, scheduleDate, scheduleTime }
+        })
+    }
+
+    /**
+     * Notify user of document request
+     */
+    static async notifyDocumentRequested(
+        userId: number,
+        applicationId: number,
+        documentType: string
+    ) {
+        return this.createInAppNotification({
+            userId,
+            type: 'document_request',
+            title: 'Additional Documents Required',
+            message: `Please submit ${documentType} for your application`,
+            data: { applicationId, documentType }
+        })
+    }
+
+    /**
+     * Send general notification
+     */
+    static async notifyGeneral(
+        userId: number,
+        title: string,
+        message: string,
+        data?: Record<string, any>
+    ) {
+        return this.createInAppNotification({
+            userId,
+            type: 'general',
+            title,
+            message,
             data
         })
     }

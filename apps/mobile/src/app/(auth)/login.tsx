@@ -20,6 +20,7 @@ import { useAuth } from '@/context/auth-context';
 import { getApiErrorMessage } from '@/lib/api/client';
 import { FormField } from '@/components/ui/form-field';
 import { safeAsyncStorage } from '@/lib/storage';
+import { authStorage } from '@/lib/auth/storage';
 import { toast } from 'sonner-native';
 
 // Safely import LocalAuthentication to prevent crashes when native module is missing
@@ -40,7 +41,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
-    const { login, user } = useAuth();
+    const { login, user, loginWithRefreshToken } = useAuth();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -91,6 +92,18 @@ export default function LoginScreen() {
             });
 
             if (result.success) {
+                // Try to perform token refresh-based login using stored biometric refresh token
+                const biometricToken = await authStorage.getBiometricRefreshToken();
+                if (biometricToken) {
+                    try {
+                        await loginWithRefreshToken(biometricToken);
+                        return;
+                    } catch (err) {
+                        if (__DEV__) console.error('[Biometric] Refresh login failed', err);
+                        // fallthrough to prefill email
+                    }
+                }
+
                 const storedEmail = await safeAsyncStorage.getItem('last_login_email');
                 if (storedEmail) {
                     setValue('email', storedEmail);

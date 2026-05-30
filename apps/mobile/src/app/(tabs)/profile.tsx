@@ -1,31 +1,25 @@
 import { useRouter } from 'expo-router';
 import {
     Bell,
-    ChevronRight,
     Lock,
     LogOut,
     Moon,
     Sun,
-    CheckCircle2,
-    ShieldCheck,
     HelpCircle,
     Info,
-    History,
-    FileText,
     Settings2,
-    Briefcase,
     UserRound,
     ExternalLink,
-    ShieldAlert
+    ShieldAlert,
+    MapPin
 } from 'lucide-react-native';
-import React from 'react';
+import React, { useState } from 'react';
 import { useColorScheme } from 'nativewind';
-import { Alert, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ProfileHeader, SectionCard, SettingRow } from '@/components/account';
+import { ProfileHeader, SettingRow } from '@/components/account';
 import { useAuth } from '@/context/auth-context';
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
+import { AlertModal } from '@/components/ui/alert-modal';
 
 export default function ProfileScreen() {
     const { user, logout } = useAuth();
@@ -34,25 +28,10 @@ export default function ProfileScreen() {
     const isDarkMode = colorScheme === 'dark';
     const insets = useSafeAreaInsets();
 
-    const { data: profile } = useQuery({
-        queryKey: ['profile-brief'],
-        queryFn: async () => {
-            const response = await apiClient.get('/applicant-profiles/me');
-            return response.data.data;
-        },
-    });
-
-    const completion = profile?.profileCompletion?.overallPercentage || 0;
+    const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
 
     const handleLogout = () => {
-        Alert.alert(
-            'Logout Session',
-            'Are you sure you want to logout of your account?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Logout', style: 'destructive', onPress: logout },
-            ]
-        );
+        setIsLogoutModalVisible(true);
     };
 
     return (
@@ -67,51 +46,17 @@ export default function ProfileScreen() {
                         {/* Profile Header */}
                         <View className="mb-8">
                             <ProfileHeader
-                                name={user?.fullName || 'User'}
-                                email={user?.email || ''}
-                                role={user?.role || 'Applicant'}
-                                avatarUrl={`https://ui-avatars.com/api/?name=${user?.fullName || 'User'}&background=004aad&color=fff&size=256`}
-                                isVerified={(user as any)?.isVerified || false}
-                                onEditAvatar={() => { }}
-                            />
-                        </View>
+                                    name={user?.fullName || 'User'}
+                                    email={user?.email || ''}
+                                    role={user?.role || 'Applicant'}
+                                    avatarUrl={`https://ui-avatars.com/api/?name=${user?.fullName || 'User'}&background=004aad&color=fff&size=256`}
+                                    isVerified={(user as any)?.isVerified || false}
+                                    onEditAvatar={() => { }}
+                                />
+                            </View>
 
-                        {/* Premium Stats Grid */}
-                        <View className="flex-row space-x-3 mb-12">
-                            <TouchableOpacity
-                                className="flex-1 bg-white dark:bg-gray-900 p-5 rounded-[28px] border border-gray-100/50 dark:border-gray-800 shadow-sm active:opacity-80"
-                                onPress={() => router.push('/applications')}
-                            >
-                                <View className="w-12 h-12 bg-[#004aad]/5 dark:bg-blue-900/20 rounded-2xl items-center justify-center mb-3">
-                                    <View className="w-8 h-8 bg-[#004aad] rounded-lg items-center justify-center shadow-lg shadow-blue-200">
-                                        <Briefcase size={16} color="white" strokeWidth={2.5} />
-                                    </View>
-                                </View>
-                                <Text className="text-gray-900 dark:text-white font-black text-[13px] tracking-tight">Applications</Text>
-                                <View className="flex-row items-center mt-1">
-                                    <Text className="text-gray-400 dark:text-gray-500 text-[9px] font-black uppercase tracking-widest">Check Status</Text>
-                                    <ChevronRight size={8} color="#94a3b8" />
-                                </View>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                className="flex-1 bg-white dark:bg-gray-900 p-5 rounded-[28px] border border-gray-100/50 dark:border-gray-800 shadow-sm active:opacity-80"
-                                onPress={() => router.push('/digital-cv')}
-                            >
-                                <View className="w-12 h-12 bg-green-50/50 dark:bg-green-900/20 rounded-2xl items-center justify-center mb-3">
-                                    <View className="w-8 h-8 bg-green-600 rounded-lg items-center justify-center shadow-lg shadow-green-200">
-                                        <FileText size={16} color="white" strokeWidth={2.5} />
-                                    </View>
-                                </View>
-                                <Text className="text-gray-900 dark:text-white font-black text-[13px] tracking-tight">Digital CV</Text>
-                                <View className="bg-green-50 dark:bg-green-900/30 self-start px-2 py-0.5 rounded-full mt-1">
-                                    <Text className="text-green-600 dark:text-green-400 text-[8px] font-black uppercase tracking-widest">{completion}% Complete</Text>
-                                </View>
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Settings Groups */}
-                        <View className="space-y-14">
+                            {/* Settings Groups */}
+                            <View className="space-y-14">
                             {/* Account & Security */}
                             <View>
                                 <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mt-4 mb-2 ml-2">Account & Security</Text>
@@ -119,9 +64,16 @@ export default function ProfileScreen() {
                                     <SettingRow
                                         icon={UserRound}
                                         title="Personal Information"
-                                        subtitle="Manage your identity and bio-data"
+                                        subtitle="Manage your identity and core bio-data"
                                         onPress={() => router.push('/profile/wizard?step=personal')}
                                         color="#3b82f6"
+                                    />
+                                    <SettingRow
+                                        icon={MapPin}
+                                        title="Location & Ethnicity"
+                                        subtitle="Home county, ward and ethnicity"
+                                        onPress={() => router.push('/profile/personal-details')}
+                                        color="#06b6d4"
                                     />
                                     <SettingRow
                                         icon={Lock}
@@ -214,6 +166,14 @@ export default function ProfileScreen() {
                             <LogOut size={20} color="#ef4444" strokeWidth={2.5} />
                             <Text className="text-red-600 dark:text-red-400 font-black ml-3 uppercase tracking-widest text-xs">Logout Session</Text>
                         </TouchableOpacity>
+
+                        <AlertModal
+                            visible={isLogoutModalVisible}
+                            title="Logout Session"
+                            message="Are you sure you want to logout of your account?"
+                            onCancel={() => setIsLogoutModalVisible(false)}
+                            onConfirm={() => { setIsLogoutModalVisible(false); logout(); }}
+                        />
 
                         <View className="mt-12 items-center">
                             <Text className="text-gray-400 dark:text-gray-600 text-[10px] font-bold uppercase tracking-widest">

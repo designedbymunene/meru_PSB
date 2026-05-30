@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Alert, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Linking } from 'react-native';
+import { AlertModal } from '@/components/ui/alert-modal';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useApplication } from '@/hooks/use-applications';
 import { 
@@ -76,6 +77,9 @@ export default function MobileInterviewPrepGuideScreen() {
     const insets = useSafeAreaInsets();
     const [activeTab, setActiveTab] = useState<'checklist' | 'values' | 'etiquette'>('checklist');
 
+    const [isAlertVisible, setIsAlertVisible] = useState(false);
+    const [alertMessage, setAlertMessage] = useState('');
+
     const applicationId = useMemo(() => (Array.isArray(id) ? id[0] : id), [id]);
     const isValidId = !!applicationId && applicationId !== 'active' && applicationId !== 'undefined';
 
@@ -108,12 +112,21 @@ export default function MobileInterviewPrepGuideScreen() {
     const departmentName = application?.vacancy?.department?.name || 'PUBLIC SERVICE BOARD';
 
     const handleOpenResource = (title: string) => {
-        Alert.alert('Resource Viewer', `Opening ${title}...`);
+        setAlertMessage(`Opening ${title}...`);
+        setIsAlertVisible(true);
     };
 
     return (
         <View style={{ flex: 1, backgroundColor: THEME.bg }}>
             <StatusBar barStyle="light-content" />
+
+            <AlertModal
+                visible={isAlertVisible}
+                title="Resource Viewer"
+                message={alertMessage}
+                onCancel={() => setIsAlertVisible(false)}
+                onConfirm={() => setIsAlertVisible(false)}
+            />
 
             {/* Custom Header */}
             <View style={{ paddingTop: insets.top + 10, paddingHorizontal: 24, paddingBottom: 16 }}>

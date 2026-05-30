@@ -2,7 +2,6 @@ import { createApiClient } from '@meru/shared';
 import { authStorage } from '../auth/storage';
 import { authEvents } from '../auth/events';
 import { queryClient } from '../query/client';
-import Constants from 'expo-constants';
 
 export { 
     createApiClient, 
@@ -13,8 +12,7 @@ export {
     type ApiErrorCategory
 } from '@meru/shared';
 
-const apiBase = (process.env.EXPO_PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
-const baseURL = `${apiBase}/api`;
+const baseURL = 'https://api.merucountypublicserviceboard.or.ke/api';
 
 
 export const apiClient = createApiClient({

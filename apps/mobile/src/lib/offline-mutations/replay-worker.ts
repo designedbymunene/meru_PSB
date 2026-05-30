@@ -1,4 +1,3 @@
-import NetInfo from "@react-native-community/netinfo";
 import { AppState, type AppStateStatus } from "react-native";
 import { apiClient, getNormalizedApiError } from "@/lib/api/client";
 import { queryClient } from "@/lib/query/client";
@@ -16,6 +15,7 @@ import type { OfflineMutationEntry } from "./types";
 let replayInFlight: Promise<void> | null = null;
 let hasInitializedReplaySubscription = false;
 let lastKnownOnlineState = true;
+let hasWarnedMissingNetInfo = false;
 
 function invalidateAffectedQueries(path: string) {
   const invalidations: string[][] = [];
@@ -138,28 +138,50 @@ export function initializeOfflineMutationReplay() {
 
   hasInitializedReplaySubscription = true;
 
-  NetInfo.fetch()
-    .then((state) => {
-      const isOnline = resolveOnlineState(state.isConnected, state.isInternetReachable);
-      lastKnownOnlineState = isOnline;
+  let unsubscribeNetInfo: () => void = () => undefined;
+  let isDisposed = false;
 
-      if (isOnline) {
-        void replayOfflineMutationOutbox();
+  void import("@react-native-community/netinfo")
+    .then(({ default: NetInfo }) => {
+      if (isDisposed) {
+        return;
       }
+
+      NetInfo.fetch()
+        .then((state) => {
+          const isOnline = resolveOnlineState(state.isConnected, state.isInternetReachable);
+          lastKnownOnlineState = isOnline;
+
+          if (isOnline) {
+            void replayOfflineMutationOutbox();
+          }
+        })
+        .catch((error) => {
+          console.error("Unable to resolve connectivity state for offline replay.", error);
+        });
+
+      unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+        const isOnline = resolveOnlineState(state.isConnected, state.isInternetReachable);
+
+        if (isOnline && !lastKnownOnlineState) {
+          void replayOfflineMutationOutbox();
+        }
+
+        lastKnownOnlineState = isOnline;
+      });
     })
     .catch((error) => {
-      console.error("Unable to resolve connectivity state for offline replay.", error);
-    });
+      if (!hasWarnedMissingNetInfo) {
+        hasWarnedMissingNetInfo = true;
+        console.warn(
+          "[NetInfo] Offline replay is running without connectivity listeners because NetInfo is unavailable.",
+          error
+        );
+      }
 
-  const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
-    const isOnline = resolveOnlineState(state.isConnected, state.isInternetReachable);
-
-    if (isOnline && !lastKnownOnlineState) {
+      lastKnownOnlineState = true;
       void replayOfflineMutationOutbox();
-    }
-
-    lastKnownOnlineState = isOnline;
-  });
+    });
 
   const handleAppStateChange = (nextAppState: AppStateStatus) => {
     if (nextAppState === "active") {
@@ -170,6 +192,7 @@ export function initializeOfflineMutationReplay() {
   const appStateSubscription = AppState.addEventListener("change", handleAppStateChange);
 
   return () => {
+    isDisposed = true;
     unsubscribeNetInfo();
     appStateSubscription.remove();
     hasInitializedReplaySubscription = false;

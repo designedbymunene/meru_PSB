@@ -46,21 +46,6 @@ export default function DashboardScreen() {
         }
     }, [refetchApplications, refetchVacancies]);
 
-    if ((isApplicationsLoading || isVacanciesLoading) && !applications && !vacancies) {
-        return <DashboardLoadingState />;
-    }
-
-    const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
-    const applicationsNormalizedError = applicationsError ? getNormalizedApiError(applicationsError) : null;
-    const vacanciesNormalizedError = vacanciesError ? getNormalizedApiError(vacanciesError) : null;
-    const showOfflineBanner = isOffline || applicationsNormalizedError?.isOffline || vacanciesNormalizedError?.isOffline;
-    const applicationsErrorMessage = hasApplicationsError
-        ? getApiErrorMessage(applicationsError, 'Unable to load your applications right now.')
-        : null;
-    const vacanciesErrorMessage = hasVacanciesError
-        ? getApiErrorMessage(vacanciesError, 'Unable to load vacancies right now.')
-        : null;
-
     const activeApp = useMemo(() => {
         const app = applications?.[0];
         if (!app) return null;
@@ -89,6 +74,21 @@ export default function DashboardScreen() {
 
         return { ...app, progress, nextStep };
     }, [applications]);
+
+    if ((isApplicationsLoading || isVacanciesLoading) && !applications && !vacancies) {
+        return <DashboardLoadingState />;
+    }
+
+    const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
+    const applicationsNormalizedError = applicationsError ? getNormalizedApiError(applicationsError) : null;
+    const vacanciesNormalizedError = vacanciesError ? getNormalizedApiError(vacanciesError) : null;
+    const showOfflineBanner = isOffline || applicationsNormalizedError?.isOffline || vacanciesNormalizedError?.isOffline;
+    const applicationsErrorMessage = hasApplicationsError
+        ? getApiErrorMessage(applicationsError, 'Unable to load your applications right now.')
+        : null;
+    const vacanciesErrorMessage = hasVacanciesError
+        ? getApiErrorMessage(vacanciesError, 'Unable to load vacancies right now.')
+        : null;
 
     const stats = [
         { label: 'Applied', value: applications?.length || 0, icon: <FileText size={16} color="#004aad" />, bg: 'bg-blue-50/50', path: '/applications' },
@@ -239,7 +239,7 @@ export default function DashboardScreen() {
                     <View className="mb-10">
                         <View className="flex-row justify-between items-center mb-6 px-1">
                             <View>
-                                <Text className="text-lg font-bold text-gray-900 dark:text-white">Recommended Jobs</Text>
+                                <Text className="text-xl font-extrabold text-gray-900 dark:text-white">Recommended Jobs</Text>
                                 <Text className="text-gray-500 dark:text-gray-400 text-[11px] mt-0.5">Based on your preferences</Text>
                             </View>
                             <TouchableOpacity
@@ -270,7 +270,7 @@ export default function DashboardScreen() {
                                                 <Briefcase size={16} color="#94a3b8" />
                                             </TouchableOpacity>
                                         </View>
-                                        <Text className="text-base font-bold text-gray-900 dark:text-white mb-2 h-10" numberOfLines={2}>{item.title || 'Position Title'}</Text>
+                                        <Text className="text-lg font-extrabold text-gray-900 dark:text-white mb-2 h-12" numberOfLines={2}>{item.title || 'Position Title'}</Text>
 
                                         <View className="space-y-2.5 mb-6">
                                             <View className="flex-row items-center">

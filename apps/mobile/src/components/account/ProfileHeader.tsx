@@ -1,4 +1,4 @@
-import { Camera, ShieldCheck, Mail, User as UserIcon, MapPin, Calendar } from 'lucide-react-native';
+import { Camera, ShieldCheck, Mail, User as UserIcon } from 'lucide-react-native';
 import React from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 
@@ -69,7 +69,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                             onPress={() => {}}
                             className="bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded-lg border border-gray-100 dark:border-gray-700 active:opacity-70"
                         >
-                            <Text className="text-gray-600 dark:text-gray-300 font-bold text-[10px]">Edit Profile</Text>
+                            <Text className="text-gray-600 dark:text-gray-300 font-bold text-[10px]">Edit Profile Image</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

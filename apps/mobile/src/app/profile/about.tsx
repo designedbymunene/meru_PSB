@@ -33,11 +33,12 @@ export default function AboutScreen() {
             title="About Meru PSB"
             onBack={() => router.back()}
         >
-            <View className="items-center py-10">
-                <View className="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-[32px] items-center justify-center mb-6 shadow-xl shadow-blue-100 dark:shadow-none">
-                    <Image 
-                        source={{ uri: 'https://ui-avatars.com/api/?name=Meru+County&background=004aad&color=fff&size=256' }} 
-                        className="w-20 h-20 rounded-[28px]"
+            <View className="items-center pt-7 pb-8">
+                <View className="w-[88px] h-[88px] bg-white dark:bg-gray-900 rounded-[30px] items-center justify-center mb-4 border border-gray-100 dark:border-gray-800 shadow-lg shadow-blue-100/50 dark:shadow-none">
+                    <Image
+                        source={require('../../../assets/branding/merucountylogo.png')}
+                        className="w-[72px] h-[72px]"
+                        resizeMode="contain"
                     />
                 </View>
                 <Text className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Meru County PSB</Text>

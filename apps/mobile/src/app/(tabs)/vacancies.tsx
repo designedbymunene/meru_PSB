@@ -1,7 +1,7 @@
 import { useVacancies, VacancyFilters } from '@/hooks/use-vacancies';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
-import { Briefcase, Calendar, ChevronRight, Filter, MapPin, Search, Users, X } from 'lucide-react-native';
+import { Briefcase, Calendar, ChevronRight, Filter, MapPin, Search, X } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import React, { useState, useMemo } from 'react';
 import { FlatList, RefreshControl, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -124,8 +124,6 @@ export default function VacanciesScreen() {
                                     <X size={18} color="#94a3b8" />
                                 </TouchableOpacity>
                             )}
-                            <View className="bg-gray-200 dark:bg-gray-800 h-6 w-[1px] mx-2" />
-                            <Users size={18} color="#64748b" />
                         </View>
                     </View>
                 }
@@ -161,10 +159,6 @@ export default function VacanciesScreen() {
                                 <View className="flex-row items-center mx-2 my-1">
                                     <MapPin size={12} color="#64748b" />
                                     <Text className="text-gray-500 dark:text-gray-400 text-[11px] font-medium ml-1.5">{item.department?.name || 'Public Service'}</Text>
-                                </View>
-                                <View className="flex-row items-center mx-2 my-1">
-                                    <Users size={12} color="#64748b" />
-                                    <Text className="text-gray-500 dark:text-gray-400 text-[11px] font-medium ml-1.5">{item.openPositions} Position{item.openPositions !== 1 ? 's' : ''}</Text>
                                 </View>
                                 <View className="flex-row items-center mx-2 my-1">
                                     <Calendar size={12} color="#64748b" />

@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Text, TextInput, View, TouchableOpacity, ScrollView } from 'react-native';
 import { toast } from 'sonner-native';
@@ -18,10 +18,11 @@ import {
     useEthnicities 
 } from '@/lib/api/reference';
 import { runOfflineCapableMutation } from '@/lib/offline-mutations/mutation-strategy';
-import { User, MapPin, Phone, Mail, Fingerprint, Globe, Users, Heart } from 'lucide-react-native';
+import { User, MapPin, Phone, Mail, Fingerprint, Globe, Users, Heart, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { ProfileFormLoadingState } from '@/components/ui/loading-skeletons';
 import { Header } from '@/components/ui/header';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useColorScheme } from 'nativewind';
 
 const personalDetailsSchema = z.object({
     fullName: z.string().min(2, 'Full Name is required'),
@@ -45,7 +46,10 @@ export default function PersonalDetailsScreen() {
     const queryClient = useQueryClient();
     const netInfo = useNetInfo();
     const insets = useSafeAreaInsets();
-     
+    const { colorScheme } = useColorScheme();
+    const isDarkMode = colorScheme === 'dark';
+    
+    const [currentStep, setCurrentStep] = useState(1);
     const [hasInitialReset, setHasInitialReset] = React.useState(false);
 
     // Refs for keyboard "Next" navigation
@@ -98,7 +102,7 @@ export default function PersonalDetailsScreen() {
         }
     });
 
-    const { control, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<PersonalDetailsData>({
+    const { control, handleSubmit, formState: { errors }, reset, watch, setValue, trigger } = useForm<PersonalDetailsData>({
         resolver: zodResolver(personalDetailsSchema),
         defaultValues: {
             fullName: '',
@@ -176,13 +180,71 @@ export default function PersonalDetailsScreen() {
         return <ProfileFormLoadingState title="Personal Details" />;
     }
 
+    const handleNextStep = async () => {
+        let fieldsToValidate: (keyof PersonalDetailsData)[] = [];
+        
+        if (currentStep === 1) {
+            fieldsToValidate = ['fullName', 'email', 'idNumber', 'phoneNumber', 'dateOfBirth', 'gender'];
+        } else if (currentStep === 2) {
+            fieldsToValidate = ['homeCountyId', 'homeSubCountyId', 'wardId'];
+        }
+
+        const isStepValid = await trigger(fieldsToValidate);
+        if (isStepValid) {
+            setCurrentStep(currentStep + 1);
+        }
+    };
+
+    const handlePrevStep = () => {
+        if (currentStep > 1) {
+            setCurrentStep(currentStep - 1);
+        }
+    };
+
     const handleSubmitForm = async (data: PersonalDetailsData) => {
         mutation.mutate(data);
     };
 
+    const stepTitles = ['Basic Information', 'Location', 'Ethnicity & Health'];
+    const stepDescriptions = [
+        'Tell us who you are',
+        'Where are you from?',
+        'Additional information'
+    ];
+
     return (
         <View className="flex-1 bg-gray-50 dark:bg-gray-950">
             <Header title="Personal Details" onBack={() => router.back()} />
+            
+            {/* Step Indicator */}
+            <View className="px-6 py-4">
+                <View className="flex-row items-center">
+                    {[1, 2, 3].map((step, idx) => (
+                        <View key={step} className="flex-1">
+                            <TouchableOpacity
+                                className={`h-10 rounded-full items-center justify-center ${
+                                    currentStep >= step
+                                        ? 'bg-[#004aad] dark:bg-blue-600'
+                                        : 'bg-gray-200 dark:bg-gray-700'
+                                }`}
+                            >
+                                <Text className={`font-black ${currentStep >= step ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                                    {step}
+                                </Text>
+                            </TouchableOpacity>
+                            {idx < 2 && (
+                                <View
+                                    className={`h-1 flex-1 ml-2 mt-5 ${
+                                        currentStep > step ? 'bg-[#004aad] dark:bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+                                    }`}
+                                />
+                            )}
+                        </View>
+                    ))}
+                </View>
+                <Text className="text-lg font-black text-gray-900 dark:text-white mt-4">{stepTitles[currentStep - 1]}</Text>
+                <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">{stepDescriptions[currentStep - 1]}</Text>
+            </View>
 
             <ScrollView
                 className="flex-1"
@@ -208,9 +270,8 @@ export default function PersonalDetailsScreen() {
                     </View>
                 )}
 
-                {/* Basic Information Section */}
-                <View className="pb-4">
-                    <Text className="text-gray-900 dark:text-white font-black text-base mb-4">Basic Information</Text>
+                {/* Step 1: Basic Information */}
+                {currentStep === 1 && (
                     <View className="space-y-2">
                         <Controller
                             control={control}
@@ -315,16 +376,16 @@ export default function PersonalDetailsScreen() {
                             )}
                         />
                     </View>
-                </View>
+                )}
 
-                {/* Location & Origin Section */}
-                <View className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-4 border border-gray-100 dark:border-gray-800">
-                    <View className="pb-2">
-                        <Text className="text-gray-900 dark:text-white font-black text-base">Location & Origin</Text>
-                        <Text className="text-gray-500 dark:text-gray-400 text-xs">These details are required for statutory reporting.</Text>
-                    </View>
-
+                {/* Step 2: Location */}
+                {currentStep === 2 && (
                     <View className="space-y-2">
+                        <View className="pt-0 pb-2">
+                            <Text className="text-gray-900 dark:text-white font-black text-base">Location & Origin</Text>
+                            <Text className="text-gray-500 dark:text-gray-400 text-xs">These details are required for statutory reporting.</Text>
+                        </View>
+
                         <Controller
                             control={control}
                             name="homeCountyId"
@@ -391,14 +452,10 @@ export default function PersonalDetailsScreen() {
                             )}
                         />
                     </View>
-                </View>
+                )}
 
-                {/* Ethnicity & Health Section */}
-                <View className="pb-4">
-                    <View className="pb-2">
-                        <Text className="text-gray-900 dark:text-white font-black text-base">Ethnicity & Health</Text>
-                    </View>
-
+                {/* Step 3: Ethnicity & Health */}
+                {currentStep === 3 && (
                     <View className="space-y-2">
                         <Controller
                             control={control}
@@ -417,8 +474,8 @@ export default function PersonalDetailsScreen() {
                             )}
                         />
 
-                        <View className="pt-2 pb-2">
-                            <Text className="text-gray-900 dark:text-white font-black text-sm">Health & Accessibility</Text>
+                        <View className="pt-6 pb-2">
+                            <Text className="text-gray-900 dark:text-white font-black text-lg">Health & Accessibility</Text>
                         </View>
 
                         <Controller
@@ -458,24 +515,41 @@ export default function PersonalDetailsScreen() {
                             />
                         )}
                     </View>
-                </View>
+                )}
             </ScrollView>
 
-            {/* Submit Button */}
+            {/* Navigation and Submit Buttons */}
             <View className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950" style={{ paddingBottom: Math.max(insets.bottom, 24) }}>
-                <TouchableOpacity
-                    onPress={handleSubmit(handleSubmitForm)}
-                    disabled={mutation.isPending}
-                    className={`h-14 rounded-2xl items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none ${
-                        mutation.isPending ? 'bg-[#004aad]/70' : 'bg-[#004aad] dark:bg-blue-600'
-                    }`}
-                >
-                    {mutation.isPending ? (
-                        <Text className="text-white font-black text-sm">Saving...</Text>
-                    ) : (
-                        <Text className="text-white font-black text-sm uppercase tracking-widest">Save Details</Text>
+                <View className="flex-row gap-3">
+                    {currentStep > 1 && (
+                        <TouchableOpacity
+                            onPress={handlePrevStep}
+                            className="flex-1 h-14 rounded-2xl border border-gray-300 dark:border-gray-700 items-center justify-center flex-row"
+                        >
+                            <ChevronLeft size={18} color={isDarkMode ? '#60a5fa' : '#004aad'} />
+                            <Text className="text-[#004aad] dark:text-blue-400 font-black text-sm ml-2 uppercase tracking-widest">Back</Text>
+                        </TouchableOpacity>
                     )}
-                </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                        onPress={currentStep === 3 ? handleSubmit(handleSubmitForm) : handleNextStep}
+                        disabled={mutation.isPending}
+                        className={`flex-1 h-14 rounded-2xl items-center justify-center flex-row shadow-lg shadow-blue-200 dark:shadow-none ${
+                            mutation.isPending ? 'bg-[#004aad]/70' : 'bg-[#004aad] dark:bg-blue-600'
+                        }`}
+                    >
+                        {mutation.isPending ? (
+                            <Text className="text-white font-black text-sm">Saving...</Text>
+                        ) : (
+                            <>
+                                <Text className="text-white font-black text-sm uppercase tracking-widest">
+                                    {currentStep === 3 ? 'Save Details' : 'Next'}
+                                </Text>
+                                {currentStep < 3 && <ChevronRight size={18} color="white" className="ml-2" />}
+                            </>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );

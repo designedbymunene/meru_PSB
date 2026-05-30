@@ -31,6 +31,14 @@ export function FormPicker({
     const isDarkMode = colorScheme === 'dark';
     const placeholderValue = placeholder ? { label: placeholder, value: null } : { label: 'Select option', value: null };
 
+    const normalizedItems = React.useMemo(() => {
+        const max = 80;
+        return items.map((it) => ({
+            label: typeof it.label === 'string' && it.label.length > max ? it.label.slice(0, max - 3) + '...' : it.label,
+            value: it.value,
+        }));
+    }, [items]);
+
     return (
         <View className={`mb-5 ${!enabled ? 'opacity-60' : ''}`}>
             <Text className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2 ml-1">{label}</Text>
@@ -48,7 +56,7 @@ export function FormPicker({
                 <View className="flex-1 justify-center">
                     <RNPickerSelect
                         onValueChange={onValueChange}
-                        items={items}
+                        items={normalizedItems}
                         value={value}
                         placeholder={placeholderValue}
                         disabled={!enabled || isLoading}

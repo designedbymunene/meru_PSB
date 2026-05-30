@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 const USER_KEY = 'user';
+const BIOMETRIC_REFRESH_KEY = 'biometric_refresh_token';
 
 export const authStorage = {
     async setAccessToken(token: string) {
@@ -24,9 +25,19 @@ export const authStorage = {
         const user = await SecureStore.getItemAsync(USER_KEY);
         return user ? JSON.parse(user) : null;
     },
+    async setBiometricRefreshToken(token: string) {
+        await SecureStore.setItemAsync(BIOMETRIC_REFRESH_KEY, token);
+    },
+    async getBiometricRefreshToken() {
+        return await SecureStore.getItemAsync(BIOMETRIC_REFRESH_KEY);
+    },
+    async deleteBiometricRefreshToken() {
+        await SecureStore.deleteItemAsync(BIOMETRIC_REFRESH_KEY);
+    },
     async clearAll() {
         await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
         await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
         await SecureStore.deleteItemAsync(USER_KEY);
+        await SecureStore.deleteItemAsync(BIOMETRIC_REFRESH_KEY);
     }
 };

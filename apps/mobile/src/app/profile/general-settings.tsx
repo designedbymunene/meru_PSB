@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Platform } from 'react-native';
 import { Settings2, Trash2, RotateCcw, Monitor, Database, Bell, Palette, Info } from 'lucide-react-native';
+import { AlertModal } from '@/components/ui/alert-modal';
 import { SectionCard, SettingRow } from '@/components/account';
 import { FormLayout } from '@/components/ui/form-layout';
-import { FormPicker } from '@/components/ui/form-picker';
+import { ThemeModeModal } from '@/components/ui/theme-mode-modal';
 import { router } from 'expo-router';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
@@ -13,30 +14,30 @@ export default function GeneralSettingsScreen() {
     // const [language, setLanguage] = useState('en');
     const { colorScheme, setColorScheme } = useColorScheme();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [isThemeModalVisible, setIsThemeModalVisible] = useState(false);
+    const [isClearModalVisible, setIsClearModalVisible] = useState(false);
+    const [isResetModalVisible, setIsResetModalVisible] = useState(false);
 
     const deviceInfo = `${Device.modelName || 'Device'} (${Platform.OS} ${Device.osVersion})`;
     const appVersion = `${Constants.expoConfig?.version || '1.0.0'} (${Constants.expoConfig?.extra?.buildNumber || '1'})`;
 
+    const getThemeLabel = () => {
+        switch (colorScheme) {
+            case 'light':
+                return 'Light Mode';
+            case 'dark':
+                return 'Dark Mode';
+            default:
+                return 'System Default';
+        }
+    };
+
     const handleClearCache = () => {
-        Alert.alert(
-            'Clear Cache',
-            'Are you sure you want to clear the application cache? This will free up space but might make initial loading slower.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Clear', style: 'destructive', onPress: () => {} },
-            ]
-        );
+        setIsClearModalVisible(true);
     };
 
     const handleResetSettings = () => {
-        Alert.alert(
-            'Reset Settings',
-            'This will reset all app preferences to their default values. Your profile data will not be affected.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Reset', style: 'destructive', onPress: () => {} },
-            ]
-        );
+        setIsResetModalVisible(true);
     };
 
     return (
@@ -48,19 +49,14 @@ export default function GeneralSettingsScreen() {
                 {/* Appearance Section */}
                 <View>
                     <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-5 ml-2">Appearance</Text>
-                    <SectionCard title="Look & Feel" icon={<Palette size={18} color="#8b5cf6" strokeWidth={2.5} />}>
-                        <View className="py-2">
-                            <FormPicker
-                                label="App Theme"
-                                value={colorScheme || 'system'}
-                                onValueChange={(val) => setColorScheme(val as any)}
-                                items={[
-                                    { label: 'System Default', value: 'system' },
-                                    { label: 'Light Mode', value: 'light' },
-                                    { label: 'Dark Mode', value: 'dark' },
-                                ]}
-                            />
-                        </View>
+                    <SectionCard title="Look & Feel" icon={<Palette size={18} color="#8b5cf6" strokeWidth={2.5} />} hideHeader>
+                        <SettingRow
+                            icon={Palette}
+                            title="App Theme"
+                            subtitle={getThemeLabel()}
+                            color="#8b5cf6"
+                            onPress={() => setIsThemeModalVisible(true)}
+                        />
                         <SettingRow
                             icon={Bell}
                             title="Push Notifications"
@@ -101,7 +97,7 @@ export default function GeneralSettingsScreen() {
                 {/* Storage Section */}
                 <View>
                     <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-5 ml-2">Maintenance</Text>
-                    <SectionCard title="App Storage" icon={<Database size={18} color="#10b981" strokeWidth={2.5} />}>
+                    <SectionCard title="App Storage" icon={<Database size={18} color="#10b981" strokeWidth={2.5} />} hideHeader>
                         <SettingRow
                             icon={Trash2}
                             title="Clear Cache"
@@ -123,7 +119,7 @@ export default function GeneralSettingsScreen() {
                 {/* System Section */}
                 <View>
                     <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-5 ml-2">System Information</Text>
-                    <SectionCard title="Device & App" icon={<Info size={18} color="#64748b" strokeWidth={2.5} />}>
+                    <SectionCard title="Device & App" icon={<Info size={18} color="#64748b" strokeWidth={2.5} />} hideHeader>
                         <SettingRow
                             icon={Monitor}
                             title="Device Information"
@@ -136,16 +132,32 @@ export default function GeneralSettingsScreen() {
                             subtitle={appVersion}
                             color="#64748b"
                         />
-                        <SettingRow
-                            icon={Database}
-                            title="Environment"
-                            subtitle={__DEV__ ? 'Development (Debug)' : 'Production (Stable)'}
-                            color="#64748b"
-                            isLast={true}
-                        />
                     </SectionCard>
                 </View>
             </View>
+
+            <AlertModal
+                visible={isClearModalVisible}
+                title="Clear Cache"
+                message={'Are you sure you want to clear the application cache? This will free up space but might make initial loading slower.'}
+                onCancel={() => setIsClearModalVisible(false)}
+                onConfirm={() => { setIsClearModalVisible(false); /* implement clear cache action */ }}
+            />
+
+            <AlertModal
+                visible={isResetModalVisible}
+                title="Reset Settings"
+                message={'This will reset all app preferences to their default values. Your profile data will not be affected.'}
+                onCancel={() => setIsResetModalVisible(false)}
+                onConfirm={() => { setIsResetModalVisible(false); /* implement reset action */ }}
+            />
+
+            <ThemeModeModal
+                isVisible={isThemeModalVisible}
+                onClose={() => setIsThemeModalVisible(false)}
+                selectedTheme={colorScheme}
+                onSelect={setColorScheme}
+            />
         </FormLayout>
     );
 }

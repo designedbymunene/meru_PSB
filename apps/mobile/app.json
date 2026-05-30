@@ -8,7 +8,10 @@
     "scheme": "merucountypsbmobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/branding/merucountylogo.png"
+      "icon": "./assets/branding/merucountylogo.png",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Use Face ID to quickly and securely sign in to your Meru County PSB account."
+      }
     },
     "android": {
       "adaptiveIcon": {

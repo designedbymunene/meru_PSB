@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { ShieldCheck, Download, Trash2, Eye, Lock, FileText } from 'lucide-react-native';
+import { View, Text } from 'react-native';
+import { ShieldCheck, Download, Trash2, FileText } from 'lucide-react-native';
 import { SectionCard, SettingRow } from '@/components/account';
 import { FormLayout } from '@/components/ui/form-layout';
 import { router } from 'expo-router';
+import { toast } from 'sonner-native';
 
 export default function PrivacyScreen() {
     return (
@@ -14,12 +15,12 @@ export default function PrivacyScreen() {
             <View className="space-y-12">
                 <View>
                     <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-5 ml-2">Transparency</Text>
-                    <SectionCard title="Your Data" icon={<Eye size={18} color="#3b82f6" strokeWidth={2.5} />}>
+                    <SectionCard title="" hideHeader={true}>
                         <SettingRow
                             icon={FileText}
                             title="Personal Data We Collect"
                             subtitle="View the list of data points we store"
-                            onPress={() => {}}
+                            onPress={() => router.push('/profile/documents')}
                             color="#3b82f6"
                         />
                         <SettingRow
@@ -28,13 +29,6 @@ export default function PrivacyScreen() {
                             subtitle="Read our compliance with Data Protection Act"
                             onPress={() => router.push('/profile/privacy-policy')}
                             color="#10b981"
-                        />
-                        <SettingRow
-                            icon={Lock}
-                            title="Third-Party Sharing"
-                            subtitle="Who we share your information with"
-                            onPress={() => {}}
-                            color="#f59e0b"
                             isLast={true}
                         />
                     </SectionCard>
@@ -42,19 +36,19 @@ export default function PrivacyScreen() {
 
                 <View>
                     <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mb-5 ml-2">Data Controls</Text>
-                    <SectionCard title="Manage Account" icon={<Download size={18} color="#8b5cf6" strokeWidth={2.5} />}>
+                    <SectionCard title="" hideHeader={true}>
                         <SettingRow
                             icon={Download}
                             title="Download My Data"
                             subtitle="Get a copy of all your profile information"
-                            onPress={() => {}}
+                            onPress={() => toast.info('Coming Soon', { description: 'Data export feature will be available soon.' })}
                             color="#8b5cf6"
                         />
                         <SettingRow
                             icon={Trash2}
                             title="Request Account Deletion"
                             subtitle="Permanently remove your account and data"
-                            onPress={() => {}}
+                            onPress={() => toast.info('Coming Soon', { description: 'Account deletion feature will be available soon.' })}
                             color="#ef4444"
                             destructive={true}
                             isLast={true}

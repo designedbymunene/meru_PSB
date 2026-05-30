@@ -27,6 +27,7 @@ import { interviewsRouter } from './routes/interviews'
 import { boardRouter } from './routes/board'
 import { reportsRouter } from './routes/reports'
 import { downloadsRouter } from './routes/downloads'
+import { notificationsRouter } from './routes/notifications'
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler'
@@ -134,6 +135,7 @@ app.route('/api/interviews', interviewsRouter)
 app.route('/api/board', boardRouter)
 app.route('/api/reports', reportsRouter)
 app.route('/api/downloads', downloadsRouter)
+app.route('/api/notifications', notificationsRouter)
 
 // Error handler
 app.onError(errorHandler)

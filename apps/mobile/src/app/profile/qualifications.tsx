@@ -7,6 +7,7 @@ import { ListSectionWrapper } from '@/components/profile/forms/ListSectionWrappe
 import { QualificationForm } from '@/components/profile/forms/QualificationForm';
 import { QualificationCard } from '@/components/profile/QualificationCard';
 import { useQualifications } from '@/hooks/use-qualifications';
+import { useProfile } from '@/hooks/use-profile';
 
 export default function QualificationsScreen() {
     const { 
@@ -17,7 +18,10 @@ export default function QualificationsScreen() {
         deleteQualification 
     } = useQualifications();
 
-    if (isLoading) {
+    const { profile, isLoading: isLoadingProfile, toggleNA } = useProfile();
+    const loading = isLoading || isLoadingProfile;
+
+    if (loading) {
         return <ProfileRecordsLoadingState title="Qualifications" />;
     }
 
@@ -35,6 +39,8 @@ export default function QualificationsScreen() {
                     onDelete={deleteQualification}
                     emptyMessage="No qualifications added yet"
                     emptyIcon={<GraduationCap size={48} color="#cbd5e1" />}
+                    isNA={profile?.hasNoQualifications}
+                    onToggleNA={(val) => toggleNA('hasNoQualifications', val)}
                     renderItem={(item, onEdit, onDelete) => (
                         <QualificationCard 
                             key={item.id}

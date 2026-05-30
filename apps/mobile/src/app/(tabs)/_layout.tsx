@@ -58,7 +58,7 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="digital-cv"
                 options={{
-                    title: 'Digital CV',
+                    title: 'Profile',
                     tabBarIcon: ({ color, size }) => <UserRoundSearch color={color} size={size} />,
                 }}
             />

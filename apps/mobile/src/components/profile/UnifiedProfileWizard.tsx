@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { AlertModal } from '@/components/ui/alert-modal';
 import { 
     ChevronLeft, 
     ChevronRight, 
     CheckCircle2, 
     User, 
-    MapPin, 
     GraduationCap, 
     Briefcase, 
     Award, 
@@ -14,7 +14,6 @@ import {
     ClipboardCheck,
     AlertCircle,
     BookOpen,
-    FileUp
 } from 'lucide-react-native';
 import { Header } from '@/components/ui/header';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +24,6 @@ import { toast } from 'sonner-native';
 
 // Form Components
 import { PersonalDetailsForm, FormHandle } from './forms/PersonalDetailsForm';
-import { LocationDetailsForm } from './forms/LocationDetailsForm';
 import { ListSectionWrapper } from './forms/ListSectionWrapper';
 import { QualificationForm } from './forms/QualificationForm';
 import { EmploymentForm } from './forms/EmploymentForm';
@@ -133,6 +131,11 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
 
     const isSubmittingRef = useRef(false);
 
+    const [isSubmissionModalVisible, setIsSubmissionModalVisible] = useState(false);
+    const [submissionTitleModal, setSubmissionTitleModal] = useState('');
+    const [submissionMessageModal, setSubmissionMessageModal] = useState('');
+    const [submissionNavigateOnConfirm, setSubmissionNavigateOnConfirm] = useState(false);
+
     // Mutations
     const updateProfileMutation = useMutation({
         mutationFn: async (data: any) => {
@@ -167,23 +170,10 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
             const refNo = vacancy?.advertisementNumber || 'N/A';
             const title = vacancy?.title || 'this position';
             
-            setTimeout(() => {
-                Alert.alert(
-                    'Application Submitted', 
-                    `Your application for ${title} (${refNo}) has been submitted successfully.\n\nApplication ID: APP-${app.id.toString().padStart(6, '0')}`,
-                    [
-                        { 
-                            text: 'View My Applications', 
-                            onPress: () => {
-                                // Small delay to ensure the alert is fully dismissed
-                                setTimeout(() => {
-                                    router.replace('/(tabs)/applications');
-                                }, 100);
-                            }
-                        }
-                    ]
-                );
-            }, 100);
+            setSubmissionTitleModal('Application Submitted');
+            setSubmissionMessageModal(`Your application for ${title} (${refNo}) has been submitted successfully.\n\nApplication ID: APP-${app.id.toString().padStart(6, '0')}`);
+            setSubmissionNavigateOnConfirm(true);
+            setTimeout(() => setIsSubmissionModalVisible(true), 100);
         },
         onError: (error) => {
             toast.error('Error', { description: getApiErrorMessage(error, 'Failed to submit application') });
@@ -382,7 +372,7 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                             <View className="space-y-4">
                                 <Text className="text-gray-900 dark:text-white font-black text-lg">Final Declarations</Text>
                                 <Text className="text-gray-500 dark:text-gray-400 text-xs leading-5">
-                                    By submitting this application, I declare that all information provided in my Digital CV is true and correct to the best of my knowledge. I understand that any false statements may lead to disqualification or legal action.
+                                    By submitting this application, I declare that all information provided in my profile is true and correct to the best of my knowledge. I understand that any false statements may lead to disqualification or legal action.
                                 </Text>
                             </View>
                         )}
@@ -458,6 +448,19 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                 title={mode === 'apply' ? 'Job Application' : 'Update Profile'} 
                 subtitle={currentStep.title}
                 onBack={handleBack}
+            />
+
+            <AlertModal
+                visible={isSubmissionModalVisible}
+                title={submissionTitleModal}
+                message={submissionMessageModal}
+                onCancel={() => setIsSubmissionModalVisible(false)}
+                onConfirm={() => {
+                    setIsSubmissionModalVisible(false);
+                    if (submissionNavigateOnConfirm) {
+                        setTimeout(() => router.replace('/(tabs)/applications'), 100);
+                    }
+                }}
             />
 
             {/* Progress Indicator */}

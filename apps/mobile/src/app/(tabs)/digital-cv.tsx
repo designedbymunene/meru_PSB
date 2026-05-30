@@ -5,10 +5,7 @@ import {
     Briefcase,
     CheckCircle2,
     ChevronRight,
-    FileText,
-    FileUp,
     GraduationCap,
-    MapPin,
     ShieldCheck,
     User,
     Users
@@ -114,15 +111,7 @@ export default function DigitalCVScreen() {
                 title=""
                 showBackButton={false}
                 leftAction={
-                    <Text className="text-gray-900 dark:text-white font-black text-xl">Digital CV</Text>
-                }
-                rightAction={
-                    <View className="flex-row items-center justify-between">
-                        <TouchableOpacity className="bg-gray-50 dark:bg-gray-900 p-2 flex-row items-center rounded-xl border border-gray-100 dark:border-gray-800">
-                            <FileText size={18} color="#004aad" />
-                            <Text className="text-gray-900 dark:text-gray-200 font-bold text-[10px] ml-2">Download CV</Text>
-                        </TouchableOpacity>
-                    </View>
+                    <Text className="text-gray-900 dark:text-white font-black text-xl">Profile</Text>
                 }
             />
 

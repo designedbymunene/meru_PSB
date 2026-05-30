@@ -1,30 +1,41 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, LayoutAnimation, Platform } from 'react-native';
+import React, { useMemo, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useApplication } from '@/hooks/use-applications';
 import { useNetInfo } from '@react-native-community/netinfo';
+import { useColorScheme } from 'nativewind';
 import { 
-    Clock, Calendar, MapPin, Building2, 
-    ChevronLeft, Briefcase, Navigation, 
-    CheckCircle2, Circle, ArrowRight,
-    Info, AlertCircle, ExternalLink,
-    Search, Users, Flag
+    Clock, Calendar, Building2, 
+    ChevronLeft, Navigation, 
+    CheckCircle2, ArrowRight,
+    Info, AlertCircle, WifiOff
 } from 'lucide-react-native';
 import Animated, { 
     useSharedValue, 
     useAnimatedStyle, 
     withRepeat, 
     withTiming, 
-    interpolateColor,
     withSequence
 } from 'react-native-reanimated';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ApplicationDetailsLoadingState } from '@/components/ui/loading-skeletons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const THEME = {
-    bg: '#0a0c10',
-    card: '#11141d',
+const LIGHT_THEME = {
+    bg: '#f9fafb',
+    card: '#ffffff',
+    border: 'rgba(229, 231, 235, 0.8)',
+    textPrimary: '#111827',
+    textSecondary: '#6b7280',
+    accentBlue: '#3b82f6',
+    accentGreen: '#10b981',
+    accentPurple: '#8b5cf6',
+    accentOrange: '#f59e0b',
+};
+
+const DARK_THEME = {
+    bg: '#0f172a',
+    card: '#1e293b',
     border: 'rgba(30, 41, 59, 0.6)',
     textPrimary: '#ffffff',
     textSecondary: '#94a3b8',
@@ -46,7 +57,7 @@ const PulseCircle = ({ color }: { color: string }) => {
             -1,
             true
         );
-    }, []);
+    }, [pulse]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: pulse.value }],
@@ -66,11 +77,56 @@ const PulseCircle = ({ color }: { color: string }) => {
     );
 };
 
+const ScreenState = ({
+    icon: Icon,
+    title,
+    description,
+    primaryLabel,
+    primaryAction,
+    secondaryLabel,
+    secondaryAction,
+}: {
+    icon: React.ComponentType<{ size?: number; color?: string }>;
+    title: string;
+    description: string;
+    primaryLabel: string;
+    primaryAction: () => void;
+    secondaryLabel?: string;
+    secondaryAction?: () => void;
+}) => (
+    <View className="flex-1 bg-[#0a0c10] items-center justify-center px-6">
+        <View className="w-full max-w-md rounded-[32px] border border-slate-800 bg-[#11141d] p-6">
+            <View className="w-16 h-16 rounded-2xl items-center justify-center bg-blue-500/10 border border-blue-500/20 mb-5">
+                <Icon size={28} color={THEME.accentBlue} />
+            </View>
+            <Text className="text-white text-2xl font-black">{title}</Text>
+            <Text className="text-slate-400 text-sm mt-3 leading-6">{description}</Text>
+            <View className="mt-6 flex-row gap-3">
+                <TouchableOpacity
+                    onPress={primaryAction}
+                    className="flex-1 rounded-2xl bg-blue-600 px-4 py-4 items-center justify-center"
+                >
+                    <Text className="text-white font-black text-xs uppercase tracking-wider">{primaryLabel}</Text>
+                </TouchableOpacity>
+                {secondaryLabel && secondaryAction && (
+                    <TouchableOpacity
+                        onPress={secondaryAction}
+                        className="flex-1 rounded-2xl bg-white/5 px-4 py-4 items-center justify-center border border-white/10"
+                    >
+                        <Text className="text-white font-black text-xs uppercase tracking-wider">{secondaryLabel}</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+        </View>
+    </View>
+);
+
 export default function TrackApplicationScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const netInfo = useNetInfo();
     const insets = useSafeAreaInsets();
+    const { colorScheme } = useColorScheme();
     
     // Robust ID handling
     const applicationId = useMemo(() => (Array.isArray(id) ? id[0] : id), [id]);
@@ -80,6 +136,8 @@ export default function TrackApplicationScreen() {
         enabled: isValidId
     });
 
+    const isDarkMode = colorScheme === 'dark';
+    const THEME = isDarkMode ? DARK_THEME : LIGHT_THEME;
     const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
     const displayData = application;
 
@@ -88,7 +146,7 @@ export default function TrackApplicationScreen() {
         try {
             const parsed = parseISO(dateStr);
             return isNaN(parsed.getTime()) ? null : parsed;
-        } catch (e) {
+        } catch {
             return null;
         }
     };
@@ -151,20 +209,29 @@ export default function TrackApplicationScreen() {
         return <ApplicationDetailsLoadingState />;
     }
 
-    if ((isError || !isValidId) && !displayData) {
+    if (!isValidId) {
         return (
-            <View className="flex-1 bg-[#0a0c10] items-center justify-center p-6">
-                <AlertCircle size={48} color={THEME.accentOrange} />
-                <Text className="text-white text-xl font-bold mt-4">
-                    {!isValidId ? 'Invalid Application' : 'Unable to load details'}
-                </Text>
-                <TouchableOpacity 
-                    onPress={() => !isValidId ? router.back() : refetch()}
-                    className="mt-6 px-8 py-3 bg-blue-600 rounded-full"
-                >
-                    <Text className="text-white font-bold">{!isValidId ? 'Go Back' : 'Retry'}</Text>
-                </TouchableOpacity>
-            </View>
+            <ScreenState
+                icon={AlertCircle}
+                title="Invalid application"
+                description="We couldn’t identify that application from the link you opened."
+                primaryLabel="Go back"
+                primaryAction={() => router.back()}
+            />
+        );
+    }
+
+    if ((isOffline || isError) && !displayData) {
+        return (
+            <ScreenState
+                icon={WifiOff}
+                title="Connection paused"
+                description="This application can’t be refreshed right now. Once you’re back online, tap retry to continue."
+                primaryLabel="Retry"
+                primaryAction={() => refetch()}
+                secondaryLabel="Go back"
+                secondaryAction={() => router.back()}
+            />
         );
     }
 
@@ -186,7 +253,7 @@ export default function TrackApplicationScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: THEME.bg }}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
             
             {/* Custom Header */}
             <View style={{ paddingTop: insets.top + 10, paddingHorizontal: 24, paddingBottom: 16 }}>
@@ -198,12 +265,15 @@ export default function TrackApplicationScreen() {
                     <ChevronLeft size={20} color="#fff" />
                 </TouchableOpacity>
 
-                <Text className="text-blue-500 text-[10px] font-black uppercase tracking-[2px] mb-1">
-                    {displayData?.vacancy?.department?.name || 'PUBLIC SERVICE BOARD'}
-                </Text>
-                <Text className="text-white text-3xl font-bold leading-tight">
-                    {displayData?.vacancy?.title || 'Job Application'}
-                </Text>
+                {/* Music Player Style Header */}
+                <View style={{ backgroundColor: THEME.card, borderColor: THEME.border }} className="rounded-3xl p-4 border overflow-hidden">
+                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-2">
+                        {displayData?.vacancy?.department?.name || 'PUBLIC SERVICE BOARD'}
+                    </Text>
+                    <Text className="text-white text-xl font-bold leading-tight">
+                        {displayData?.vacancy?.title || 'Job Application'}
+                    </Text>
+                </View>
             </View>
 
             <ScrollView 
@@ -294,7 +364,7 @@ export default function TrackApplicationScreen() {
                     >
                         <View className="flex-row items-center mb-3">
                             <Info size={20} color="#fff" />
-                            <Text className="text-white text-lg font-black ml-2">What's Next?</Text>
+                            <Text className="text-white text-lg font-black ml-2">What&apos;s Next?</Text>
                         </View>
                         
                         <Text className="text-white/90 text-sm mb-6 leading-5">

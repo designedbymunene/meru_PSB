@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { User, LoginInput, RegisterInput, AuthResponse } from '@meru/shared';
 import { authStorage } from '../lib/auth/storage';
 import { apiClient } from '../lib/api/client';
-import { router, useNavigationContainerRef } from 'expo-router';
+import { router, useRootNavigationState } from 'expo-router';
 import { toast } from 'sonner-native';
 import { authEvents } from '../lib/auth/events';
 import { registerDevicePushToken } from '../lib/notifications/push';
@@ -16,6 +16,7 @@ interface AuthContextType {
     requestLoginOtp: (email: string) => Promise<void>;
     loginWithOtp: (data: { email: string; otp: string }) => Promise<void>;
     logout: () => Promise<void>;
+    loginWithRefreshToken: (refreshToken: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,19 +24,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const navigationRef = useNavigationContainerRef();
-    const [isNavigationReady, setIsNavigationReady] = useState(false);
-
-    useEffect(() => {
-        const checkReady = () => {
-            if (navigationRef.isReady()) {
-                setIsNavigationReady(true);
-            } else {
-                setTimeout(checkReady, 100);
-            }
-        };
-        checkReady();
-    }, [navigationRef]);
+    const rootNavigationState = useRootNavigationState();
+    const isNavigationReady = !!rootNavigationState?.key;
 
     const loadUser = useCallback(async () => {
         try {
@@ -185,6 +175,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const loginWithRefreshToken = async (refreshToken: string) => {
+        try {
+            // Exchange refresh token for new access token and user
+            const response = await apiClient.post<any>('/auth/refresh', { refreshToken });
+            const { user: resUser, accessToken, refreshToken: newRefresh } = response.data.data;
+
+            await authStorage.setAccessToken(accessToken);
+            await authStorage.setRefreshToken(newRefresh);
+            await authStorage.setUser(resUser);
+
+            setUser(resUser);
+            toast.success('Login Successful');
+            router.replace('/');
+        } catch (error) {
+            if (__DEV__) console.error('[Auth] Refresh login failed', error);
+            throw error;
+        }
+    };
+
     const loginWithOtp = async (data: { email: string; otp: string }) => {
         try {
             const { getDeviceInfo } = await import('../lib/device');
@@ -229,6 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             register, 
             requestLoginOtp,
             loginWithOtp,
+            loginWithRefreshToken,
             logout 
         }}>
             {children}

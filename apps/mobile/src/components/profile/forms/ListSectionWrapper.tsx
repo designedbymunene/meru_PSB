@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Alert, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView, Switch, ActivityIndicator } from 'react-native';
+import { AlertModal } from '@/components/ui/alert-modal';
 import { Plus, X, Info } from 'lucide-react-native';
 import { SectionCard } from '@/components/account/SectionCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,6 +48,8 @@ export function ListSectionWrapper<T extends { id: string | number }>({
     };
 
     const [isSavingLocal, setIsSavingLocal] = useState(false);
+    const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | number | null>(null);
 
     const handleSave = async (data: T) => {
         if (isSavingLocal) return;
@@ -66,14 +69,22 @@ export function ListSectionWrapper<T extends { id: string | number }>({
     };
 
     const handleDelete = (id: string | number) => {
-        Alert.alert(
-            `Delete ${title ? title.slice(0, -1) : 'Item'}`,
-            'Are you sure you want to delete this record?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', style: 'destructive', onPress: () => onDeleteItem(id) },
-            ]
-        );
+        console.log(`[ListSectionWrapper] Opening delete modal for id: ${id}`);
+        setPendingDeleteId(id);
+        setIsDeleteModalVisible(true);
+    };
+
+    const confirmDelete = async () => {
+        console.log(`[ListSectionWrapper] Confirming delete for id: ${pendingDeleteId}`);
+        if (pendingDeleteId != null) {
+            try {
+                await onDeleteItem(pendingDeleteId);
+            } catch (error) {
+                console.error(`[ListSectionWrapper] Delete failed`, error);
+            }
+        }
+        setPendingDeleteId(null);
+        setIsDeleteModalVisible(false);
     };
 
     return (
@@ -101,7 +112,21 @@ export function ListSectionWrapper<T extends { id: string | number }>({
                     </View>
                     <Switch
                         value={isNA}
-                        onValueChange={onToggleNA}
+                        onValueChange={(val) => {
+                            try {
+                                console.log(`[ListSectionWrapper] N/A toggle starting: ${val}`);
+                                // Defer the toggle to next event loop to avoid navigation context issues
+                                setTimeout(() => {
+                                    try {
+                                        onToggleNA(val);
+                                    } catch (error) {
+                                        console.error('[ListSectionWrapper] N/A toggle error (deferred):', error);
+                                    }
+                                }, 0);
+                            } catch (error) {
+                                console.error('[ListSectionWrapper] N/A toggle error:', error);
+                            }
+                        }}
                         trackColor={{ false: '#f1f5f9', true: '#93c5fd' }}
                         thumbColor={isNA ? '#004aad' : '#f8fafc'}
                     />
@@ -142,6 +167,14 @@ export function ListSectionWrapper<T extends { id: string | number }>({
                     )}
                 </View>
             )}
+
+            <AlertModal
+                visible={isDeleteModalVisible}
+                title={`Delete ${title ? title.slice(0, -1) : 'Item'}`}
+                message={'Are you sure you want to delete this record?'}
+                onCancel={() => { setIsDeleteModalVisible(false); setPendingDeleteId(null); }}
+                onConfirm={confirmDelete}
+            />
 
             <Modal
                 visible={isModalOpen}

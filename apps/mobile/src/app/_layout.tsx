@@ -1,8 +1,3 @@
-import { LogBox } from "react-native";
-import { Stack } from "expo-router";
-
-LogBox.ignoreAllLogs();
-
 import "../global.css";
 import { AuthProvider } from "../context/auth-context";
 import { Toaster } from "sonner-native";
@@ -14,8 +9,12 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import React, { useEffect, useMemo } from "react";
 import { subscribeToForegroundNotifications } from "@/lib/notifications/push";
+import { LogBox } from "react-native";
+import { Stack } from "expo-router";
 
-// Custom themes to match our Digital CV aesthetic
+LogBox.ignoreAllLogs();
+
+// Custom themes to match the app aesthetic
 const CustomDefaultTheme = {
   ...DefaultTheme,
   colors: {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Switch, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Switch, Alert, ScrollView, Linking, Platform } from 'react-native';
+import * as IntentLauncher from 'expo-intent-launcher';
 import { useColorScheme } from 'nativewind';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
@@ -16,6 +17,7 @@ import { FormLayout } from '@/components/ui/form-layout';
 import { ProfileFormLoadingState } from '@/components/ui/loading-skeletons';
 import { router } from 'expo-router';
 import { safeAsyncStorage } from '@/lib/storage';
+import { authStorage } from '@/lib/auth/storage';
 import { toast } from 'sonner-native';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -38,6 +40,7 @@ export default function SecuritySettingsScreen() {
     
     const [biometricsEnabled, setBiometricsEnabled] = useState(false);
     const [isBiometricsSupported, setIsBiometricsSupported] = useState(false);
+    const [isBiometricsEnrolled, setIsBiometricsEnrolled] = useState(false);
 
     useEffect(() => {
         const checkBiometrics = async () => {
@@ -45,11 +48,13 @@ export default function SecuritySettingsScreen() {
             if (!LocalAuthentication) return;
 
             try {
-                const compatible = await LocalAuthentication.hasHardwareAsync();
-                setIsBiometricsSupported(compatible);
-                
+                const hasHardware = await LocalAuthentication.hasHardwareAsync();
+                const enrolled = await LocalAuthentication.isEnrolledAsync();
+                setIsBiometricsSupported(hasHardware);
+                setIsBiometricsEnrolled(enrolled);
+
                 const enabled = await safeAsyncStorage.getItem(BIOMETRICS_KEY);
-                setBiometricsEnabled(enabled === 'true');
+                setBiometricsEnabled(enabled === 'true' && enrolled);
             } catch (e) {
                 console.warn('Biometrics check failed:', e);
             }
@@ -99,6 +104,7 @@ export default function SecuritySettingsScreen() {
     // });
 
     const handleToggleBiometrics = async (value: boolean) => {
+        console.log('[Security] handleToggleBiometrics called with', value);
         const LocalAuthentication = getLocalAuth();
         if (!LocalAuthentication) {
             toast.error('Error', { description: 'Biometric authentication is not available on this device.' });
@@ -108,17 +114,41 @@ export default function SecuritySettingsScreen() {
 
         if (value) {
             try {
+                toast.info('Checking biometric prompt...');
                 const result = await LocalAuthentication.authenticateAsync({
                     promptMessage: 'Confirm to enable biometric login',
                     fallbackLabel: 'Use Passcode',
                 });
+                console.log('[Security] LocalAuthentication result', result);
                 
                 if (result.success) {
+                    // Ensure user has a refresh token available to store
+                    const currentRefresh = await authStorage.getRefreshToken();
+                    console.log('[Security] currentRefresh present?', !!currentRefresh);
+                    if (!currentRefresh) {
+                        toast.error('Error', { description: 'No active session found. Please sign in before enabling biometrics.' });
+                        setBiometricsEnabled(false);
+                        return;
+                    }
+
+                    try {
+                        // Store the refresh token separately for biometric-protected login
+                        await authStorage.setBiometricRefreshToken(currentRefresh);
+                        console.log('[Security] Biometric refresh token saved');
+                    } catch (saveErr) {
+                        console.error('[Security] Failed to save biometric token', saveErr);
+                        toast.error('Error', { description: 'Failed to enable biometric login. Storage error.' });
+                        setBiometricsEnabled(false);
+                        return;
+                    }
+
                     setBiometricsEnabled(true);
                     await safeAsyncStorage.setItem(BIOMETRICS_KEY, 'true');
                     toast.success('Biometric login enabled');
                 } else {
+                    console.log('[Security] LocalAuthentication returned success=false');
                     setBiometricsEnabled(false);
+                    toast.error('Biometric authentication failed or was cancelled');
                 }
             } catch (e) {
                 console.error('Biometric toggle failed', e);
@@ -126,9 +156,29 @@ export default function SecuritySettingsScreen() {
                 toast.error('Error', { description: 'Biometric authentication is not available on this device.' });
             }
         } else {
-            setBiometricsEnabled(false);
-            await safeAsyncStorage.setItem(BIOMETRICS_KEY, 'false');
-            toast.success('Biometric login disabled');
+            try {
+                setBiometricsEnabled(false);
+                await authStorage.deleteBiometricRefreshToken();
+                await safeAsyncStorage.setItem(BIOMETRICS_KEY, 'false');
+                toast.success('Biometric login disabled');
+                console.log('[Security] Biometric login disabled and token removed');
+            } catch (err) {
+                console.error('[Security] Failed to disable biometric login', err);
+                toast.error('Error', { description: 'Failed to disable biometric login.' });
+            }
+        }
+    };
+
+    const openSecuritySettings = async () => {
+        try {
+            if (Platform.OS === 'android') {
+                await IntentLauncher.startActivityAsync('android.settings.SECURITY_SETTINGS');
+            } else {
+                await Linking.openSettings();
+            }
+        } catch (e) {
+            console.error('[Security] openSecuritySettings failed', e);
+            toast.error('Unable to open device settings');
         }
     };
 
@@ -176,15 +226,22 @@ export default function SecuritySettingsScreen() {
                             <SettingRow 
                                 icon={Fingerprint}
                                 title="Biometric Login"
-                                subtitle="Use FaceID or Fingerprint"
+                                subtitle={isBiometricsEnrolled ? 'Use FaceID or Fingerprint' : 'No biometrics enrolled on device'}
                                 color="#8b5cf6"
                                 rightElement={
-                                    <Switch
-                                        value={biometricsEnabled}
-                                        onValueChange={handleToggleBiometrics}
-                                        trackColor={{ false: '#f1f5f9', true: '#ddd6fe' }}
-                                        thumbColor={biometricsEnabled ? '#8b5cf6' : '#f8fafc'}
-                                    />
+                                    isBiometricsEnrolled ? (
+                                        <Switch
+                                            value={biometricsEnabled}
+                                            onValueChange={handleToggleBiometrics}
+                                            trackColor={{ false: '#f1f5f9', true: '#ddd6fe' }}
+                                            thumbColor={biometricsEnabled ? '#8b5cf6' : '#f8fafc'}
+                                            disabled={!isBiometricsEnrolled}
+                                        />
+                                    ) : (
+                                        <TouchableOpacity onPress={openSecuritySettings} className="px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                                            <Text className="text-sm font-bold text-[#004aad] dark:text-blue-400">Set up</Text>
+                                        </TouchableOpacity>
+                                    )
                                 }
                                 isLast={true}
                             />

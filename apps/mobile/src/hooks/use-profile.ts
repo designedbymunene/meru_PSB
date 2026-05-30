@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { toast } from 'sonner-native';
 import { apiClient, getApiErrorMessage } from '@/lib/api/client';
 import { runOfflineCapableMutation } from '@/lib/offline-mutations/mutation-strategy';
@@ -35,13 +36,17 @@ export function useProfile() {
         }
     });
 
-    const toggleNA = async (field: string, value: boolean) => {
+    const toggleNA = useCallback(async (field: string, value: boolean) => {
         try {
+            console.log(`[useProfile] Toggling N/A: ${field} = ${value}`);
+            console.trace('[useProfile] toggleNA stack trace');
             await updateProfile.mutateAsync({ [field]: value });
+            console.log(`[useProfile] N/A toggle successful for field="${field}"`);
         } catch (error) {
-            // Error handled in mutation
+            console.error(`[useProfile] toggleNA failed for field="${field}", value=${value}`, error);
+            // Don't re-throw - let the UI handle it gracefully
         }
-    };
+    }, [updateProfile]);
 
     return {
         profile,
