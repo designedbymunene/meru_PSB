@@ -24,6 +24,7 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form'
+import { FieldError } from '@/components/ui/field-error'
 import { loginSchema, type LoginSchemaType } from '@meru/shared'
 import { useLogin } from '@/hooks/use-auth'
 import { Logo } from '@/components/shared/logo'
@@ -80,7 +81,7 @@ export function LoginForm() {
                                             />
                                         </div>
                                     </FormControl>
-                                    <FormMessage />
+                                    <FieldError />
                                 </FormItem>
                             )}
                         />
@@ -122,7 +123,7 @@ export function LoginForm() {
                                             </Button>
                                         </div>
                                     </FormControl>
-                                    <FormMessage />
+                                    <FieldError />
                                 </FormItem>
                             )}
                         />
