@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ExternalLink, FileText, HelpCircle, Mail, MessageSquare, Phone, Shield, ShieldCheck, ChevronRight } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Linking, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, ScrollView, Text, Pressable, View } from 'react-native';
 import { Header } from '@/components/ui/header';
 import { SectionCard, SettingRow } from '@/components/account';
 import { FormLayout } from '@/components/ui/form-layout';
@@ -83,7 +83,7 @@ export default function SupportScreen() {
                         <Text className="text-gray-900 dark:text-white font-bold text-base mt-6 mb-2">Frequently Asked Questions</Text>
                         <View className="pb-4">
                             {faqs.map((faq, index) => (
-                                <TouchableOpacity 
+                                <Pressable 
                                     key={index}
                                     onPress={() => setExpandedFaq(expandedFaq === index ? null : index)}
                                     className={`py-4 ${index !== faqs.length - 1 ? 'border-b border-gray-50 dark:border-gray-800' : ''}`}
@@ -101,7 +101,7 @@ export default function SupportScreen() {
                                             {faq.a}
                                         </Text>
                                     )}
-                                </TouchableOpacity>
+                                </Pressable>
                             ))}
                         </View>
                     </View>

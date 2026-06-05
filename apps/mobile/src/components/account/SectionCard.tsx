@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { Trash2, Edit2 } from 'lucide-react-native';
 
 interface SectionCardProps {
@@ -11,6 +11,7 @@ interface SectionCardProps {
     onDelete?: () => void;
     variant?: 'default' | 'flat' | 'outline';
     hideHeader?: boolean;
+    testID?: string;
 }
 
 export const SectionCard: React.FC<SectionCardProps> = ({
@@ -22,17 +23,21 @@ export const SectionCard: React.FC<SectionCardProps> = ({
     onDelete,
     variant = 'default',
     hideHeader = false,
+    testID
 }) => {
     const isFlat = variant === 'flat';
     const isOutline = variant === 'outline';
+    // Generate safe testID from title if not provided
+    const safeTestID = testID || title.toLowerCase().replace(/\s+/g, '-');
 
     return (
-        <View 
+        <View
             className={`mb-4 rounded-[32px] p-6 ${
-                isFlat ? 'bg-gray-50/50 dark:bg-gray-900/50' : 
-                isOutline ? 'border border-gray-100 dark:border-gray-800' : 
+                isFlat ? 'bg-gray-50/50 dark:bg-gray-900/50' :
+                isOutline ? 'border border-gray-100 dark:border-gray-800' :
                 'bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm'
             }`}
+            testID={safeTestID}
         >
             <View>
                 {!hideHeader && (
@@ -57,22 +62,24 @@ export const SectionCard: React.FC<SectionCardProps> = ({
                         
                         <View className="flex-row space-x-2 ml-2">
                             {onEdit && (
-                                <TouchableOpacity 
+                                <Pressable
                                     onPress={onEdit}
-                                    activeOpacity={0.7}
+                                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                                     className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 items-center justify-center"
+                                    testID={`${safeTestID}-edit`}
                                 >
                                     <Edit2 size={14} color="#3b82f6" strokeWidth={2.5} />
-                                </TouchableOpacity>
+                                </Pressable>
                             )}
                             {onDelete && (
-                                <TouchableOpacity 
+                                <Pressable
                                     onPress={onDelete}
-                                    activeOpacity={0.7}
+                                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                                     className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 items-center justify-center"
+                                    testID={`${safeTestID}-delete`}
                                 >
                                     <Trash2 size={14} color="#ef4444" strokeWidth={2.5} />
-                                </TouchableOpacity>
+                                </Pressable>
                             )}
                         </View>
                     </View>

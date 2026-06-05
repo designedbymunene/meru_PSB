@@ -27,9 +27,6 @@ config.resolver.extraNodeModules = {
 };
 
 // Improve stability with file watching
-config.watchman = {
-  useWatchman: true,
-  normalizePathFn: (path) => path,
-};
+// (Watchman is usually automatically detected and used by Metro)
 
 module.exports = withNativeWind(config, { input: "./src/global.css" });

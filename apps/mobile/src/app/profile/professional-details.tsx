@@ -39,8 +39,6 @@ export default function ProfessionalDetailsScreen() {
                     onDelete={deleteProfessionalDetail}
                     emptyMessage="No professional details added yet"
                     emptyIcon={<Award size={48} color="#cbd5e1" />}
-                    isNA={profile?.hasNoCertificates}
-                    onToggleNA={(val) => toggleNA('hasNoCertificates', val)}
                     renderItem={(item, onEdit, onDelete) => (
                         <ProfessionalDetailCard 
                             key={item.id}

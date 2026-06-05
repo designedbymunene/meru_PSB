@@ -1,0 +1,32 @@
+appId: com.nickm101.merucountypsb
+env:
+    TEST_EMAIL: test.applicant1@example.com
+    TEST_PASSWORD: user@123456
+---
+# Test: Standard login with valid credentials
+# Prerequisites: Set TEST_EMAIL and TEST_PASSWORD environment variables
+# Default: test.applicant1@example.com / user@123456 (from local seeds)
+
+- runFlow: ../helpers/launch-app.yaml
+
+# Enter credentials using testIDs
+- tapOn:
+    id: "login-email-input"
+- inputText: ${TEST_EMAIL}
+
+- tapOn:
+    id: "login-password-input"
+- inputText: ${TEST_PASSWORD}
+
+# Hide keyboard to ensure submit button is visible
+- back
+
+# Submit login - tap the Sign In button
+- tapOn:
+    id: "login-submit"
+- waitForAnimationToEnd
+
+# Verify successful login - should see home screen elements
+- assertVisible:
+    text: ".*Vacancies.*"
+    optional: true

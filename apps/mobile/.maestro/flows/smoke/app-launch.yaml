@@ -1,0 +1,19 @@
+appId: com.nickm101.merucountypsb
+
+---
+# Smoke test: App launch and verify app is responsive
+- launchApp
+- waitForAnimationToEnd
+
+# Verify app is responsive by tapping center of screen
+# This tests that the app has loaded and is accepting input
+- tapOn:
+    point: "50%,50%"
+
+# Wait for any potential animations or state changes
+- waitForAnimationToEnd
+
+# Note: This test verifies the app launches and is responsive.
+# More specific assertions can be added once element selectors are confirmed.
+# Use Maestro Studio to inspect the app and find working selectors:
+# maestro test --appId com.nickm101.merucountypsb --hideDisconnected

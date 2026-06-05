@@ -1,4 +1,4 @@
-export const APPLICATION_STATUS_NOTIFICATION_TARGETS = ['interviewing', 'accepted', 'rejected'] as const
+export const APPLICATION_STATUS_NOTIFICATION_TARGETS = ['interviewing', 'accepted'] as const
 
 export type ApplicationNotificationStatus = typeof APPLICATION_STATUS_NOTIFICATION_TARGETS[number]
 

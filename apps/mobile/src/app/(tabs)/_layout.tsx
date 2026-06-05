@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, Briefcase, ClipboardList, UserRoundSearch, User } from 'lucide-react-native';
+import { LayoutDashboard, Briefcase, ClipboardList, UserRoundSearch, Settings2 } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Platform } from 'react-native';
@@ -65,8 +65,8 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="profile"
                 options={{
-                    title: 'Account',
-                    tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+                    title: 'Settings',
+                    tabBarIcon: ({ color, size }) => <Settings2 color={color} size={size} />,
                 }}
             />
         </Tabs>

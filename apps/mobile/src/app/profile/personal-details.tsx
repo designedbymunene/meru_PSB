@@ -4,21 +4,15 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import React, { useRef, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Text, TextInput, View, TouchableOpacity, ScrollView } from 'react-native';
+import { Text, TextInput, View, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { toast } from 'sonner-native';
 import * as z from 'zod';
 import { FormField } from '@/components/ui/form-field';
 import { FormPicker } from '@/components/ui/form-picker';
 import { FormDatePicker } from '@/components/ui/form-date-picker';
 import { apiClient, getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
-import { 
-    useCounties, 
-    useConstituencies, 
-    useWards, 
-    useEthnicities 
-} from '@/lib/api/reference';
 import { runOfflineCapableMutation } from '@/lib/offline-mutations/mutation-strategy';
-import { User, MapPin, Phone, Mail, Fingerprint, Globe, Users, Heart } from 'lucide-react-native';
+import { User, Phone, Mail, Fingerprint, Heart } from 'lucide-react-native';
 import { ProfileFormLoadingState } from '@/components/ui/loading-skeletons';
 import { Header } from '@/components/ui/header';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,10 +24,6 @@ const personalDetailsSchema = z.object({
     email: z.string().email('Valid email is required'),
     dateOfBirth: z.string().min(1, 'Date of birth is required'),
     gender: z.enum(['Male', 'Female', 'Other']),
-    ethnicityId: z.coerce.number().min(1, 'Ethnicity is required'),
-    homeCountyId: z.coerce.number().min(1, 'Home County is required'),
-    homeSubCountyId: z.coerce.number().min(1, 'Home Sub-County is required'),
-    wardId: z.coerce.number().min(1, 'Ward is required'),
     impairment: z.boolean().default(false),
     impairmentDetails: z.string().optional(),
 });
@@ -107,45 +97,10 @@ export default function PersonalDetailsScreen() {
             email: '',
             dateOfBirth: '',
             gender: 'Male',
-            ethnicityId: null as any,
-            homeCountyId: null as any,
-            homeSubCountyId: null as any,
-            wardId: null as any,
             impairment: false,
             impairmentDetails: '',
         },
     });
-
-    // Watch for location dependencies
-    const selectedCountyId = watch('homeCountyId');
-    const selectedSubCountyId = watch('homeSubCountyId');
-
-    // Reference Queries
-    const { data: countiesResponse, isLoading: isLoadingCounties } = useCounties();
-    const counties = (countiesResponse?.data || []).map((c: any) => ({ label: c.name, value: c.id }));
-
-    const { data: ethnicitiesResponse, isLoading: isLoadingEthnicities } = useEthnicities();
-    const ethnicities = (ethnicitiesResponse?.data || []).map((e: any) => ({ label: e.name, value: e.id }));
-
-    const { data: subCountiesResponse, isFetching: isFetchingSubCounties } = useConstituencies(typeof selectedCountyId === 'number' && selectedCountyId > 0 ? selectedCountyId : undefined);
-    const subCounties = (subCountiesResponse?.data || []).map((sc: any) => ({ label: sc.name, value: sc.id }));
-
-    const { data: wardsResponse, isFetching: isFetchingWards } = useWards(typeof selectedSubCountyId === 'number' && selectedSubCountyId > 0 ? selectedSubCountyId : undefined);
-    const wards = (wardsResponse?.data || []).map((w: any) => ({ label: w.name, value: w.id }));
-
-    // Cascading selection clearing
-    useEffect(() => {
-        if (!selectedCountyId || selectedCountyId <= 0) {
-            setValue('homeSubCountyId', null as any);
-            setValue('wardId', null as any);
-        }
-    }, [selectedCountyId, setValue]);
-
-    useEffect(() => {
-        if (!selectedSubCountyId || selectedSubCountyId <= 0) {
-            setValue('wardId', null as any);
-        }
-    }, [selectedSubCountyId, setValue]);
 
     useEffect(() => {
         if (profile && !hasInitialReset) {
@@ -156,10 +111,6 @@ export default function PersonalDetailsScreen() {
                 email: profile.email || '',
                 dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : '',
                 gender: (profile.gender as any) || 'Male',
-                ethnicityId: profile.ethnicityId || null,
-                homeCountyId: profile.homeCountyId || null,
-                homeSubCountyId: profile.homeSubCountyId || null,
-                wardId: profile.wardId || null,
                 impairment: !!profile.impairment,
                 impairmentDetails: profile.impairmentDetails || '',
             });
@@ -184,11 +135,17 @@ export default function PersonalDetailsScreen() {
         <View className="flex-1 bg-gray-50 dark:bg-gray-950">
             <Header title="Personal Details" onBack={() => router.back()} />
 
-            <ScrollView
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 className="flex-1"
-                contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 20 }}
-                showsVerticalScrollIndicator={false}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
+                <ScrollView
+                    className="flex-1"
+                    contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 20 }}
+                    showsVerticalScrollIndicator={false}
+                    automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+                >
                 {showOfflineBanner && (
                     <View className="mb-5 px-4 py-3 rounded-2xl border border-amber-200 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10">
                         <Text className="text-amber-700 dark:text-amber-400 text-xs font-semibold">
@@ -201,9 +158,9 @@ export default function PersonalDetailsScreen() {
                     <View className="mb-6 px-4 py-3 rounded-2xl border border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10">
                         <Text className="text-red-700 dark:text-red-400 text-xs font-semibold">{loadErrorMessage}</Text>
                         <View className="flex-row mt-3">
-                            <TouchableOpacity onPress={() => refetch()} className="px-4 py-2 rounded-full bg-[#004aad] dark:bg-blue-600">
+                            <Pressable onPress={() => refetch()} className="px-4 py-2 rounded-full bg-[#004aad] dark:bg-blue-600">
                                 <Text className="text-white text-xs font-semibold">Try Again</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </View>
                 )}
@@ -317,110 +274,13 @@ export default function PersonalDetailsScreen() {
                     </View>
                 </View>
 
-                {/* Location & Origin Section */}
-                <View className="bg-white dark:bg-gray-900 rounded-2xl p-4 mb-4 border border-gray-100 dark:border-gray-800">
-                    <View className="pb-2">
-                        <Text className="text-gray-900 dark:text-white font-black text-base">Location & Origin</Text>
-                        <Text className="text-gray-500 dark:text-gray-400 text-xs">These details are required for statutory reporting.</Text>
-                    </View>
-
-                    <View className="space-y-2">
-                        <Controller
-                            control={control}
-                            name="homeCountyId"
-                            render={({ field: { onChange, value } }) => (
-                                <FormPicker
-                                    label="Home County"
-                                    items={counties}
-                                    icon={Globe}
-                                    onValueChange={(val) => {
-                                        const numVal = val ? Number(val) : null;
-                                        onChange(numVal);
-                                        if (numVal !== value) {
-                                            setValue('homeSubCountyId', null as any);
-                                            setValue('wardId', null as any);
-                                        }
-                                    }}
-                                    value={value}
-                                    error={errors.homeCountyId?.message}
-                                    placeholder="Select your county"
-                                    isLoading={isLoadingCounties}
-                                />
-                            )}
-                        />
-
-                        <Controller
-                            control={control}
-                            name="homeSubCountyId"
-                            render={({ field: { onChange, value } }) => (
-                                <FormPicker
-                                    label="Home Sub-County"
-                                    items={subCounties}
-                                    icon={MapPin}
-                                    onValueChange={(val) => {
-                                        const numVal = val ? Number(val) : null;
-                                        onChange(numVal);
-                                        if (numVal !== value) {
-                                            setValue('wardId', null as any);
-                                        }
-                                    }}
-                                    value={value}
-                                    error={errors.homeSubCountyId?.message}
-                                    placeholder="Select sub-county"
-                                    enabled={!!selectedCountyId && selectedCountyId > 0}
-                                    isLoading={isFetchingSubCounties && !!selectedCountyId}
-                                />
-                            )}
-                        />
-
-                        <Controller
-                            control={control}
-                            name="wardId"
-                            render={({ field: { onChange, value } }) => (
-                                <FormPicker
-                                    label="Ward"
-                                    items={wards}
-                                    icon={MapPin}
-                                    onValueChange={(val) => onChange(val ? Number(val) : null)}
-                                    value={value}
-                                    error={errors.wardId?.message}
-                                    placeholder="Select ward"
-                                    enabled={!!selectedSubCountyId && selectedSubCountyId > 0}
-                                    isLoading={isFetchingWards && !!selectedSubCountyId}
-                                />
-                            )}
-                        />
-                    </View>
-                </View>
-
-                {/* Ethnicity & Health Section */}
+                {/* Health & Accessibility Section */}
                 <View className="pb-4">
                     <View className="pb-2">
-                        <Text className="text-gray-900 dark:text-white font-black text-base">Ethnicity & Health</Text>
+                        <Text className="text-gray-900 dark:text-white font-black text-base">Health & Accessibility</Text>
                     </View>
 
                     <View className="space-y-2">
-                        <Controller
-                            control={control}
-                            name="ethnicityId"
-                            render={({ field: { onChange, value } }) => (
-                                <FormPicker
-                                    label="Ethnicity"
-                                    items={ethnicities}
-                                    icon={Users}
-                                    onValueChange={onChange}
-                                    value={value}
-                                    error={errors.ethnicityId?.message}
-                                    placeholder="Select ethnicity"
-                                    isLoading={isLoadingEthnicities}
-                                />
-                            )}
-                        />
-
-                        <View className="pt-2 pb-2">
-                            <Text className="text-gray-900 dark:text-white font-black text-sm">Health & Accessibility</Text>
-                        </View>
-
                         <Controller
                             control={control}
                             name="impairment"
@@ -463,7 +323,7 @@ export default function PersonalDetailsScreen() {
 
             {/* Submit Button */}
             <View className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950" style={{ paddingBottom: Math.max(insets.bottom, 24) }}>
-                <TouchableOpacity
+                <Pressable
                     onPress={handleSubmit(handleSubmitForm)}
                     disabled={mutation.isPending}
                     className={`h-14 rounded-2xl items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none ${
@@ -475,8 +335,9 @@ export default function PersonalDetailsScreen() {
                     ) : (
                         <Text className="text-white font-black text-sm uppercase tracking-widest">Save Details</Text>
                     )}
-                </TouchableOpacity>
+                </Pressable>
             </View>
+            </KeyboardAvoidingView>
         </View>
     );
 }

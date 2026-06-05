@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, Linking } from 'react-native';
+import { View, Text, Pressable, Image, Linking } from 'react-native';
 import { Globe, Globe2, Info } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import { FormLayout } from '@/components/ui/form-layout';
@@ -74,13 +74,13 @@ export default function AboutScreen() {
 
                 <View className="flex-row justify-center space-x-6 py-6">
                     {socialLinks.map((social, i) => (
-                        <TouchableOpacity 
+                        <Pressable 
                             key={i}
                             onPress={() => Linking.openURL(social.url)}
-                            className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 items-center justify-center active:opacity-70"
+                            className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 items-center justify-center "
                         >
                             <social.icon size={20} color="#64748b" />
-                        </TouchableOpacity>
+                        </Pressable>
                     ))}
                 </View>
 

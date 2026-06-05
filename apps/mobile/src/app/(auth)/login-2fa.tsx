@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, TextInput } from 'react-native';
 import { useAuth } from '@/context/auth-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ShieldCheck } from 'lucide-react-native';
@@ -36,6 +36,7 @@ export default function Login2faScreen() {
             isLoading={isLoading}
             submitLabel="Verify & Login"
             onSubmit={handleVerify}
+            testID="otp-verify"
         >
             <View className="py-2">
                 <View className="mb-6">
@@ -58,13 +59,14 @@ export default function Login2faScreen() {
                     <View>
                         <View className="flex-row justify-between">
                             {[0, 1, 2, 3, 4, 5].map((index) => (
-                                <View 
-                                    key={index} 
+                                <View
+                                    key={index}
                                     className={`w-[15%] aspect-square rounded-xl border-2 items-center justify-center bg-white dark:bg-gray-900 ${
-                                        otp && otp[index] 
-                                            ? 'border-[#004aad] dark:border-blue-500' 
+                                        otp && otp[index]
+                                            ? 'border-[#004aad] dark:border-blue-500'
                                             : 'border-slate-100 dark:border-gray-800'
                                     }`}
+                                    testID={`otp-input-${index}`}
                                 >
                                     <Text className="text-xl font-bold text-slate-900 dark:text-white">
                                         {otp ? otp[index] : ""}
@@ -90,9 +92,9 @@ export default function Login2faScreen() {
                     <Text className="text-slate-500 dark:text-gray-400 text-sm">
                         Didn't receive the code?
                     </Text>
-                    <TouchableOpacity className="mt-1">
+                    <Pressable className="mt-1" testID="otp-resend">
                         <Text className="text-[#004aad] dark:text-blue-400 font-bold text-sm">Resend Code</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
             </View>
         </FormLayout>

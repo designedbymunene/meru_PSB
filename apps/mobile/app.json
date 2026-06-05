@@ -11,7 +11,8 @@
       "icon": "./assets/branding/merucountylogo.png",
       "infoPlist": {
         "NSFaceIDUsageDescription": "Use Face ID to quickly and securely sign in to your Meru County PSB account."
-      }
+      },
+      "bundleIdentifier": "com.designedbymunene.merucountypsb"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +20,11 @@
         "foregroundImage": "./assets/branding/merucountylogo.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.nickm101.merucountypsb"
+      "package": "com.designedbymunene.merucountypsb",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "web": {
       "output": "static",
@@ -41,13 +46,28 @@
       "@react-native-community/datetimepicker",
       "expo-font",
       "expo-image",
-      "expo-web-browser",
       "expo-local-authentication",
       "expo-document-picker"
     ],
+    "updates": {
+      "url": "https://u.expo.dev/8961bc58-ba56-4608-909b-397000a9ca71",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8961bc58-ba56-4608-909b-397000a9ca71"
+      }
+    },
+    "owner": "designedbymunene"
   }
 }

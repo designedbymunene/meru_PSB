@@ -39,8 +39,8 @@ export default function QualificationsScreen() {
                     onDelete={deleteQualification}
                     emptyMessage="No qualifications added yet"
                     emptyIcon={<GraduationCap size={48} color="#cbd5e1" />}
-                    isNA={profile?.hasNoQualifications}
-                    onToggleNA={(val) => toggleNA('hasNoQualifications', val)}
+                    isNA={profile?.hasNoCertificates}
+                    onToggleNA={(val) => toggleNA('hasNoCertificates', val)}
                     renderItem={(item, onEdit, onDelete) => (
                         <QualificationCard 
                             key={item.id}

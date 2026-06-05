@@ -2,7 +2,6 @@ export type ProfileSectionGroup = 'required' | 'optional'
 
 export type ProfileSectionId =
     | 'personal'
-    | 'contact'
     | 'location'
     | 'education'
     | 'experience'
@@ -95,18 +94,27 @@ export function calculateProfileCompletion(profile: any): ProfileCompletionSumma
             profile,
             'personal',
             'Personal Information',
-            'Bio-data, contact and location details',
+            'Bio-data and contact details',
             'required',
             [
-                'fullName', 
-                'idNumber', 
-                'gender', 
+                'fullName',
+                'idNumber',
+                'gender',
                 'dateOfBirth',
-                'phoneNumber', 
-                'email',
-                'homeCountyId', 
-                'homeSubCountyId', 
-                'wardId', 
+                'phoneNumber',
+                'email'
+            ]
+        ),
+        sectionFromFields(
+            profile,
+            'location',
+            'Location & Ethnicity',
+            'Home county, ward and ethnicity',
+            'required',
+            [
+                'homeCountyId',
+                'homeSubCountyId',
+                'wardId',
                 'ethnicityId'
             ]
         ),

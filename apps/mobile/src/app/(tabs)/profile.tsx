@@ -15,14 +15,17 @@ import {
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { useColorScheme } from 'nativewind';
-import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Switch, Text, Pressable, View, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProfileHeader, SettingRow } from '@/components/account';
 import { useAuth } from '@/context/auth-context';
 import { AlertModal } from '@/components/ui/alert-modal';
+import * as ImagePicker from 'expo-image-picker';
+import { toast } from 'sonner-native';
+import { apiClient, getAvatarUrl } from '@/lib/api/client';
 
 export default function ProfileScreen() {
-    const { user, logout } = useAuth();
+    const { user, logout, updateUser } = useAuth();
     const router = useRouter();
     const { colorScheme, setColorScheme } = useColorScheme();
     const isDarkMode = colorScheme === 'dark';
@@ -32,6 +35,107 @@ export default function ProfileScreen() {
 
     const handleLogout = () => {
         setIsLogoutModalVisible(true);
+    };
+
+    const uploadAvatar = async (uri: string) => {
+        try {
+            const formData = new FormData();
+            const filename = uri.split('/').pop() || 'avatar.jpg';
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : `image/jpeg`;
+            
+            formData.append('avatar', {
+                uri,
+                name: filename,
+                type,
+            } as any);
+
+            const response = await apiClient.post('/account/avatar', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            if (response.data?.success && user) {
+                const updatedUser = {
+                    ...user,
+                    avatar: response.data.data.avatar,
+                };
+                await updateUser(updatedUser);
+                toast.success('Avatar Updated', { description: 'Your profile picture has been updated.' });
+            }
+        } catch (error) {
+            console.error('Failed to upload avatar', error);
+            toast.error('Upload Failed', { description: 'Could not upload your profile image.' });
+        }
+    };
+
+    const handleRemoveAvatar = async () => {
+        try {
+            const response = await apiClient.delete('/account/avatar');
+            if (response.data?.success && user) {
+                const updatedUser = {
+                    ...user,
+                    avatar: undefined,
+                };
+                await updateUser(updatedUser);
+                toast.success('Avatar Removed', { description: 'Your profile picture has been removed.' });
+            }
+        } catch (error) {
+            console.error('Failed to remove avatar', error);
+            toast.error('Action Failed', { description: 'Could not remove your profile image.' });
+        }
+    };
+
+    const handleChoosePhoto = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            toast.error('Permission denied', { description: 'Permission to access gallery is required.' });
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+            await uploadAvatar(result.assets[0].uri);
+        }
+    };
+
+    const handleTakePhoto = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+            toast.error('Permission denied', { description: 'Permission to access camera is required.' });
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+            await uploadAvatar(result.assets[0].uri);
+        }
+    };
+
+    const handleEditAvatar = () => {
+        Alert.alert(
+            'Profile Image',
+            'Update your profile image or remove it.',
+            [
+                { text: 'Take Photo', onPress: handleTakePhoto },
+                { text: 'Choose from Library', onPress: handleChoosePhoto },
+                ...(user?.avatar ? [{ text: 'Remove Current Image', onPress: handleRemoveAvatar, style: 'destructive' }] : []),
+                { text: 'Cancel', style: 'cancel' }
+            ]
+        );
     };
 
     return (
@@ -49,9 +153,9 @@ export default function ProfileScreen() {
                                     name={user?.fullName || 'User'}
                                     email={user?.email || ''}
                                     role={user?.role || 'Applicant'}
-                                    avatarUrl={`https://ui-avatars.com/api/?name=${user?.fullName || 'User'}&background=004aad&color=fff&size=256`}
+                                    avatarUrl={getAvatarUrl(user?.avatar, user?.fullName)}
                                     isVerified={(user as any)?.isVerified || false}
-                                    onEditAvatar={() => { }}
+                                    onEditAvatar={handleEditAvatar}
                                 />
                             </View>
 
@@ -61,20 +165,6 @@ export default function ProfileScreen() {
                             <View>
                                 <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-[2px] mt-4 mb-2 ml-2">Account & Security</Text>
                                 <View className="bg-white dark:bg-gray-900 rounded-[32px] px-6 border border-gray-100 dark:border-gray-800 shadow-xl shadow-gray-200/40 dark:shadow-none">
-                                    <SettingRow
-                                        icon={UserRound}
-                                        title="Personal Information"
-                                        subtitle="Manage your identity and core bio-data"
-                                        onPress={() => router.push('/profile/wizard?step=personal')}
-                                        color="#3b82f6"
-                                    />
-                                    <SettingRow
-                                        icon={MapPin}
-                                        title="Location & Ethnicity"
-                                        subtitle="Home county, ward and ethnicity"
-                                        onPress={() => router.push('/profile/personal-details')}
-                                        color="#06b6d4"
-                                    />
                                     <SettingRow
                                         icon={Lock}
                                         title="Security Settings"
@@ -159,13 +249,14 @@ export default function ProfileScreen() {
                         </View>
 
                         {/* Logout Section */}
-                        <TouchableOpacity
-                            className="mt-12 flex-row items-center justify-center py-6 rounded-[32px] bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 active:opacity-70"
+                        <Pressable
+                            className="mt-12 flex-row items-center justify-center py-6 rounded-[32px] bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 "
                             onPress={handleLogout}
+                            testID="profile-logout"
                         >
                             <LogOut size={20} color="#ef4444" strokeWidth={2.5} />
                             <Text className="text-red-600 dark:text-red-400 font-black ml-3 uppercase tracking-widest text-xs">Logout Session</Text>
-                        </TouchableOpacity>
+                        </Pressable>
 
                         <AlertModal
                             visible={isLogoutModalVisible}
@@ -173,6 +264,7 @@ export default function ProfileScreen() {
                             message="Are you sure you want to logout of your account?"
                             onCancel={() => setIsLogoutModalVisible(false)}
                             onConfirm={() => { setIsLogoutModalVisible(false); logout(); }}
+                            testID="logout-modal"
                         />
 
                         <View className="mt-12 items-center">

@@ -18,6 +18,7 @@ export const users = pgTable('users', {
     isLocked: boolean('is_locked').notNull().default(false),
     lockoutUntil: timestamp('lockout_until', { withTimezone: true }),
     pushToken: text('push_token'),
+    avatar: text('avatar'),
     ...timestamps
 })
 

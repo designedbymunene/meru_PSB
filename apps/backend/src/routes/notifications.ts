@@ -1,12 +1,15 @@
 import { Hono } from 'hono'
 import { db } from '../db'
-import { notifications, notificationPreferences } from '../db/schema'
+import { notifications, notificationPreferences, users } from '../db/schema'
 import { eq, desc, and, sql } from 'drizzle-orm'
 import { authenticate } from '../middleware/auth'
-import { successResponse, NotFoundError } from '../utils/errors'
+import { requireAdmin } from '../middleware/admin'
+import { successResponse, NotFoundError, ValidationError } from '../utils/errors'
 import { buildPagination, parsePagination } from '../utils/pagination'
 import { validate } from '../middleware/validation'
 import { z } from 'zod'
+import { WebPushService } from '../services/web-push-service'
+import { NotificationService } from '../services/notification-service'
 
 export const notificationsRouter = new Hono()
 
@@ -240,6 +243,141 @@ notificationsRouter.put('/preferences', authenticate, validate(updateNotificatio
             .returning()
 
         return successResponse(c, updated)
+    } catch (error) {
+        throw error
+    }
+})
+
+// Web Push Subscription endpoints
+const webPushSubscriptionSchema = z.object({
+    endpoint: z.string().url(),
+    keys: z.object({
+        p256dh: z.string(),
+        auth: z.string()
+    })
+})
+
+// GET /api/notifications/web-push/vapid-key - Get VAPID public key for subscription
+notificationsRouter.get('/web-push/vapid-key', async (c) => {
+    try {
+        const vapidKey = WebPushService.getVapidPublicKey()
+        return successResponse(c, { vapidKey })
+    } catch (error) {
+        throw error
+    }
+})
+
+// POST /api/notifications/web-push/subscribe - Subscribe to web push notifications
+notificationsRouter.post('/web-push/subscribe', authenticate, validate(webPushSubscriptionSchema), async (c) => {
+    try {
+        const user = c.get('user')
+        const subscription = c.get('validatedData') as z.infer<typeof webPushSubscriptionSchema>
+        const userAgent = c.req.header('user-agent')
+
+        const result = await WebPushService.subscribe(user.userId, subscription, userAgent)
+
+        if (!result.success) {
+            throw new Error('Failed to subscribe')
+        }
+
+        return successResponse(c, { subscriptionId: result.subscriptionId }, 'Subscribed successfully')
+    } catch (error) {
+        throw error
+    }
+})
+
+// POST /api/notifications/web-push/unsubscribe - Unsubscribe from web push notifications
+notificationsRouter.post('/web-push/unsubscribe', authenticate, async (c) => {
+    try {
+        const user = c.get('user')
+        const { endpoint } = await c.req.json()
+
+        if (!endpoint) {
+            throw new ValidationError('Endpoint is required')
+        }
+
+        await WebPushService.unsubscribe(user.userId, endpoint)
+
+        return successResponse(c, null, 'Unsubscribed successfully')
+    } catch (error) {
+        throw error
+    }
+})
+
+// GET /api/notifications/web-push/subscriptions - Get user's web push subscriptions
+notificationsRouter.get('/web-push/subscriptions', authenticate, async (c) => {
+    try {
+        const user = c.get('user')
+        const subscriptions = await WebPushService.getUserSubscriptions(user.userId)
+
+        return successResponse(c, { subscriptions })
+    } catch (error) {
+        throw error
+    }
+})
+
+// Admin-only: Test notification endpoints
+const testNotificationSchema = z.object({
+    userId: z.number().optional(),
+    title: z.string().min(1).max(255),
+    message: z.string().min(1).max(1000),
+    type: z.enum(['application_status', 'interview_reminder', 'document_request', 'application_update', 'general']).default('general'),
+    data: z.record(z.any()).optional()
+})
+
+// POST /api/notifications/test - Send a test notification (admin only)
+notificationsRouter.post('/test', authenticate, requireAdmin, validate(testNotificationSchema), async (c) => {
+    try {
+        const admin = c.get('user')
+        const testData = c.get('validatedData') as z.infer<typeof testNotificationSchema>
+
+        // If userId is provided, send to that user; otherwise send to admin
+        const targetUserId = testData.userId || admin.userId
+
+        // Create in-app notification
+        const [notification] = await db.insert(notifications)
+            .values({
+                userId: targetUserId,
+                type: testData.type,
+                title: testData.title,
+                message: testData.message,
+                data: testData.data || null,
+                read: false
+            })
+            .returning()
+
+        // Try to send push notification if user has a push token
+        const user = await db.query.users.findFirst({
+            where: eq(users.id, targetUserId),
+            columns: { pushToken: true }
+        })
+
+        let pushResult = null
+        let webPushResult = null
+
+        if (user?.pushToken) {
+            pushResult = await NotificationService.sendPushNotification({
+                to: user.pushToken,
+                title: testData.title,
+                body: testData.message,
+                data: { ...testData.data, notificationId: notification.id }
+            })
+        }
+
+        // Try to send web push notification
+        webPushResult = await WebPushService.notifyUser(targetUserId, {
+            title: testData.title,
+            body: testData.message,
+            icon: '/logo-icon.png',
+            badge: '/badge-icon.png',
+            data: { ...testData.data, notificationId: notification.id }
+        })
+
+        return successResponse(c, {
+            notification,
+            pushSent: pushResult?.success || false,
+            webPushSent: webPushResult?.success || false
+        }, 'Test notification sent')
     } catch (error) {
         throw error
     }

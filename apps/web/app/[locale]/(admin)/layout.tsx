@@ -1,12 +1,4 @@
 import { AppSidebar } from "@/components/layout/sidebar"
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import {
     SidebarInset,
@@ -16,6 +8,7 @@ import {
 import { UserNav } from "@/components/layout/user-nav"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { AdminBreadcrumb } from "@/components/layout/admin-breadcrumb"
 // import { LanguageSwitcher } from "@/components/layout/language-switcher"
 
 export default function AdminLayout({
@@ -31,17 +24,7 @@ export default function AdminLayout({
                     <div className="flex items-center gap-2">
                         <SidebarTrigger className="-ml-1" />
                         <Separator orientation="vertical" className="mr-2 h-4" />
-                        <Breadcrumb>
-                            <BreadcrumbList>
-                                <BreadcrumbItem className="hidden md:block">
-                                    <BreadcrumbLink href="/admin">Admin</BreadcrumbLink>
-                                </BreadcrumbItem>
-                                <BreadcrumbSeparator className="hidden md:block" />
-                                <BreadcrumbItem>
-                                    <BreadcrumbPage>Dashboard</BreadcrumbPage>
-                                </BreadcrumbItem>
-                            </BreadcrumbList>
-                        </Breadcrumb>
+                        <AdminBreadcrumb />
                     </div>
                     <div className="flex items-center gap-4">
                         <ThemeToggle />

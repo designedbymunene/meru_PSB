@@ -1,0 +1,35 @@
+appId: com.nickm101.merucountypsb
+
+---
+# Test: View Digital CV (Profile) sections
+# Prerequisites: User should be logged in
+
+- runFlow: ../helpers/auth-helpers.yaml
+
+# Navigate to Profile (Digital CV) tab
+- tapOn: "Profile"
+- waitForAnimationToEnd
+
+# Verify profile completion card
+- assertVisible: "Required to Apply"
+
+# Verify key sections are visible using testIDs
+- assertVisible:
+    id: "cv-section-personal"
+- assertVisible:
+    id: "cv-section-education"
+
+# Tap on a section to verify navigation
+- tapOn:
+    id: "cv-section-personal"
+- waitForAnimationToEnd
+
+# Verify we're on the personal details screen
+- assertVisible: "Personal Details"
+
+# Go back
+- back
+- waitForAnimationToEnd
+
+# Verify we're back on digital CV
+- assertVisible: "Required to Apply"

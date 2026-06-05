@@ -17,6 +17,7 @@ interface AuthContextType {
     loginWithOtp: (data: { email: string; otp: string }) => Promise<void>;
     logout: () => Promise<void>;
     loginWithRefreshToken: (refreshToken: string) => Promise<void>;
+    updateUser: (user: User) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -229,6 +230,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const updateUser = async (updatedUser: User) => {
+        try {
+            await authStorage.setUser(updatedUser);
+            setUser(updatedUser);
+        } catch (error) {
+            console.error('Update user in storage failed', error);
+        }
+    };
+
     return (
         <AuthContext.Provider value={{ 
             user, 
@@ -239,7 +249,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             requestLoginOtp,
             loginWithOtp,
             loginWithRefreshToken,
-            logout 
+            logout,
+            updateUser
         }}>
             {children}
         </AuthContext.Provider>

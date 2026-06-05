@@ -120,6 +120,13 @@
       "when": 1780167410682,
       "tag": "0016_chubby_frank_castle",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780583691273,
+      "tag": "0017_overrated_mandarin",
+      "breakpoints": true
     }
   ]
 }

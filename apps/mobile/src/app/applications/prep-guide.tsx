@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Linking } from 'react-native';
+import { View, Text, ScrollView, Pressable, StatusBar, Linking } from 'react-native';
 import { AlertModal } from '@/components/ui/alert-modal';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useApplication } from '@/hooks/use-applications';
@@ -98,12 +98,12 @@ export default function MobileInterviewPrepGuideScreen() {
                 <Text className="text-white text-xl font-bold mt-4">
                     Unable to load preparation guide
                 </Text>
-                <TouchableOpacity 
+                <Pressable 
                     onPress={() => !isValidId ? router.back() : refetch()}
                     className="mt-6 px-8 py-3 bg-blue-600 rounded-full"
                 >
                     <Text className="text-white font-bold">{!isValidId ? 'Go Back' : 'Retry'}</Text>
-                </TouchableOpacity>
+                </Pressable>
             </View>
         );
     }
@@ -131,13 +131,13 @@ export default function MobileInterviewPrepGuideScreen() {
             {/* Custom Header */}
             <View style={{ paddingTop: insets.top + 10, paddingHorizontal: 24, paddingBottom: 16 }}>
                 <View className="flex-row items-center justify-between mb-4">
-                    <TouchableOpacity 
+                    <Pressable 
                         onPress={() => router.back()}
                         className="w-10 h-10 rounded-full items-center justify-center"
                         style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: THEME.border }}
                     >
                         <ChevronLeft size={20} color="#fff" />
-                    </TouchableOpacity>
+                    </Pressable>
                     <View className="flex-row items-center bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-full">
                         <Sparkles size={14} color={THEME.accentBlue} />
                         <Text className="text-blue-400 text-[10px] font-black uppercase tracking-wider ml-1.5">Success Portal</Text>
@@ -170,7 +170,7 @@ export default function MobileInterviewPrepGuideScreen() {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.key;
                         return (
-                            <TouchableOpacity
+                            <Pressable
                                 key={tab.key}
                                 onPress={() => setActiveTab(tab.key as any)}
                                 className="flex-row items-center px-4 py-3 rounded-2xl border"
@@ -186,7 +186,7 @@ export default function MobileInterviewPrepGuideScreen() {
                                 >
                                     {tab.label}
                                 </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         );
                     })}
                 </ScrollView>

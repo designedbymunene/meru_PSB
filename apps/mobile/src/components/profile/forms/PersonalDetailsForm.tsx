@@ -1,13 +1,12 @@
 import React, { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { View, Text, TextInput } from 'react-native';
+import { View, Text, TextInput, ScrollView } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FormField } from '@/components/ui/form-field';
 import { FormDatePicker } from '@/components/ui/form-date-picker';
 import { FormPicker } from '@/components/ui/form-picker';
-import { useCounties, useConstituencies, useWards, useEthnicities } from '@/lib/api/reference';
-import { User, Mail, Fingerprint, Phone, Globe, MapPin, Users, Heart } from 'lucide-react-native';
+import { User, Mail, Fingerprint, Phone, Heart } from 'lucide-react-native';
 
 const personalDetailsSchema = z.object({
     fullName: z.string().min(2, 'Full Name is required'),
@@ -16,10 +15,6 @@ const personalDetailsSchema = z.object({
     email: z.string().email('Valid email is required'),
     dateOfBirth: z.string().min(1, 'Date of birth is required'),
     gender: z.enum(['Male', 'Female', 'Other']).default('Male'),
-    ethnicityId: z.coerce.number().min(1, 'Ethnicity is required'),
-    homeCountyId: z.coerce.number().min(1, 'Home County is required'),
-    homeSubCountyId: z.coerce.number().min(1, 'Home Sub-County is required'),
-    wardId: z.coerce.number().min(1, 'Ward is required'),
     impairment: z.boolean().default(false),
     impairmentDetails: z.string().optional(),
 });
@@ -38,7 +33,7 @@ export interface FormHandle {
 export const PersonalDetailsForm = forwardRef<FormHandle, PersonalDetailsFormProps>(({ initialData, onSubmit }, ref) => {
     const [hasInitialReset, setHasInitialReset] = React.useState(false);
 
-    const { control, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<PersonalDetailsData>({
+    const { control, handleSubmit, formState: { errors }, reset, watch } = useForm<PersonalDetailsData>({
         resolver: zodResolver(personalDetailsSchema),
         defaultValues: {
             fullName: '',
@@ -47,55 +42,16 @@ export const PersonalDetailsForm = forwardRef<FormHandle, PersonalDetailsFormPro
             email: '',
             dateOfBirth: '',
             gender: 'Male',
-            ethnicityId: null as any,
-            homeCountyId: null as any,
-            homeSubCountyId: null as any,
-            wardId: null as any,
             impairment: false,
             impairmentDetails: '',
         },
     });
-
-    // Watch for location dependencies
-    const selectedCountyId = watch('homeCountyId');
-    const selectedSubCountyId = watch('homeSubCountyId');
-
-    // Reference Queries
-    const { data: countiesResponse, isLoading: isLoadingCounties } = useCounties();
-    const counties = (countiesResponse?.data || []).map((c: any) => ({ label: c.name, value: c.id }));
-
-    const { data: ethnicitiesResponse, isLoading: isLoadingEthnicities } = useEthnicities();
-    const ethnicities = (ethnicitiesResponse?.data || []).map((e: any) => ({ label: e.name, value: e.id }));
-
-    const { data: subCountiesResponse, isFetching: isFetchingSubCounties } = useConstituencies(typeof selectedCountyId === 'number' && selectedCountyId > 0 ? selectedCountyId : undefined);
-    const subCounties = (subCountiesResponse?.data || []).map((sc: any) => ({ label: sc.name, value: sc.id }));
-
-    const { data: wardsResponse, isFetching: isFetchingWards } = useWards(typeof selectedSubCountyId === 'number' && selectedSubCountyId > 0 ? selectedSubCountyId : undefined);
-    const wards = (wardsResponse?.data || []).map((w: any) => ({ label: w.name, value: w.id }));
-
-    // Cascading selection clearing
-    useEffect(() => {
-        if (!selectedCountyId || selectedCountyId <= 0) {
-            setValue('homeSubCountyId', null as any);
-            setValue('wardId', null as any);
-        }
-    }, [selectedCountyId, setValue]);
-
-    useEffect(() => {
-        if (!selectedSubCountyId || selectedSubCountyId <= 0) {
-            setValue('wardId', null as any);
-        }
-    }, [selectedSubCountyId, setValue]);
 
     useEffect(() => {
         if (initialData && !hasInitialReset) {
             reset({
                 ...initialData,
                 dateOfBirth: initialData.dateOfBirth ? new Date(initialData.dateOfBirth).toISOString().split('T')[0] : '',
-                homeCountyId: initialData.homeCountyId || null,
-                homeSubCountyId: initialData.homeSubCountyId || null,
-                wardId: initialData.wardId || null,
-                ethnicityId: initialData.ethnicityId || null,
                 impairment: !!initialData.impairment,
                 impairmentDetails: initialData.impairmentDetails || '',
             } as any);
@@ -114,7 +70,7 @@ export const PersonalDetailsForm = forwardRef<FormHandle, PersonalDetailsFormPro
     const phoneRef = useRef<TextInput>(null);
 
     return (
-        <View className="space-y-4">
+        <ScrollView className="space-y-4" showsVerticalScrollIndicator={false}>
             <Controller
                 control={control}
                 name="fullName"
@@ -219,7 +175,6 @@ export const PersonalDetailsForm = forwardRef<FormHandle, PersonalDetailsFormPro
                 )}
             />
 
-
             <Controller
                 control={control}
                 name="impairment"
@@ -256,6 +211,6 @@ export const PersonalDetailsForm = forwardRef<FormHandle, PersonalDetailsFormPro
                     )}
                 />
             )}
-        </View>
+        </ScrollView>
     );
 });

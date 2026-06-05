@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, TextInput, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, Pressable } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -81,6 +81,7 @@ export default function OtpLoginScreen() {
             isLoading={isLoading}
             submitLabel={step === 'email' ? 'Send Code' : 'Verify & Continue'}
             onSubmit={step === 'email' ? emailForm.handleSubmit(onEmailSubmit) : otpForm.handleSubmit(onOtpSubmit)}
+            testID={step === 'email' ? 'otp-email' : 'otp-verify'}
         >
             <View className="py-2">
                 {step === 'email' ? (
@@ -114,6 +115,7 @@ export default function OtpLoginScreen() {
                                     error={emailForm.formState.errors.email?.message}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
+                                    testID="otp-email-input"
                                 />
                             )}
                         />
@@ -144,13 +146,14 @@ export default function OtpLoginScreen() {
                                     <View>
                                         <View className="flex-row justify-between">
                                             {[0, 1, 2, 3, 4, 5].map((index) => (
-                                                <View 
-                                                    key={index} 
+                                                <View
+                                                    key={index}
                                                     className={`w-[15%] aspect-square rounded-xl border-2 items-center justify-center bg-white dark:bg-gray-900 ${
-                                                        value && value[index] 
-                                                            ? 'border-[#004aad] dark:border-blue-500' 
+                                                        value && value[index]
+                                                            ? 'border-[#004aad] dark:border-blue-500'
                                                             : 'border-slate-100 dark:border-gray-800'
                                                     }`}
+                                                    testID={`otp-code-input-${index}`}
                                                 >
                                                     <Text className="text-xl font-bold text-slate-900 dark:text-white">
                                                         {value ? value[index] : ""}
@@ -183,9 +186,9 @@ export default function OtpLoginScreen() {
                             <Text className="text-slate-500 dark:text-gray-400 text-sm">
                                 Didn't receive the code?
                             </Text>
-                            <TouchableOpacity className="mt-1" onPress={() => setStep('email')}>
+                            <Pressable className="mt-1" onPress={() => setStep('email')} testID="otp-resend">
                                 <Text className="text-[#004aad] dark:text-blue-400 font-bold text-sm">Resend OTP</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </>
                 )}

@@ -28,6 +28,7 @@ export * from './shortlisting'
 export * from './interviews'
 export * from './board'
 export * from './notifications'
+export * from './web-push-subscriptions'
 
 
 // Import tables and relations for schema object
@@ -65,6 +66,7 @@ import { interviews, interviewScores, vacancyPanelMembers, interviewCriteria, in
 import { boardResolutions } from './board'
 import { downloadCategories, downloadFiles } from './downloads'
 import { notifications, notificationPreferences } from './notifications'
+import { webPushSubscriptions } from './web-push-subscriptions'
 
 
 export * from './relations'
@@ -140,6 +142,7 @@ export const schema = {
     downloadFiles,
     notifications,
     notificationPreferences,
+    webPushSubscriptions,
     // Relations
     usersRelations,
     vacanciesRelations,

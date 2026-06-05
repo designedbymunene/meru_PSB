@@ -5,11 +5,11 @@ import { useRouter } from 'expo-router';
 import { Bell, Briefcase, Calendar, CheckCircle, ChevronRight, Clock, FileText, MapPin, Search } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import React, { useMemo } from 'react';
-import { Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Image, RefreshControl, ScrollView, Text, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header, HeaderAction } from '@/components/ui/header';
 import { useAuth } from '@/context/auth-context';
-import { getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
+import { getApiErrorMessage, getNormalizedApiError, getAvatarUrl } from '@/lib/api/client';
 import { DashboardLoadingState } from '@/components/ui/loading-skeletons';
 
 export default function DashboardScreen() {
@@ -104,24 +104,27 @@ export default function DashboardScreen() {
                 subtitle="Public Service Board"
                 showBackButton={false}
                 leftAction={
-                    <TouchableOpacity
-                        onPress={() => router.push('/profile')}
-                        className="w-9 h-9 rounded-full bg-gray-50 dark:bg-gray-900 items-center justify-center border border-gray-100 dark:border-gray-800 overflow-hidden"
-                    >
-                        {user?.avatar ? (
-                            <Image source={{ uri: user.avatar }} className="w-full h-full" />
-                        ) : (
-                            <Text className="text-gray-500 dark:text-gray-400 font-bold text-xs">
-                                {user?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'A'}
-                            </Text>
-                        )}
-                    </TouchableOpacity>
+                    <View className="w-10 h-10 bg-slate-50 dark:bg-gray-900 rounded-xl items-center justify-center border border-gray-100 dark:border-gray-800">
+                        <Image 
+                            source={require('../../../assets/branding/merucountylogo.png')} 
+                            style={{ width: 24, height: 24 }}
+                            contentFit="contain"
+                        />
+                    </View>
                 }
                 rightAction={
-                    <HeaderAction
-                        icon={<Bell size={20} color={isDarkMode ? '#ffffff' : '#0f172a'} />}
-                        onPress={() => router.push('/notifications')}
-                    />
+                    <View className="flex-row items-center gap-2">
+                        <HeaderAction
+                            icon={<Bell size={20} color={isDarkMode ? '#ffffff' : '#0f172a'} />}
+                            onPress={() => router.push('/notifications')}
+                        />
+                        <Pressable
+                            onPress={() => router.push('/profile')}
+                            className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-900 items-center justify-center border border-gray-100 dark:border-gray-800 overflow-hidden"
+                        >
+                            <Image source={{ uri: getAvatarUrl(user?.avatar, user?.fullName) }} className="w-full h-full" />
+                        </Pressable>
+                    </View>
                 }
             />
             <ScrollView
@@ -145,21 +148,21 @@ export default function DashboardScreen() {
                             <Text className="text-gray-400 dark:text-gray-500 text-sm font-medium">Welcome back,</Text>
                             <Text className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{user?.fullName?.split(' ')[0] || 'Applicant'} 👋</Text>
                         </View>
-                        <TouchableOpacity
+                        <Pressable
                             onPress={() => router.push('/vacancies')}
                             className="w-12 h-12 rounded-full bg-gray-50 dark:bg-gray-900 items-center justify-center border border-gray-100 dark:border-gray-800"
                         >
                             <Search size={22} color={isDarkMode ? '#ffffff' : '#0f172a'} />
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
 
                     {/* Quick Stats - Wrapped Grid (2x2) */}
                     <View className="flex-row flex-wrap mb-10 -mx-1.5">
                         {stats.map((stat, idx) => (
                             <View key={idx} className="w-1/2 p-1.5">
-                                <TouchableOpacity
+                                <Pressable
                                     onPress={() => router.push(stat.path as any)}
-                                    activeOpacity={0.7}
+                                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                                     className={`flex-row items-center ${stat.bg} dark:bg-gray-900/50 px-3 py-4 rounded-2xl border border-gray-100/50 dark:border-gray-800`}
                                 >
                                     <View className="bg-white dark:bg-gray-800 p-2 rounded-xl shadow-sm">
@@ -169,7 +172,7 @@ export default function DashboardScreen() {
                                         <Text className="text-base font-bold text-gray-900 dark:text-white leading-tight">{stat.value}</Text>
                                         <Text className="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-tight">{stat.label}</Text>
                                     </View>
-                                </TouchableOpacity>
+                                </Pressable>
                             </View>
                         ))}
                     </View>
@@ -178,9 +181,9 @@ export default function DashboardScreen() {
                     <View className="mb-10">
                         <View className="flex-row justify-between items-center mb-5 px-1">
                             <Text className="text-lg font-bold text-gray-900 dark:text-white">Ongoing Activity</Text>
-                            <TouchableOpacity onPress={() => router.push('/applications')}>
+                            <Pressable onPress={() => router.push('/applications')}>
                                 <Text className="text-[#004aad] dark:text-blue-400 font-bold text-xs">View All</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
 
                         {activeApp ? (
@@ -213,13 +216,13 @@ export default function DashboardScreen() {
                                     </View>
                                 </View>
 
-                                <TouchableOpacity
+                                <Pressable
                                     onPress={() => router.push(`/applications/${activeApp.id}`)}
                                     className="flex-row items-center justify-center mt-5 py-1"
                                 >
                                     <Text className="text-white font-bold text-xs mr-2">Track Application</Text>
                                     <ChevronRight size={14} color="white" />
-                                </TouchableOpacity>
+                                </Pressable>
                             </View>
                         ) : (
                             <View className="bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-5 rounded-3xl">
@@ -242,12 +245,12 @@ export default function DashboardScreen() {
                                 <Text className="text-xl font-extrabold text-gray-900 dark:text-white">Recommended Jobs</Text>
                                 <Text className="text-gray-500 dark:text-gray-400 text-[11px] mt-0.5">Based on your preferences</Text>
                             </View>
-                            <TouchableOpacity
+                            <Pressable
                                 onPress={() => router.push('/vacancies')}
                                 className="w-9 h-9 rounded-full bg-gray-50 dark:bg-gray-900 items-center justify-center border border-gray-100 dark:border-gray-800"
                             >
                                 <ChevronRight size={18} color="#004aad" className="dark:text-blue-400" />
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
 
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5 px-5">
@@ -266,9 +269,9 @@ export default function DashboardScreen() {
                                             <View className={`${statusBg} dark:bg-opacity-10 px-3 py-1 rounded-lg`}>
                                                 <Text className={`${statusColor} text-[9px] font-black uppercase tracking-wider`}>{statusLabel}</Text>
                                             </View>
-                                            <TouchableOpacity className="bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
+                                            <Pressable className="bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
                                                 <Briefcase size={16} color="#94a3b8" />
-                                            </TouchableOpacity>
+                                            </Pressable>
                                         </View>
                                         <Text className="text-lg font-extrabold text-gray-900 dark:text-white mb-2 h-12" numberOfLines={2}>{item.title || 'Position Title'}</Text>
 
@@ -287,12 +290,12 @@ export default function DashboardScreen() {
                                             </View>
                                         </View>
 
-                                        <TouchableOpacity
+                                        <Pressable
                                             onPress={() => router.push(`/vacancies/${item.id}`)}
                                             className="bg-gray-900 dark:bg-blue-600 py-3.5 rounded-2xl items-center shadow-md shadow-gray-200 dark:shadow-none"
                                         >
                                             <Text className="text-white font-bold text-xs">View Details</Text>
-                                        </TouchableOpacity>
+                                        </Pressable>
                                     </View>
                                 );
                             })}

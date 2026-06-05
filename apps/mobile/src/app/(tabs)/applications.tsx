@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, RefreshControl, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApplications } from '@/hooks/use-applications';
 import { useNetInfo } from '@react-native-community/netinfo';
@@ -67,10 +67,11 @@ export default function ApplicationsScreen() {
                     const statusLabel = item.statusLabel || item.status || 'Pending';
 
                     return (
-                        <TouchableOpacity
+                        <Pressable
                             onPress={() => router.push(`/applications/${item.id}`)}
-                            activeOpacity={0.7}
+                            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                             className="bg-white dark:bg-gray-900 p-5 rounded-[32px] mb-4 border border-gray-100 dark:border-gray-800 shadow-sm"
+                            testID={`application-card-${item.id}`}
                         >
                             <View className="flex-row justify-between items-start">
                                 <View className="flex-1 mr-4">
@@ -115,7 +116,7 @@ export default function ApplicationsScreen() {
                                     <ChevronRight size={14} color={isDarkMode ? '#60a5fa' : '#004aad'} />
                                 </View>
                             </View>
-                        </TouchableOpacity>
+                        </Pressable>
                     );
                 }}
                 ListEmptyComponent={
@@ -132,12 +133,13 @@ export default function ApplicationsScreen() {
                                 : "You haven't applied for any vacancies yet. Once you apply for a job, it will appear here for you to track."}
                         </Text>
                         {isError && (
-                            <TouchableOpacity
+                            <Pressable
                                 onPress={() => refetch()}
                                 className="mt-6 px-6 py-3 rounded-full bg-[#004aad] dark:bg-blue-600"
+                                testID="applications-retry"
                             >
                                 <Text className="text-white font-bold text-xs uppercase tracking-widest">Try Again</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                     </View>
                 }

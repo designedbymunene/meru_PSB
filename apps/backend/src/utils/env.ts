@@ -39,6 +39,12 @@ const redisEnvSchema = z.object({
     REDIS_URL: z.string().default('redis://127.0.0.1:6379')
 })
 
+const webPushEnvSchema = z.object({
+    VAPID_PUBLIC_KEY: z.string().min(1, 'VAPID_PUBLIC_KEY is required'),
+    VAPID_PRIVATE_KEY: z.string().min(1, 'VAPID_PRIVATE_KEY is required'),
+    VAPID_SUBJECT: z.string().default('mailto:admin@merupsb.go.ke')
+})
+
 export const getAuthConfig = () => authEnvSchema.parse(process.env)
 
 export const getUploadConfig = () => uploadEnvSchema.parse(process.env)
@@ -50,3 +56,5 @@ export const getDbConfig = () => dbEnvSchema.parse(process.env)
 export const getSmtpConfig = () => smtpEnvSchema.parse(process.env)
 
 export const getRedisConfig = () => redisEnvSchema.parse(process.env)
+
+export const getWebPushConfig = () => webPushEnvSchema.parse(process.env)

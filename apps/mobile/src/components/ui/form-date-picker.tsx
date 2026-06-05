@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { Calendar } from 'lucide-react-native';
 import { format } from 'date-fns';
@@ -13,17 +13,19 @@ interface FormDatePickerProps {
     mode?: 'date' | 'time' | 'datetime';
     maximumDate?: Date;
     minimumDate?: Date;
+    testID?: string;
 }
 
-export function FormDatePicker({ 
-    label, 
-    value, 
-    onChange, 
-    placeholder = 'Select date', 
-    error, 
+export function FormDatePicker({
+    label,
+    value,
+    onChange,
+    placeholder = 'Select date',
+    error,
     mode = 'date',
     maximumDate,
-    minimumDate
+    minimumDate,
+    testID
 }: FormDatePickerProps) {
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
@@ -44,15 +46,16 @@ export function FormDatePicker({
     const displayValue = value ? format(new Date(value), 'PPP') : placeholder;
 
     return (
-        <View className="mb-5">
+        <View className="mb-5" testID={testID}>
             <Text className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2 ml-1">{label}</Text>
-            
-            <TouchableOpacity
-                activeOpacity={0.7}
+
+            <Pressable
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                 onPress={showDatePicker}
                 className={`h-14 rounded-2xl border flex-row items-center px-4 bg-slate-50 dark:bg-gray-900/50 ${
                     error ? 'border-red-500' : 'border-slate-200 dark:border-gray-800'
                 }`}
+                testID={testID ? `${testID}-trigger` : 'date-picker-trigger'}
             >
                 <View className="mr-3">
                     <Calendar size={20} color={error ? '#ef4444' : '#64748b'} />
@@ -65,7 +68,7 @@ export function FormDatePicker({
                 >
                     {displayValue}
                 </Text>
-            </TouchableOpacity>
+            </Pressable>
 
             <DateTimePickerModal
                 isVisible={isDatePickerVisible}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 
 interface SettingRowProps {
@@ -12,6 +12,7 @@ interface SettingRowProps {
     rightElement?: React.ReactNode;
     isLast?: boolean;
     destructive?: boolean;
+    testID?: string;
 }
 
 export const SettingRow: React.FC<SettingRowProps> = ({
@@ -24,12 +25,18 @@ export const SettingRow: React.FC<SettingRowProps> = ({
     rightElement,
     isLast = false,
     destructive = false,
+    testID
 }) => {
+    // Generate a safe testID from title if not provided
+    const safeTestID = testID || title.toLowerCase().replace(/\s+/g, '-');
+
     return (
-        <TouchableOpacity
-            className={`flex-row items-center py-6 ${!isLast ? 'border-b border-gray-50 dark:border-gray-800' : ''} active:opacity-60`}
+        <Pressable
+            className={`flex-row items-center py-6 ${!isLast ? 'border-b border-gray-50 dark:border-gray-800' : ''}`}
             onPress={onPress}
             disabled={!onPress && !rightElement}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            testID={safeTestID}
         >
             <View
                 className="w-10 h-10 rounded-2xl justify-center items-center mr-4"
@@ -63,6 +70,6 @@ export const SettingRow: React.FC<SettingRowProps> = ({
                     onPress && <ChevronRight size={14} color="#cbd5e1" strokeWidth={3} />
                 )}
             </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 };

@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, ScrollView, Pressable, StatusBar } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useApplication } from '@/hooks/use-applications';
 import { useNetInfo } from '@react-native-community/netinfo';
@@ -102,19 +102,19 @@ const ScreenState = ({
             <Text className="text-white text-2xl font-black">{title}</Text>
             <Text className="text-slate-400 text-sm mt-3 leading-6">{description}</Text>
             <View className="mt-6 flex-row gap-3">
-                <TouchableOpacity
+                <Pressable
                     onPress={primaryAction}
                     className="flex-1 rounded-2xl bg-blue-600 px-4 py-4 items-center justify-center"
                 >
                     <Text className="text-white font-black text-xs uppercase tracking-wider">{primaryLabel}</Text>
-                </TouchableOpacity>
+                </Pressable>
                 {secondaryLabel && secondaryAction && (
-                    <TouchableOpacity
+                    <Pressable
                         onPress={secondaryAction}
                         className="flex-1 rounded-2xl bg-white/5 px-4 py-4 items-center justify-center border border-white/10"
                     >
                         <Text className="text-white font-black text-xs uppercase tracking-wider">{secondaryLabel}</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 )}
             </View>
         </View>
@@ -257,13 +257,14 @@ export default function TrackApplicationScreen() {
             
             {/* Custom Header */}
             <View style={{ paddingTop: insets.top + 10, paddingHorizontal: 24, paddingBottom: 16 }}>
-                <TouchableOpacity 
+                <Pressable
                     onPress={() => router.back()}
                     className="w-10 h-10 rounded-full items-center justify-center mb-4"
                     style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: THEME.border }}
+                    testID="application-back"
                 >
                     <ChevronLeft size={20} color="#fff" />
-                </TouchableOpacity>
+                </Pressable>
 
                 {/* Music Player Style Header */}
                 <View style={{ backgroundColor: THEME.card, borderColor: THEME.border }} className="rounded-3xl p-4 border overflow-hidden">
@@ -375,14 +376,15 @@ export default function TrackApplicationScreen() {
                         </Text>
 
                         {isShortlisted ? (
-                            <TouchableOpacity 
+                            <Pressable
                                 className="bg-white px-6 py-4 rounded-2xl flex-row items-center justify-center"
-                                activeOpacity={0.8}
+                                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
                                 onPress={() => router.push(`/applications/prep-guide?id=${applicationId}`)}
+                                testID="application-prep-guide"
                             >
                                 <Text className="text-[#059669] font-black text-xs uppercase tracking-wider">View Interview Prep Guide</Text>
                                 <ArrowRight size={16} color="#059669" className="ml-2" />
-                            </TouchableOpacity>
+                            </Pressable>
                         ) : (
                             <View className="bg-white/20 px-4 py-3 rounded-2xl border border-white/30">
                                 <Text className="text-white text-[10px] font-black uppercase tracking-widest text-center">

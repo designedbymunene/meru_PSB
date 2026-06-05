@@ -138,6 +138,11 @@ export function Footer() {
                                         </Link>
                                     </li>
                                     <li>
+                                        <Link href="/delete-user" className="text-muted-foreground hover:text-primary hover:underline">
+                                            Delete Account
+                                        </Link>
+                                    </li>
+                                    <li>
                                         <Link href="/contact" className="text-muted-foreground hover:text-primary hover:underline">
                                             Contact Information
                                         </Link>

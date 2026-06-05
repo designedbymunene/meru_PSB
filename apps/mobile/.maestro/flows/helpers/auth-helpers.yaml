@@ -1,0 +1,39 @@
+appId: com.nickm101.merucountypsb
+env:
+    TEST_EMAIL: test.applicant1@example.com
+    TEST_PASSWORD: user@123456
+---
+# Authentication helper flows
+# These can be called from other tests using runFlow
+
+# Login with valid credentials
+- runFlow: launch-app.yaml
+- tapOn:
+    id: "login-email-input"
+- inputText: ${TEST_EMAIL}
+- tapOn:
+    id: "login-password-input"
+- inputText: ${TEST_PASSWORD}
+- back
+- tapOn:
+    id: "login-submit"
+- waitForAnimationToEnd
+
+# Note: If 2FA is enabled, the test will need to handle the 2FA screen
+# - assertVisible: "Verification"
+# - tapOn: "otp-input-0"
+# - inputText: "1"
+# - tapOn: "otp-input-1"
+# - inputText: "2"
+# - tapOn: "otp-input-2"
+# - inputText: "3"
+# - tapOn: "otp-input-3"
+# - inputText: "4"
+# - tapOn: "otp-input-4"
+# - inputText: "5"
+# - tapOn: "otp-input-5"
+# - inputText: "6"
+# - waitForAnimationToEnd
+
+# Wait for home screen
+- assertVisible: "Vacancies"

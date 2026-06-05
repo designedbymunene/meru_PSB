@@ -17,16 +17,17 @@ export function RequireAuth({ children, allowedRoles }: RequireAuthProps) {
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
-            router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`)
+            // Include locale prefix in redirect
+            router.push(`/en/login?callbackUrl=${encodeURIComponent(pathname)}`)
         }
 
         if (!isLoading && isAuthenticated && allowedRoles && user) {
             if (!allowedRoles.includes(user.role)) {
-                // Redirect to appropriate page based on role
+                // Redirect to appropriate page based on role with locale prefix
                 if (user.role === 'admin') {
-                    router.push('/admin')
+                    router.push('/en/admin')
                 } else {
-                    router.push('/dashboard')
+                    router.push('/en/dashboard')
                 }
             }
         }

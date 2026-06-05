@@ -1,17 +1,26 @@
 'use client'
 
-import { Bell, Mail, Smartphone, Loader2 } from 'lucide-react'
+import { Bell, Mail, Smartphone, Loader2, Globe, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { useNotificationPreferences, useUpdateNotificationPreferences } from '@/hooks/use-notifications'
+import { useWebPush } from '@/hooks/use-web-push'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 export function NotificationPreferencesSettings() {
     const { data: preferences, isLoading: isLoadingPreferences } = useNotificationPreferences()
     const { mutate: updatePreferences, isPending } = useUpdateNotificationPreferences()
+    const {
+        isSupported: webPushSupported,
+        permission: webPushPermission,
+        isSubscribed: webPushSubscribed,
+        isLoading: webPushLoading,
+        toggle: toggleWebPush
+    } = useWebPush()
 
     const [formData, setFormData] = useState<{
         statusUpdates: 'email' | 'push' | 'in_app' | 'none'
@@ -166,6 +175,44 @@ export function NotificationPreferencesSettings() {
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {/* Web Push Notifications */}
+                    {webPushSupported && (
+                        <div className="space-y-2 p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <Label htmlFor="web-push" className="text-base font-semibold flex items-center gap-2">
+                                        <Globe className="w-4 h-4" />
+                                        Browser Push Notifications
+                                    </Label>
+                                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                        Receive notifications in your browser even when the app is closed
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="web-push"
+                                    checked={webPushSubscribed}
+                                    onCheckedChange={toggleWebPush}
+                                    disabled={webPushLoading || webPushPermission === 'denied'}
+                                />
+                            </div>
+
+                            {webPushPermission === 'denied' && (
+                                <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-md">
+                                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                                        Browser notifications are blocked. Enable them in your browser settings to use this feature.
+                                    </p>
+                                </div>
+                            )}
+
+                            {webPushPermission === 'granted' && webPushSubscribed && (
+                                <p className="text-sm text-green-600 dark:text-green-400">
+                                    ✓ Push notifications are enabled for this browser
+                                </p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Email Digest */}
                     <div className="space-y-2">

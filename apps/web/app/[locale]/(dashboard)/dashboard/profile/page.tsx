@@ -1,5 +1,6 @@
 import { getMyProfileServer, getMyRefereesServer, getMyDocumentsServer } from "@/lib/api/applicant-profiles-server"
 import { ProfileClient } from "./profile-client"
+import { RequireAuth } from "@/components/auth/require-auth"
 
 export const dynamic = 'force-dynamic'
 
@@ -20,10 +21,12 @@ export default async function ProfilePage() {
     })
 
     return (
-        <ProfileClient 
-            initialProfile={profileData || undefined}
-            initialReferees={refereesData || undefined}
-            initialDocuments={documentsData || undefined}
-        />
+        <RequireAuth allowedRoles={['applicant']}>
+            <ProfileClient
+                initialProfile={profileData || undefined}
+                initialReferees={refereesData || undefined}
+                initialDocuments={documentsData || undefined}
+            />
+        </RequireAuth>
     )
 }

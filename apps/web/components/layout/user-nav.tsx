@@ -16,7 +16,7 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAuthContext } from "@/hooks/use-auth"
+import { useAuthContext, useLogout } from "@/hooks/use-auth"
 import Link from "next/link"
 import { useRouter, usePathname } from "@/i18n/routing"
 
@@ -26,7 +26,8 @@ import { SidebarContext } from "@/components/ui/sidebar"
 import * as React from "react"
 
 export function UserNav({ showDetails = false, className }: { showDetails?: boolean; className?: string }) {
-    const { user, logout, switchView } = useAuthContext()
+    const { user, switchView } = useAuthContext()
+    const logout = useLogout()
     const router = useRouter()
     const pathname = usePathname()
     const sidebarContext = React.useContext(SidebarContext)
@@ -64,7 +65,7 @@ export function UserNav({ showDetails = false, className }: { showDetails?: bool
                     >
                         <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9 border border-slate-200 dark:border-slate-800 shrink-0">
-                                <AvatarImage src="/avatars/01.png" alt={user.fullName} />
+                                <AvatarImage src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=004aad&color=fff&size=128`} alt={user.fullName} />
                                 <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">{initials}</AvatarFallback>
                             </Avatar>
                             {!isCollapsed && (
@@ -81,7 +82,7 @@ export function UserNav({ showDetails = false, className }: { showDetails?: bool
                 ) : (
                     <Button variant="ghost" className={cn("relative h-9 w-9 rounded-full ring-offset-background transition-all hover:ring-2 hover:ring-primary/20", className)}>
                         <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-950 shadow-sm">
-                            <AvatarImage src="/avatars/01.png" alt={user.fullName} />
+                            <AvatarImage src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=004aad&color=fff&size=128`} alt={user.fullName} />
                             <AvatarFallback className="bg-primary/5 text-primary text-xs font-bold">{initials}</AvatarFallback>
                         </Avatar>
                     </Button>
@@ -170,7 +171,7 @@ export function UserNav({ showDetails = false, className }: { showDetails?: bool
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800/60" />
-                <DropdownMenuItem 
+                <DropdownMenuItem
                     onClick={() => logout()}
                     className="h-10 rounded-xl cursor-pointer text-destructive focus:bg-destructive/5 focus:text-destructive"
                 >

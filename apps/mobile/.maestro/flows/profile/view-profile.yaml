@@ -1,0 +1,39 @@
+appId: com.nickm101.merucountypsb
+
+---
+# Test: View profile and check settings
+# Prerequisites: User should be logged in
+
+- runFlow: ../helpers/auth-helpers.yaml
+
+# Navigate to profile tab
+- tapOn: "Account"
+- waitForAnimationToEnd
+
+# Verify profile elements
+- assertVisible: "Account & Security"
+- assertVisible:
+    id: "personal-information"
+
+# Check appearance switch (if possible to interact)
+- tapOn:
+    id: "appearance"
+- waitForAnimationToEnd
+
+# Test logout flow (but cancel it to stay logged in)
+- scrollUntilVisible:
+    element:
+      id: "profile-logout"
+    direction: DOWN
+- tapOn:
+    id: "profile-logout"
+- waitForAnimationToEnd
+
+- assertVisible:
+    id: "logout-modal-container"
+- tapOn:
+    id: "logout-modal-cancel"
+- waitForAnimationToEnd
+
+- assertNotVisible:
+    id: "logout-modal-container"

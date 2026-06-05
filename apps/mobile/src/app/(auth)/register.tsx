@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/auth-context';
 import { useForm, Controller } from 'react-hook-form';
@@ -68,11 +68,16 @@ export default function RegisterScreen() {
         <View className="flex-1 bg-white dark:bg-gray-950">
             <Header title="Create Account" />
             <KeyboardAvoidingView 
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 className="flex-1"
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
-                <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <ScrollView 
+                    className="flex-1" 
+                    showsVerticalScrollIndicator={false} 
+                    keyboardShouldPersistTaps="handled"
+                    automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+                >
                     <View className="px-6 pt-4 pb-8">
 
                         <View className="mb-8">
@@ -103,6 +108,7 @@ export default function RegisterScreen() {
                                         value={value}
                                         error={errors.firstName?.message}
                                         nextFieldRef={lastNameRef}
+                                        testID="register-first-name"
                                     />
                                 )}
                             />
@@ -122,6 +128,7 @@ export default function RegisterScreen() {
                                         value={value}
                                         error={errors.lastName?.message}
                                         nextFieldRef={phoneRef}
+                                        testID="register-last-name"
                                     />
                                 )}
                             />
@@ -141,6 +148,7 @@ export default function RegisterScreen() {
                                         error={errors.phoneNumber?.message}
                                         keyboardType="phone-pad"
                                         nextFieldRef={idRef}
+                                        testID="register-phone"
                                     />
                                 )}
                             />
@@ -160,6 +168,7 @@ export default function RegisterScreen() {
                                         value={value}
                                         error={errors.nationalId?.message}
                                         nextFieldRef={emailRef}
+                                        testID="register-id-number"
                                     />
                                 )}
                             />
@@ -181,6 +190,7 @@ export default function RegisterScreen() {
                                         keyboardType="email-address"
                                         autoCapitalize="none"
                                         nextFieldRef={passwordRef}
+                                        testID="register-email"
                                     />
                                 )}
                             />
@@ -201,22 +211,24 @@ export default function RegisterScreen() {
                                         secureTextEntry={!showPassword}
                                         returnKeyType="done"
                                         onSubmitEditing={handleSubmit(onSubmit)}
+                                        testID="register-password"
                                         rightElement={
-                                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                            <Pressable onPress={() => setShowPassword(!showPassword)} testID="register-password-toggle">
                                                 {showPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
-                                            </TouchableOpacity>
+                                            </Pressable>
                                         }
                                     />
                                 )}
                             />
 
                             {/* Sign Up Button */}
-                            <TouchableOpacity 
-                                className={`mt-8 h-14 rounded-2xl items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none active:opacity-90 ${
+                            <Pressable
+                                className={`mt-8 h-14 rounded-2xl items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none  ${
                                     isLoading ? 'bg-[#004aad]/70' : 'bg-[#004aad] dark:bg-blue-600'
                                 }`}
                                 onPress={handleSubmit(onSubmit)}
                                 disabled={isLoading}
+                                testID="register-submit"
                             >
                                 {isLoading ? (
                                     <ActivityIndicator color="white" />
@@ -226,14 +238,14 @@ export default function RegisterScreen() {
                                         <ArrowRight size={20} color="white" />
                                     </View>
                                 )}
-                            </TouchableOpacity>
+                            </Pressable>
 
                             <View className="flex-row justify-center mt-8 mb-6">
                                 <Text className="text-slate-500 dark:text-gray-400 text-base">Already have an account? </Text>
                                 <Link href="/login" asChild>
-                                    <TouchableOpacity>
+                                    <Pressable testID="register-login">
                                         <Text className="text-[#004aad] dark:text-blue-400 font-bold text-base">Sign In</Text>
-                                    </TouchableOpacity>
+                                    </Pressable>
                                 </Link>
                             </View>
 

@@ -13,6 +13,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { uploadAvatar, deleteAvatar } from '@/lib/api/account'
+import { toast } from 'sonner'
 import {
     Lock,
     Shield,
@@ -33,6 +36,7 @@ import {
     Moon,
     Monitor as MonitorIcon,
     History,
+    Loader2,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 // import { UserAuditLogs } from '@/components/settings/user-audit-logs'
@@ -62,13 +66,53 @@ const passwordSchema = z.object({
 })
 
 export default function SettingsPage() {
-    const { user } = useAuthContext()
+    const { user, setUser } = useAuthContext()
     const { data: security, isLoading: isSecurityLoading } = useSecuritySettings()
     // const { data: sessions, isLoading: isSessionsLoading } = useActiveSessions()
     const toggle2fa = useToggle2FA()
     // const revokeSession = useRevokeSession()
     const updatePassword = useUpdatePassword()
     const { theme, setTheme } = useTheme()
+    const [isUploading, setIsUploading] = useState(false)
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setIsUploading(true)
+        try {
+            const response = await uploadAvatar(file)
+            if (response.success && user) {
+                setUser({
+                    ...user,
+                    avatar: response.data.avatar
+                })
+                toast.success('Profile picture updated successfully')
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to upload profile picture')
+        } finally {
+            setIsUploading(false)
+        }
+    }
+
+    const handleAvatarDelete = async () => {
+        setIsUploading(true)
+        try {
+            const response = await deleteAvatar()
+            if (response.success && user) {
+                setUser({
+                    ...user,
+                    avatar: undefined
+                })
+                toast.success('Profile picture removed successfully')
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to remove profile picture')
+        } finally {
+            setIsUploading(false)
+        }
+    }
 
     const form = useForm<z.infer<typeof passwordSchema>>({
         resolver: zodResolver(passwordSchema),
@@ -153,6 +197,49 @@ export default function SettingsPage() {
                             <CardDescription>Update your basic account details</CardDescription>
                         </CardHeader>
                         <CardContent className="pt-8 space-y-6">
+                            {/* Profile Image Section */}
+                            <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+                                <div className="relative">
+                                    <Avatar className="h-20 w-20 border-2 border-slate-100 dark:border-slate-800 shadow-sm">
+                                        <AvatarImage src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || 'User')}&background=004aad&color=fff&size=160`} alt={user?.fullName} />
+                                        <AvatarFallback className="bg-primary/5 text-primary text-lg font-bold">
+                                            {user?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </div>
+                                <div className="space-y-2 text-center sm:text-left">
+                                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Profile Photo</h4>
+                                    <p className="text-xs text-slate-400 font-medium">PNG, JPG or JPEG. Max size 5MB.</p>
+                                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                accept="image/png, image/jpeg, image/jpg"
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                onChange={handleAvatarUpload}
+                                                disabled={isUploading}
+                                            />
+                                            <Button variant="outline" size="sm" className="h-9 rounded-lg" disabled={isUploading}>
+                                                {isUploading && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+                                                Upload Photo
+                                            </Button>
+                                        </div>
+                                        {user?.avatar && (
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                className="h-9 text-destructive hover:bg-destructive/5 rounded-lg"
+                                                onClick={handleAvatarDelete}
+                                                disabled={isUploading}
+                                            >
+                                                <Trash2 className="h-4 w-4 mr-1.5" />
+                                                Remove
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="fullName" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Full Name</Label>

@@ -8,12 +8,13 @@ interface FormFieldProps extends TextInputProps {
     icon?: LucideIcon;
     rightElement?: React.ReactNode;
     nextFieldRef?: React.RefObject<TextInput | null>;
+    testID?: string;
 }
 
 export const FormField = forwardRef<TextInput, FormFieldProps>(
-    ({ label, error, icon: Icon, rightElement, nextFieldRef, ...props }, ref) => {
+    ({ label, error, icon: Icon, rightElement, nextFieldRef, testID, ...props }, ref) => {
         return (
-            <View className="mb-4">
+            <View className="mb-4" testID={testID}>
                 {label ? (
                     <Text className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2 ml-1">
                         {label}
@@ -35,6 +36,7 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(
                         ref={ref}
                         className={`flex-1 ${props.multiline ? 'py-3' : 'h-full'} text-slate-900 dark:text-white text-base ${Icon ? 'px-3' : 'px-1'} ${props.className || ''}`}
                         placeholderTextColor="#94a3b8"
+                        testID={testID ? `${testID}-input` : 'form-field-input'}
                         textAlignVertical={props.multiline ? 'top' : 'center'}
                         returnKeyType={nextFieldRef ? 'next' : props.returnKeyType || 'done'}
                         onSubmitEditing={(e) => {

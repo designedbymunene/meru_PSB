@@ -1,0 +1,8 @@
+appId: com.nickm101.merucountypsb
+
+---
+# Launch the app and wait for it to load
+- clearState
+- launchApp
+- waitForAnimationToEnd
+

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Text, TouchableOpacity, View, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { Modal, Text, Pressable, View, ScrollView, StyleSheet } from 'react-native';
 import { X, Building2, Layers, Clock, RotateCcw, CheckCircle2, ChevronDown } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDepartments } from '@/lib/api/departments';
@@ -93,12 +93,12 @@ export function VacancyFilterSheet({
                                 Find the perfect role for you
                             </Text>
                         </View>
-                        <TouchableOpacity 
+                        <Pressable 
                             onPress={onClose}
                             className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-900 items-center justify-center"
                         >
                             <X size={20} color="#64748b" />
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
 
                     <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
@@ -112,7 +112,7 @@ export function VacancyFilterSheet({
                                 {statusOptions.map((opt) => {
                                     const isSelected = (localFilters.status || 'open') === opt.value;
                                     return (
-                                        <TouchableOpacity
+                                        <Pressable
                                             key={opt.value}
                                             onPress={() => setLocalFilters({ ...localFilters, status: opt.value as any })}
                                             className={`flex-1 flex-row items-center justify-center py-4 rounded-2xl border ${
@@ -125,7 +125,7 @@ export function VacancyFilterSheet({
                                             <Text className={`ml-2 text-xs font-bold ${isSelected ? 'text-[#004aad]' : 'text-gray-500'}`}>
                                                 {opt.label}
                                             </Text>
-                                        </TouchableOpacity>
+                                        </Pressable>
                                     );
                                 })}
                             </View>
@@ -174,19 +174,19 @@ export function VacancyFilterSheet({
 
                     {/* Footer */}
                     <View className="p-6 border-t border-gray-100 dark:border-gray-900 bg-white dark:bg-gray-950 flex-row gap-4">
-                        <TouchableOpacity 
+                        <Pressable 
                             onPress={handleReset}
                             className="flex-1 h-14 rounded-2xl border border-gray-100 dark:border-gray-800 items-center justify-center flex-row"
                         >
                             <RotateCcw size={16} color="#64748b" />
                             <Text className="ml-2 text-gray-600 dark:text-gray-400 font-bold">Reset</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
+                        </Pressable>
+                        <Pressable 
                             onPress={handleApply}
                             className="flex-[2] h-14 rounded-2xl bg-[#004aad] items-center justify-center shadow-lg shadow-blue-900/20"
                         >
                             <Text className="text-white font-black text-lg">Apply Filters</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </View>
             </View>

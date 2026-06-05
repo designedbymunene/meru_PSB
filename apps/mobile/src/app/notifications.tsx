@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, LayoutAnimation, Platform, RefreshControl, Pressable } from 'react-native';
+import { ScrollView, Text, Pressable, View, LayoutAnimation, Platform, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bell, Briefcase, CheckCircle2, Info, ShieldAlert, X } from 'lucide-react-native';
 import { Header, HeaderAction } from '../components/ui/header';
@@ -196,12 +196,12 @@ export default function NotificationsScreen() {
                                     : `You don't have any ${activeFilter} notifications at the moment.`}
                             </Text>
                             {activeFilter !== 'all' && (
-                                <TouchableOpacity
+                                <Pressable
                                     onPress={() => setActiveFilter('all')}
                                     className="mt-6 bg-blue-50 dark:bg-blue-900/20 px-6 py-2.5 rounded-xl"
                                 >
                                     <Text className="text-blue-600 dark:text-blue-400 font-bold text-xs">View all</Text>
-                                </TouchableOpacity>
+                                </Pressable>
                             )}
                         </View>
                     ) : (
@@ -209,16 +209,16 @@ export default function NotificationsScreen() {
                             {unreadCount > 0 && activeFilter === 'all' && (
                                 <View className="flex-row items-center justify-between mb-2 px-1">
                                     <Text className="text-gray-400 dark:text-gray-500 text-[11px] font-black uppercase tracking-widest">Recent Updates</Text>
-                                    <TouchableOpacity onPress={markAllAsRead}>
+                                    <Pressable onPress={markAllAsRead}>
                                         <Text className="text-blue-600 dark:text-blue-400 text-[11px] font-bold">Mark all read</Text>
-                                    </TouchableOpacity>
+                                    </Pressable>
                                 </View>
                             )}
                             
                             {filteredNotifications.map((item) => (
-                                <TouchableOpacity
+                                <Pressable
                                     key={item.id}
-                                    activeOpacity={0.9}
+                                    style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
                                     onPress={() => !item.read && markAsRead(item.id)}
                                     className={`relative overflow-hidden rounded-2xl border ${
                                         item.read 
@@ -243,12 +243,12 @@ export default function NotificationsScreen() {
                                                     }`}>
                                                         {item.title}
                                                     </Text>
-                                                    <TouchableOpacity 
+                                                    <Pressable 
                                                         onPress={() => deleteNotification(item.id)}
                                                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                                     >
                                                         <X size={14} color="#94a3b8" />
-                                                    </TouchableOpacity>
+                                                    </Pressable>
                                                 </View>
                                                 <Text className="text-gray-500 dark:text-gray-400 text-xs mt-1.5 leading-5 font-medium">
                                                     {item.message}
@@ -267,7 +267,7 @@ export default function NotificationsScreen() {
                                             </View>
                                         </View>
                                     </View>
-                                </TouchableOpacity>
+                                </Pressable>
                             ))}
                         </View>
                     )}

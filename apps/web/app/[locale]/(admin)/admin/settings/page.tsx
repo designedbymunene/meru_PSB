@@ -10,6 +10,7 @@ import {
     useUpdatePassword
 } from '@/hooks/use-account'
 import { useUsers } from '@/hooks/use-users'
+import { TestNotifications } from '@/components/admin/test-notifications'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -305,6 +306,7 @@ export default function AdminSettingsPage() {
                 </TabsContent>
 
                 <TabsContent value="system" className="space-y-6 outline-none">
+                    <TestNotifications />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card className="rounded-2xl border-slate-200 dark:border-slate-800">
                             <CardHeader>

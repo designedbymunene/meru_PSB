@@ -1,0 +1,16 @@
+appId: com.nickm101.merucountypsb
+# From app.json bundleIdentifier/package
+
+env:
+  TEST_MODE: "true"
+  CLEAR_STORAGE: "true"
+
+# Continuous execution options
+continuous:
+  # Stop after N failed flows
+  maxFailures: 3
+
+# Studio configuration (for Maestro Studio)
+studio:
+  # Map local port to device
+  port: 9000

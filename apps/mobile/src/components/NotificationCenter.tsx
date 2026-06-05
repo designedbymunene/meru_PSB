@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native'
 import { useUnreadNotificationCount, useMarkNotificationAsRead, useNotifications } from '@/hooks/use-notifications'
 import { format } from 'date-fns'
 
@@ -68,7 +68,7 @@ export function NotificationCenter() {
                 )}
 
                 {notifications && notifications.map(notification => (
-                    <TouchableOpacity
+                    <Pressable
                         key={notification.id}
                         onPress={() => !notification.read && handleMarkAsRead(notification.id)}
                         className={`border-l-4 px-4 py-4 border-b border-slate-200 dark:border-slate-800 ${
@@ -99,7 +99,7 @@ export function NotificationCenter() {
                                 </Text>
                             </View>
                         </View>
-                    </TouchableOpacity>
+                    </Pressable>
                 ))}
             </ScrollView>
         </View>

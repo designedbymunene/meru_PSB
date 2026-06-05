@@ -1,0 +1,24 @@
+appId: com.nickm101.merucountypsb
+
+---
+# Test: View applications list
+# Prerequisites: User should be logged in and have at least one application
+
+- runFlow: ../helpers/auth-helpers.yaml
+
+# Navigate to applications tab
+- tapOn: "My Apps"
+- waitForAnimationToEnd
+
+# Verify we're on applications screen
+- assertVisible: "My Applications"
+
+# Verify application cards (optional, depends on if user has apps)
+- assertVisible:
+    id: "application-card-.*"
+    optional: true
+
+# Verify empty state if no applications
+- assertVisible:
+    text: "No Active Applications"
+    optional: true

@@ -3,6 +3,7 @@ import { db } from '../db';
 import { users, vacancies } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { NotificationService } from '../services/notification-service';
+import { WebPushService } from '../services/web-push-service';
 import { sendApplicationStatusEmail } from '../utils/mailer';
 import { getApplicationStatusLabel, isApplicationNotificationStatus } from '../utils/application-status';
 import { redisConnection, QUEUE_NAMES } from '../utils/queue';
@@ -55,7 +56,7 @@ export const notificationWorker = new Worker(
                 : `Application Update - ${statusLabel}`;
             const body = `Your application for ${vacancy.title} is now ${statusLabel}.`;
 
-            const [emailResult, pushResult] = await Promise.all([
+            const [emailResult, pushResult, webPushResult] = await Promise.all([
                 applicant.email
                     ? sendApplicationStatusEmail({
                           to: applicant.email,
@@ -81,12 +82,25 @@ export const notificationWorker = new Worker(
                           sound: 'default',
                       })
                     : Promise.resolve({ success: false, error: 'No push token' }),
+                WebPushService.notifyUser(applicantId, {
+                    title,
+                    body,
+                    icon: '/logo-icon.png',
+                    badge: '/badge-icon.png',
+                    data: {
+                        applicationId,
+                        vacancyId,
+                        status,
+                        statusLabel,
+                    }
+                }),
             ]);
 
             logger.info({
                 jobId: job.id,
                 emailSuccess: emailResult?.success,
-                pushSuccess: pushResult?.success
+                pushSuccess: pushResult?.success,
+                webPushSuccess: webPushResult?.success
             }, '[NotificationWorker] Job processed successfully');
         } else {
             logger.warn({ jobId: job.id, type }, '[NotificationWorker] Unknown job type');

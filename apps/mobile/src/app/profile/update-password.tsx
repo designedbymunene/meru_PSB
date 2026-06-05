@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { changePasswordSchema, ChangePasswordInput } from '@meru/shared';
@@ -70,9 +70,9 @@ export default function UpdatePasswordScreen() {
                             error={errors.currentPassword?.message}
                             icon={Lock}
                             rightElement={
-                                <TouchableOpacity onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
+                                <Pressable onPress={() => setShowCurrentPassword(!showCurrentPassword)}>
                                     {showCurrentPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
-                                </TouchableOpacity>
+                                </Pressable>
                             }
                         />
                     )}
@@ -91,9 +91,9 @@ export default function UpdatePasswordScreen() {
                             error={errors.newPassword?.message}
                             icon={Lock}
                             rightElement={
-                                <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+                                <Pressable onPress={() => setShowNewPassword(!showNewPassword)}>
                                     {showNewPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
-                                </TouchableOpacity>
+                                </Pressable>
                             }
                         />
                     )}
@@ -106,7 +106,7 @@ export default function UpdatePasswordScreen() {
                     </Text>
                 </View>
 
-                <TouchableOpacity
+                <Pressable
                     className={`p-5 rounded-[24px] items-center ${mutation.isPending ? 'bg-blue-300' : 'bg-[#004aad]'} shadow-lg shadow-blue-500/20`}
                     onPress={handleSubmit(onSubmit)}
                     disabled={mutation.isPending}
@@ -114,7 +114,7 @@ export default function UpdatePasswordScreen() {
                     <Text className="text-white font-black text-xs uppercase tracking-widest">
                         {mutation.isPending ? 'Updating...' : 'Update Password'}
                     </Text>
-                </TouchableOpacity>
+                </Pressable>
             </View>
         </FormLayout>
     );

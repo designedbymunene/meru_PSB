@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { FileText, Upload, CheckCircle, AlertCircle, ShieldCheck, Clock, FileCheck, Plus, Trash2 } from 'lucide-react-native';
@@ -131,9 +131,9 @@ export default function DocumentsScreen() {
                                             <View className="ml-3 flex-1">
                                                 <View className="flex-row justify-between items-center">
                                                     <Text className="text-gray-900 font-bold text-sm">{doc.documentType}</Text>
-                                                    <TouchableOpacity onPress={() => deleteDocument(doc.id)}>
+                                                    <Pressable onPress={() => deleteDocument(doc.id)}>
                                                         <Trash2 size={14} color="#ef4444" />
-                                                    </TouchableOpacity>
+                                                    </Pressable>
                                                 </View>
                                                 <Text className="text-gray-500 text-[10px] mt-1 font-medium">{doc.originalName}</Text>
                                                 <View className="mt-2 bg-white self-start px-2 py-0.5 rounded-full border border-gray-100">
@@ -150,14 +150,14 @@ export default function DocumentsScreen() {
                                     {doc.status === 'rejected' && (
                                         <View className="mt-4 bg-red-50 p-3 rounded-xl border border-red-100">
                                             <Text className="text-red-700 text-[10px] font-medium leading-4 mb-3">{doc.rejectionReason}</Text>
-                                            <TouchableOpacity 
+                                            <Pressable 
                                                 className="bg-red-600 p-3 rounded-xl flex-row justify-center items-center"
                                                 onPress={() => pickAndUpload(doc.documentType)}
                                                 disabled={isUploading}
                                             >
                                                 {isUploading ? <ActivityIndicator size="small" color="white" /> : <Upload size={14} color="white" />}
                                                 <Text className="text-white text-xs font-black uppercase tracking-widest ml-2">Re-upload File</Text>
-                                            </TouchableOpacity>
+                                            </Pressable>
                                         </View>
                                     )}
                                 </View>
@@ -169,14 +169,14 @@ export default function DocumentsScreen() {
                             </View>
                         )}
 
-                        <TouchableOpacity 
+                        <Pressable 
                             className="mt-2 bg-gray-900 p-4 rounded-xl flex-row justify-center items-center"
                             onPress={() => pickAndUpload('Other Document')}
                             disabled={isUploading}
                         >
                             {isUploading ? <ActivityIndicator size="small" color="white" /> : <Plus size={16} color="white" />}
                             <Text className="text-white text-xs font-black uppercase tracking-widest ml-2">Upload New Document</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </SectionCard>
 
@@ -191,7 +191,7 @@ export default function DocumentsScreen() {
                                 Please upload the following documents to complete your profile:
                             </Text>
                             {missingTypes.map((type) => (
-                                <TouchableOpacity 
+                                <Pressable 
                                     key={type}
                                     className="bg-orange-50 p-4 rounded-xl border border-orange-100 flex-row justify-between items-center"
                                     onPress={() => pickAndUpload(type)}
@@ -202,7 +202,7 @@ export default function DocumentsScreen() {
                                         <Text className="text-gray-900 font-bold text-xs ml-3">{type}</Text>
                                     </View>
                                     {isUploading ? <ActivityIndicator size="small" color="#f59e0b" /> : <Upload size={16} color="#f59e0b" />}
-                                </TouchableOpacity>
+                                </Pressable>
                             ))}
                         </View>
                     </SectionCard>

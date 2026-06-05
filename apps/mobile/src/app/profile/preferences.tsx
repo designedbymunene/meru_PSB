@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, Pressable, Switch } from 'react-native';
 import { Bell, Mail, MessageSquare, ShieldCheck } from 'lucide-react-native';
 import { SectionCard, SettingRow } from '@/components/account';
 import { FormPicker } from '@/components/ui/form-picker';
@@ -30,12 +30,12 @@ export default function PreferencesScreen() {
             title="App Preferences"
             onBack={() => router.back()}
             bottomAction={
-                <TouchableOpacity 
-                    className="bg-[#004aad] dark:bg-blue-600 h-14 rounded-2xl items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none active:opacity-80"
+                <Pressable 
+                    className="bg-[#004aad] dark:bg-blue-600 h-14 rounded-2xl items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none "
                     onPress={() => router.back()}
                 >
                     <Text className="text-white font-black text-sm uppercase tracking-widest">Save Preferences</Text>
-                </TouchableOpacity>
+                </Pressable>
             }
         >
             <View className="space-y-12">

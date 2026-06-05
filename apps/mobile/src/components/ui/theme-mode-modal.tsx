@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, Pressable, Modal } from 'react-native';
 import { Moon, Sun, Smartphone, Check } from 'lucide-react-native';
 
 interface ThemeModeModalProps {
@@ -27,12 +27,13 @@ export function ThemeModeModal({ isVisible, onClose, selectedTheme, onSelect }: 
                 <View className="w-full bg-white dark:bg-gray-900 rounded-t-[32px] p-6 pb-8">
                     <View className="flex-row items-center justify-between mb-6">
                         <Text className="text-gray-900 dark:text-white text-2xl font-black">App Theme</Text>
-                        <TouchableOpacity 
+                        <Pressable
                             onPress={onClose}
                             className="w-8 h-8 rounded-full items-center justify-center bg-gray-100 dark:bg-gray-800"
+                            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                         >
                             <Text className="text-gray-900 dark:text-white text-xl font-bold">×</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
 
                     <Text className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-4">
@@ -45,7 +46,7 @@ export function ThemeModeModal({ isVisible, onClose, selectedTheme, onSelect }: 
                             const isSelected = selectedTheme === theme.value;
                             
                             return (
-                                <TouchableOpacity
+                                <Pressable
                                     key={theme.value}
                                     onPress={() => {
                                         onSelect(theme.value);
@@ -56,6 +57,7 @@ export function ThemeModeModal({ isVisible, onClose, selectedTheme, onSelect }: 
                                             ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                                             : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                                     }`}
+                                    style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
                                 >
                                     <View 
                                         className="w-12 h-12 rounded-xl items-center justify-center mr-4"
@@ -82,7 +84,7 @@ export function ThemeModeModal({ isVisible, onClose, selectedTheme, onSelect }: 
                                             <Check size={16} color="#fff" strokeWidth={3} />
                                         </View>
                                     )}
-                                </TouchableOpacity>
+                                </Pressable>
                             );
                         })}
                     </View>

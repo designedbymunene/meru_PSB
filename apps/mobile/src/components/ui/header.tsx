@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
@@ -14,17 +14,19 @@ interface HeaderProps {
   transparent?: boolean;
   onBackPress?: () => void;
   onBack?: () => void;
+  testID?: string;
 }
 
-export function Header({ 
-  title, 
+export function Header({
+  title,
   subtitle,
-  showBackButton = true, 
-  leftAction, 
+  showBackButton = true,
+  leftAction,
   rightAction,
   transparent = false,
   onBackPress,
-  onBack
+  onBack,
+  testID
 }: HeaderProps) {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
@@ -40,21 +42,23 @@ export function Header({
   };
 
   return (
-    <View 
+    <View
       className={`w-full z-10 ${transparent ? 'bg-transparent' : 'bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800'}`}
       style={{ paddingTop: insets.top }}
+      testID={testID}
     >
       <View className="h-14 flex-row items-center justify-between px-4">
         <View className="flex-1 items-start justify-center min-w-[40px]">
           {showBackButton && !leftAction ? (
-            <TouchableOpacity 
+            <Pressable
               onPress={handleBack}
               className="p-1 flex-row items-center"
-              activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              testID={testID ? `${testID}-back-button` : 'header-back-button'}
             >
               <ChevronLeft size={24} color={isDarkMode ? '#ffffff' : '#0f172a'} strokeWidth={2.5} />
-            </TouchableOpacity>
+            </Pressable>
           ) : leftAction}
         </View>
 
@@ -83,19 +87,21 @@ interface HeaderActionProps {
   icon: React.ReactNode;
   onPress: () => void;
   label?: string;
+  testID?: string;
 }
 
-export function HeaderAction({ icon, onPress, label }: HeaderActionProps) {
+export function HeaderAction({ icon, onPress, label, testID }: HeaderActionProps) {
   return (
-    <TouchableOpacity 
+    <Pressable
       onPress={onPress}
       className="p-1 flex-row items-center"
-      activeOpacity={0.7}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      testID={testID || 'header-action'}
     >
       {icon}
       {label && <Text className="text-[#004aad] text-[15px] font-semibold ml-1">{label}</Text>}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

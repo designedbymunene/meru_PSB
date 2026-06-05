@@ -56,5 +56,28 @@ export const notificationsApi = {
         apiClient.get<NotificationPreference>('/notifications/preferences'),
     
     updatePreferences: (preferences: Partial<Omit<NotificationPreference, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>) =>
-        apiClient.put<NotificationPreference>('/notifications/preferences', preferences)
+        apiClient.put<NotificationPreference>('/notifications/preferences', preferences),
+
+    // Web Push
+    getVapidKey: () =>
+        apiClient.get<{ vapidKey: string }>('/notifications/web-push/vapid-key'),
+
+    subscribeToWebPush: (subscription: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
+        apiClient.post('/notifications/web-push/subscribe', subscription),
+
+    unsubscribeFromWebPush: (endpoint: string) =>
+        apiClient.post('/notifications/web-push/unsubscribe', { endpoint }),
+
+    getWebPushSubscriptions: () =>
+        apiClient.get<{ subscriptions: any[] }>('/notifications/web-push/subscriptions'),
+
+    // Test notifications (admin only)
+    sendTestNotification: (data: {
+        userId?: number
+        title: string
+        message: string
+        type?: 'application_status' | 'interview_reminder' | 'document_request' | 'application_update' | 'general'
+        data?: Record<string, any>
+    }) =>
+        apiClient.post('/notifications/test', data)
 }

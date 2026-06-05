@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { AlertCircle, CheckCircle2, ChevronRight } from 'lucide-react-native';
 import type { ProfileCompletionSummary, ProfileSectionId } from '@meru/shared';
 
@@ -25,11 +25,16 @@ const DISPLAY_SECTIONS: DisplaySection[] = [
 
 export function CompletionGuard({ completion, onJumpToStep }: CompletionGuardProps) {
     const visibleSections = [...(completion?.groups?.required || []), ...(completion?.groups?.optional || [])]
-        .filter((section) => DISPLAY_SECTIONS.some((visible) => visible.id === section.id))
-        .map((section) => ({
-            ...section,
-            stepId: DISPLAY_SECTIONS.find((visible) => visible.id === section.id)?.stepId || section.id,
-        }));
+        .reduce<DisplaySection[]>((acc, section) => {
+            const displaySection = DISPLAY_SECTIONS.find((visible) => visible.id === section.id);
+            if (displaySection) {
+                acc.push({
+                    ...section,
+                    stepId: displaySection.stepId,
+                });
+            }
+            return acc;
+        }, []);
 
     const isComplete = completion.canApply;
 
@@ -104,10 +109,11 @@ function SectionGroup({
         <View className="space-y-3">
             <Text className="text-gray-900 dark:text-white font-black text-lg ml-1">{title}</Text>
             {items.map((section) => (
-                <TouchableOpacity
+                <Pressable
                     key={section.id}
                     onPress={() => onJumpToStep(section.stepId)}
                     className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex-row items-center justify-between shadow-sm"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
                 >
                     <View className="flex-row items-center flex-1">
                         <View className={`w-8 h-8 rounded-full items-center justify-center ${section.completed ? 'bg-green-50 dark:bg-green-900/20' : 'bg-gray-50 dark:bg-gray-800'}`}>
@@ -133,7 +139,7 @@ function SectionGroup({
                         </Text>
                         <ChevronRight size={16} color="#cbd5e1" />
                     </View>
-                </TouchableOpacity>
+                </Pressable>
             ))}
         </View>
     );

@@ -1,19 +1,20 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, SafeAreaView, Platform, KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AlertModal } from '@/components/ui/alert-modal';
-import { 
-    ChevronLeft, 
-    ChevronRight, 
-    CheckCircle2, 
-    User, 
-    GraduationCap, 
-    Briefcase, 
-    Award, 
+import {
+    ChevronLeft,
+    ChevronRight,
+    CheckCircle2,
+    User,
+    GraduationCap,
+    Briefcase,
+    Award,
     Users,
     ClipboardCheck,
     AlertCircle,
     BookOpen,
+    MapPin,
 } from 'lucide-react-native';
 import { Header } from '@/components/ui/header';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +25,7 @@ import { toast } from 'sonner-native';
 
 // Form Components
 import { PersonalDetailsForm, FormHandle } from './forms/PersonalDetailsForm';
+import { LocationForm } from './forms/LocationForm';
 import { ListSectionWrapper } from './forms/ListSectionWrapper';
 import { QualificationForm } from './forms/QualificationForm';
 import { EmploymentForm } from './forms/EmploymentForm';
@@ -58,12 +60,13 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
     const [currentStepIndex, setCurrentStepIndex] = useState(() => {
         if (initialStep) {
             const index = [
-                'personal', 
-                'academic', 
-                'experience', 
+                'personal',
+                'location',
+                'academic',
+                'experience',
                 'training',
-                'professional', 
-                'referees', 
+                'professional',
+                'referees',
                 // 'documents',
                 'review'
             ].indexOf(initialStep);
@@ -72,6 +75,7 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
         return 0;
     });
     const formRef = useRef<FormHandle>(null);
+    const locationFormRef = useRef<FormHandle>(null);
 
     // Fetch profile and all related data
     const { data: profileData, isLoading: isProfileLoading } = useQuery({
@@ -186,17 +190,27 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
     const steps = useMemo(() => {
         const baseSteps = [
             // --- REQUIRED SECTIONS ---
-            { 
-                id: 'personal', 
-                title: 'Personal Details (Required)', 
-                icon: User, 
+            {
+                id: 'personal',
+                title: 'Personal Details (Required)',
+                icon: User,
                 render: () => <PersonalDetailsForm ref={formRef} initialData={profile} onSubmit={(data) => {
                     if (isSubmittingRef.current) return;
                     isSubmittingRef.current = true;
                     updateProfileMutation.mutate(data);
-                }} /> 
+                }} />
             },
-            { 
+            {
+                id: 'location',
+                title: 'Location & Ethnicity (Required)',
+                icon: MapPin,
+                render: () => <LocationForm ref={locationFormRef} initialData={profile} onSubmit={(data) => {
+                    if (isSubmittingRef.current) return;
+                    isSubmittingRef.current = true;
+                    updateProfileMutation.mutate(data);
+                }} />
+            },
+            {
                 id: 'academic', 
                 title: 'Academic History (Required)', 
                 icon: GraduationCap, 
@@ -332,13 +346,13 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                                 Upload your ID, CV and other supporting documents.
                             </Text>
 
-                            <TouchableOpacity 
+                            <Pressable 
                                 onPress={() => router.push('/profile/documents')}
                                 className="mt-5 flex-row items-center bg-gray-900 px-5 py-3 rounded-xl"
                             >
                                 <Plus size={16} color="white" />
                                 <Text className="text-white font-bold text-xs ml-2">Open Manager</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </View>
                 )
@@ -417,6 +431,8 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
 
         if (currentStep.id === 'personal') {
             formRef.current?.submit();
+        } else if (currentStep.id === 'location') {
+            locationFormRef.current?.submit();
         } else if (currentStep.id === 'review') {
             isSubmittingRef.current = true;
             submitApplicationMutation.mutate();
@@ -481,7 +497,17 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                 </View>
             </View>
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                className="flex-1"
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            >
+                <ScrollView 
+                    className="flex-1" 
+                    showsVerticalScrollIndicator={false} 
+                    keyboardShouldPersistTaps="handled"
+                    automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+                >
                 <View className="p-6">
                     {currentStep.render()}
                 </View>
@@ -498,16 +524,16 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
             >
                 <View className="flex-row items-center justify-between">
                     {!isFirstStep && (
-                        <TouchableOpacity 
+                        <Pressable 
                             onPress={handleBack}
                             className="w-14 h-14 rounded-2xl border border-gray-200 dark:border-gray-800 items-center justify-center bg-gray-50/50 dark:bg-gray-900/50"
                         >
                             <ChevronLeft size={24} color="#64748b" />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                     
                     <View className={isFirstStep ? 'flex-1' : 'flex-1 ml-4'}>
-                        <TouchableOpacity 
+                        <Pressable 
                             onPress={handleNext}
                             disabled={isSaving || submitApplicationMutation.isSuccess || (isLastStep && mode === 'apply' && !profileCompletion?.canApply)}
                             className={`h-14 rounded-2xl items-center justify-center flex-row shadow-xl ${
@@ -532,10 +558,11 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                                     {isLastStep && mode === 'apply' && !profileCompletion?.canApply && <AlertCircle size={20} color="#94a3b8" />}
                                 </>
                             )}
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </View>
             </View>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }

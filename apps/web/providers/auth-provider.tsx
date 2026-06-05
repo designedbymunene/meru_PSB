@@ -21,6 +21,18 @@ function setCookie(name: string, value: string, days = 7) {
 }
 
 function deleteCookie(name: string) {
+    // Delete cookie with multiple path and domain variations to ensure it's removed
+    const paths = ['/', '/en', '/sw']
+    const domains = [window.location.hostname, `.${window.location.hostname}`]
+
+    paths.forEach(path => {
+        domains.forEach(domain => {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}; domain=${domain}`
+        })
+        // Also try without domain
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path}`
+    })
+    // Finally, try with just root path and no domain
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
 }
 
@@ -75,23 +87,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const logout = () => {
+        // Clear localStorage
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
         localStorage.removeItem('user')
+
+        // Clear cookies
         deleteCookie('accessToken')
+        deleteCookie('refreshToken')
         deleteCookie('userRole')
         deleteCookie('viewAsApplicant')
+
+        // Clear state
         setUserState(null)
-        window.location.href = '/login'
+
+        // Note: The caller is responsible for redirecting to the login page
     }
 
     const switchView = (target: 'admin' | 'applicant') => {
         if (target === 'applicant') {
             setCookie('viewAsApplicant', 'true')
-            window.location.href = '/dashboard'
+            window.location.href = '/en/dashboard'
         } else {
             deleteCookie('viewAsApplicant')
-            window.location.href = '/admin'
+            window.location.href = '/en/admin'
         }
     }
 

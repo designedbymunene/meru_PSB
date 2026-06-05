@@ -44,9 +44,12 @@ export const QualificationForm = forwardRef<FormHandle, QualificationFormProps>(
     // Reference Queries
     const { data: levelsResponse } = useEducationLevels();
     const allLevels = levelsResponse?.data || [];
-    const levels = allLevels
-        .filter((l: any) => l.name.toLowerCase().includes('level'))
-        .map((l: any) => ({ label: l.name, value: l.code, id: l.id }));
+    const levels = allLevels.reduce<Array<{ label: string; value: string; id: number }>>((acc, l: any) => {
+        if (l.name.toLowerCase().includes('level')) {
+            acc.push({ label: l.name, value: l.code, id: l.id });
+        }
+        return acc;
+    }, []);
 
     const { data: institutionsResponse } = useInstitutions();
     const institutions = (institutionsResponse?.data || []).map((i: any) => ({ label: i.name, value: i.id }));

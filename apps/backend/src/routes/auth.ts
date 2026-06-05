@@ -15,8 +15,15 @@ import type { RegisterInput } from '@meru/shared'
 import { AuthService } from '../services/auth-service'
 import {
     ValidationError,
-    successResponse
+    successResponse,
+    NotFoundError,
+    UnauthorizedError
 } from '../utils/errors'
+import { db, users, applicantProfiles, loginOtpSessions } from '../db'
+import { eq, and, isNull, gt, desc } from 'drizzle-orm'
+import { generatePasswordResetOtp, hashPasswordResetOtp, verifyPasswordResetOtp } from '../utils/auth'
+import { sendAccountDeletionOtpEmail } from '../utils/mailer'
+import { logger } from '../utils/logger'
 
 export const authRouter = new Hono()
 
@@ -151,4 +158,116 @@ authRouter.post('/unlock', authRateLimiter, async (c) => {
     await AuthService.unlock(email, token, requestId)
 
     return successResponse(c, null, 'Account unlocked successfully. You can now log in.')
+})
+
+// POST /api/auth/delete-request - Request account deletion OTP
+authRouter.post('/delete-request', authRateLimiter, async (c) => {
+    const { email, nationalId } = await c.req.json()
+    const requestId = c.get('requestId')
+
+    if (!email || !nationalId) {
+        throw new ValidationError('Email and National ID are required')
+    }
+
+    // Find user by email
+    const user = await db.query.users.findFirst({
+        where: eq(users.email, email.toLowerCase())
+    })
+
+    if (!user) {
+        throw new NotFoundError('No account found with this email address')
+    }
+
+    // Find profile by userId and check nationalId
+    const profile = await db.query.applicantProfiles.findFirst({
+        where: eq(applicantProfiles.userId, user.id)
+    })
+
+    if (!profile || profile.idNumber.trim().toLowerCase() !== nationalId.trim().toLowerCase()) {
+        throw new ValidationError('The National ID / Passport Number does not match our records for this email address')
+    }
+
+    // Generate and send OTP using loginOtpSessions
+    const otp = generatePasswordResetOtp()
+    const otpHash = await hashPasswordResetOtp(otp)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+
+    // Delete existing OTP sessions first
+    await db.delete(loginOtpSessions).where(eq(loginOtpSessions.userId, user.id))
+    
+    await db.insert(loginOtpSessions).values({
+        userId: user.id,
+        otpHash,
+        expiresAt,
+        attemptCount: 0
+    })
+
+    try {
+        await sendAccountDeletionOtpEmail({
+            to: user.email,
+            fullName: user.fullName,
+            otp
+        })
+    } catch (error: any) {
+        logger.error({ err: error, userId: user.id, requestId }, '[AuthRouter] Failed to send account deletion OTP email')
+        if (process.env.NODE_ENV !== 'production') throw error
+    }
+
+    return successResponse(c, null, 'A verification code has been sent to your registered email address.')
+})
+
+// POST /api/auth/delete-confirm - Verify OTP and delete account
+authRouter.post('/delete-confirm', authRateLimiter, async (c) => {
+    const { email, otp } = await c.req.json()
+    const requestId = c.get('requestId')
+
+    if (!email || !otp) {
+        throw new ValidationError('Email and verification code are required')
+    }
+
+    const user = await db.query.users.findFirst({
+        where: eq(users.email, email.toLowerCase())
+    })
+
+    if (!user) {
+        throw new NotFoundError('User not found')
+    }
+
+    // Find active OTP session
+    const [session] = await db
+        .select()
+        .from(loginOtpSessions)
+        .where(and(
+            eq(loginOtpSessions.userId, user.id),
+            isNull(loginOtpSessions.usedAt),
+            gt(loginOtpSessions.expiresAt, new Date())
+        ))
+        .orderBy(desc(loginOtpSessions.createdAt))
+        .limit(1)
+
+    if (!session) {
+        throw new ValidationError('Verification code expired or invalid. Please request a new one.')
+    }
+
+    const isValid = await verifyPasswordResetOtp(otp, session.otpHash)
+
+    if (!isValid) {
+        // Increment attempts
+        const nextAttemptCount = session.attemptCount + 1
+        const update: { attemptCount: number; usedAt?: Date } = { attemptCount: nextAttemptCount }
+        if (nextAttemptCount >= 5) {
+            update.usedAt = new Date()
+        }
+        await db.update(loginOtpSessions).set(update).where(eq(loginOtpSessions.id, session.id))
+
+        throw new ValidationError('Invalid verification code. Please try again.')
+    }
+
+    // Mark session used
+    await db.update(loginOtpSessions).set({ usedAt: new Date() }).where(eq(loginOtpSessions.id, session.id))
+
+    // Perform deletion!
+    await AuthService.deleteUserAccount(user.id, requestId)
+
+    return successResponse(c, null, 'Your account and all associated personal data have been permanently deleted.')
 })

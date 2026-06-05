@@ -6,16 +6,16 @@ import {
     CheckCircle2,
     ChevronRight,
     GraduationCap,
+    MapPin,
     ShieldCheck,
     User,
     Users
 } from 'lucide-react-native';
 import React from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '@/components/ui/header';
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
+import { useProfile } from '@/hooks/use-profile';
 import { calculateProfileCompletion, type ProfileCompletionSummary, type ProfileSectionId } from '@meru/shared';
 
 type SectionMeta = {
@@ -28,9 +28,15 @@ type SectionMeta = {
 const SECTION_META: Partial<Record<ProfileSectionId, SectionMeta>> = {
     personal: {
         title: 'Personal Information',
-        subtitle: 'Bio-data, contact and location details',
+        subtitle: 'Bio-data and contact details',
         icon: <User size={20} color="#004aad" />,
         path: '/profile/personal-details',
+    },
+    location: {
+        title: 'Location & Ethnicity',
+        subtitle: 'Home county, ward and ethnicity',
+        icon: <MapPin size={20} color="#004aad" />,
+        path: '/profile/location-ethnicity',
     },
     education: {
         title: 'Education History',
@@ -80,15 +86,9 @@ export default function DigitalCVScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
-    const { data: profile } = useQuery({
-        queryKey: ['profile-completion'],
-        queryFn: async () => {
-            const response = await apiClient.get('/applicant-profiles/me');
-            return response.data.data;
-        },
-    });
+    const { profile, isLoading } = useProfile();
 
-    if (profile === undefined) {
+    if (isLoading || !profile) {
         return (
             <View className="flex-1 items-center justify-center bg-white dark:bg-gray-950">
                 <ActivityIndicator size="large" color="#004aad" />
@@ -196,10 +196,11 @@ function SectionGroup({
                     if (!meta) return null;
 
                     return (
-                        <TouchableOpacity
+                        <Pressable
                             key={section.id}
                             onPress={() => onPressSection(meta.path)}
                             className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl shadow-sm flex-row items-center mb-3"
+                            testID={`cv-section-${section.id}`}
                         >
                             <View className="bg-blue-50 dark:bg-blue-900/20 p-2.5 rounded-xl mr-3">
                                 {meta.icon}
@@ -224,7 +225,7 @@ function SectionGroup({
                                     {section.percentage}%
                                 </Text>
                             </View>
-                        </TouchableOpacity>
+                        </Pressable>
                     );
                 })}
             </View>

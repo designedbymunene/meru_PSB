@@ -1,0 +1,44 @@
+appId: com.nickm101.merucountypsb
+
+---
+# Test: Browse vacancies list
+# Prerequisites: User should be logged in
+
+- runFlow: ../helpers/auth-helpers.yaml
+
+# Navigate to vacancies tab
+- tapOn: "Vacancies"
+- waitForAnimationToEnd
+
+# Should be on vacancies tab by default
+- assertVisible: "Job Vacancies"
+
+# Verify search functionality
+- assertVisible:
+    id: "vacancies-search"
+- tapOn:
+    id: "vacancies-search"
+- inputText: "engineer"
+- waitForAnimationToEnd
+
+# Clear search
+- assertVisible:
+    id: "vacancies-clear-search"
+- tapOn:
+    id: "vacancies-clear-search"
+
+# Test filter button
+- assertVisible:
+    id: "vacancies-filter"
+- tapOn:
+    id: "vacancies-filter"
+- waitForAnimationToEnd
+
+# Close filter sheet (back button or swipe down)
+- back
+- waitForAnimationToEnd
+
+# Verify vacancy cards are visible (optional, depends on if any exist)
+- assertVisible:
+    id: "vacancy-card-.*"
+    optional: true

@@ -1,5 +1,5 @@
 import React, { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, Pressable, TextInput } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -140,12 +140,12 @@ export const EmploymentForm = forwardRef<FormHandle, EmploymentFormProps>(({ ini
             />
 
             <View className="flex-row items-center mb-4 ml-1">
-                <TouchableOpacity 
+                <Pressable 
                     onPress={handleToggleCurrent}
                     className={`w-6 h-6 border rounded-lg ${isCurrent ? 'bg-[#004aad] border-[#004aad]' : 'border-gray-300'} items-center justify-center mr-3`}
                 >
                     {isCurrent && <View className="w-2.5 h-2.5 bg-white rounded-sm" />}
-                </TouchableOpacity>
+                </Pressable>
                 <Text className="text-sm font-bold text-gray-700">I currently work here</Text>
             </View>
 

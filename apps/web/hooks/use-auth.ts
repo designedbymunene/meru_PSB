@@ -43,11 +43,11 @@ export function useLogin() {
                 description: `Welcome back, ${user.fullName}!`,
             })
 
-            // Redirect based on role
+            // Redirect based on role with locale prefix
             if (user.role === 'admin') {
-                router.push('/admin')
+                router.push('/en/admin')
             } else {
-                router.push('/dashboard')
+                router.push('/en/dashboard')
             }
         },
         onError: (error: unknown) => {
@@ -84,8 +84,8 @@ export function useRegister() {
                 description: 'Your account has been created!',
             })
 
-            // Redirect to dashboard
-            router.push('/dashboard')
+            // Redirect to dashboard with locale prefix
+            router.push('/en/dashboard')
         },
         onError: (error: unknown) => {
             trackFormError('register-form', error instanceof Error ? error.message : 'Unknown error')
@@ -123,7 +123,7 @@ export function useResetPassword() {
             toast.success('Password reset successful', {
                 description: 'You can now login with your new password',
             })
-            router.push('/login')
+            router.push('/en/login')
         },
         onError: (error: unknown) => {
             toast.error('Password reset failed', {
@@ -137,14 +137,28 @@ export function useLogout() {
     const queryClient = useQueryClient()
     const { logout } = useAuthContext()
 
-    return () => {
-        // Clear all queries
+    return async () => {
+        // Clear all queries first
         queryClient.clear()
 
-        // Logout (clears tokens and redirects)
+        try {
+            // Call backend logout to clear httpOnly cookies and invalidate token
+            await authApi.logout()
+        } catch (error) {
+            console.error('Backend logout failed:', error)
+        }
+
+        // Logout (clears tokens and state)
         logout()
 
+        // Show success message
         toast.success('Logged out successfully')
+
+        // Force a full page reload to ensure all state is cleared
+        // Using a small timeout to allow the toast to be queued
+        setTimeout(() => {
+            window.location.href = '/en/login'
+        }, 100)
     }
 }
 

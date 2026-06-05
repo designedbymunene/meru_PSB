@@ -1,6 +1,12 @@
 import { and, desc, eq, gt, isNull } from 'drizzle-orm'
-import { db, passwordResetSessions, loginOtpSessions, users, revokedTokens, applicantProfiles } from '../db'
+import { db, passwordResetSessions, loginOtpSessions, users, revokedTokens, applicantProfiles, qualifications, employmentHistory, professionalDetails, trainingCourses, professionalMemberships, referees, applicantDocuments } from '../db'
 import { activeSessions } from '../db/schema'
+import path from 'path'
+import fs from 'fs/promises'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 import {
     hashPassword,
     generatePasswordResetOtp,
@@ -145,7 +151,8 @@ export class AuthService {
                     email: newUser.email,
                     phoneNumber: newUser.phoneNumber,
                     fullName: newUser.fullName,
-                    role: newUser.role
+                    role: newUser.role,
+                    avatar: newUser.avatar
                 },
                 accessToken,
                 refreshToken
@@ -287,7 +294,8 @@ export class AuthService {
                 email: user.email,
                 phoneNumber: user.phoneNumber,
                 fullName: user.fullName,
-                role: user.role
+                role: user.role,
+                avatar: user.avatar
             },
             accessToken,
             refreshToken
@@ -355,7 +363,8 @@ export class AuthService {
                 email: user.email,
                 phoneNumber: user.phoneNumber,
                 fullName: user.fullName,
-                role: user.role
+                role: user.role,
+                avatar: user.avatar
             },
             accessToken,
             refreshToken
@@ -606,7 +615,8 @@ export class AuthService {
                 email: user.email,
                 phoneNumber: user.phoneNumber,
                 fullName: user.fullName,
-                role: user.role
+                role: user.role,
+                avatar: user.avatar
             },
             accessToken,
             refreshToken
@@ -657,5 +667,64 @@ export class AuthService {
                 .set({ usedAt: new Date() })
                 .where(eq(passwordResetSessions.id, session.id))
         })
+    }
+
+    static async deleteUserAccount(userId: number, requestId?: string) {
+        logger.info({ requestId, userId }, '[AuthService] Starting complete account deletion')
+
+        const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
+        if (!user) {
+            throw new NotFoundError('User not found')
+        }
+
+        // 1. Get applicant profile ID if it exists
+        const [profile] = await db.select().from(applicantProfiles).where(eq(applicantProfiles.userId, userId)).limit(1)
+
+        // 2. Delete files from disk (documents and avatar)
+        // Delete documents
+        const docs = await db.select().from(applicantDocuments).where(eq(applicantDocuments.userId, userId))
+        const uploadsRoot = path.join(__dirname, '../../uploads')
+        
+        for (const doc of docs) {
+            const absolutePath = path.join(uploadsRoot, doc.filePath)
+            try {
+                await fs.unlink(absolutePath)
+                logger.debug({ absolutePath }, '[AuthService] Deleted document file')
+            } catch (err) {
+                logger.warn({ err, absolutePath }, '[AuthService] Failed to delete document file')
+            }
+        }
+
+        // Delete avatar
+        if (user.avatar) {
+            const avatarFilename = user.avatar.split('/').pop()
+            if (avatarFilename) {
+                const avatarPath = path.join(uploadsRoot, 'avatars', avatarFilename)
+                try {
+                    await fs.unlink(avatarPath)
+                    logger.debug({ avatarPath }, '[AuthService] Deleted avatar file')
+                } catch (err) {
+                    logger.warn({ err, avatarPath }, '[AuthService] Failed to delete avatar file')
+                }
+            }
+        }
+
+        // 3. Delete records from database using transaction
+        await db.transaction(async (tx) => {
+            if (profile) {
+                // Delete related profile records (since they do not have database foreign key cascade constraints)
+                await tx.delete(qualifications).where(eq(qualifications.applicantProfileId, profile.id))
+                await tx.delete(employmentHistory).where(eq(employmentHistory.applicantProfileId, profile.id))
+                await tx.delete(professionalDetails).where(eq(professionalDetails.applicantProfileId, profile.id))
+                await tx.delete(trainingCourses).where(eq(trainingCourses.applicantProfileId, profile.id))
+                await tx.delete(professionalMemberships).where(eq(professionalMemberships.applicantProfileId, profile.id))
+                await tx.delete(referees).where(eq(referees.applicantProfileId, profile.id))
+            }
+
+            // Delete user - this will cascade delete applicant_profiles, active_sessions, applications, notifications etc due to DB-level CASCADE
+            await tx.delete(users).where(eq(users.id, userId))
+        })
+
+        logger.info({ requestId, userId }, '[AuthService] User account and all data deleted successfully')
     }
 }

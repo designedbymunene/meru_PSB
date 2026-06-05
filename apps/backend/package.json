@@ -21,6 +21,7 @@
     "db:reimport": "pnpm db:reset && pnpm db:seed && pnpm db:import-comprehensive",
     "db:cleanup": "tsx src/db/cleanup.ts",
     "db:create-admin": "tsx src/db/create-admin.ts",
+    "generate-vapid-keys": "tsx scripts/generate-vapid-keys.ts",
     "test": "tsx --test src/__tests__/**/*.test.ts",
     "test:vitest": "vitest run src/__tests__/application-flow.test.ts",
     "type-check": "tsc --noEmit"
@@ -49,6 +50,7 @@
     "pg": "^8.13.1",
     "pino": "^10.3.1",
     "postgres": "^3.4.5",
+    "web-push": "^3.6.7",
     "zod": "^3.24.1"
   },
   "devDependencies": {

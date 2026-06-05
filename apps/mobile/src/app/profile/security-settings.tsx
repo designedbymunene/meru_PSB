@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Switch, Alert, ScrollView, Linking, Platform } from 'react-native';
+import { View, Text, Pressable, Switch, Alert, ScrollView, Linking, Platform } from 'react-native';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { useColorScheme } from 'nativewind';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -238,9 +238,9 @@ export default function SecuritySettingsScreen() {
                                             disabled={!isBiometricsEnrolled}
                                         />
                                     ) : (
-                                        <TouchableOpacity onPress={openSecuritySettings} className="px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                                        <Pressable onPress={openSecuritySettings} className="px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30">
                                             <Text className="text-sm font-bold text-[#004aad] dark:text-blue-400">Set up</Text>
-                                        </TouchableOpacity>
+                                        </Pressable>
                                     )
                                 }
                                 isLast={true}
@@ -298,24 +298,24 @@ export default function SecuritySettingsScreen() {
                                     </Text>
                                 </View>
                                 {!session.isCurrent && (
-                                    <TouchableOpacity 
+                                    <Pressable 
                                         onPress={() => revokeSessionMutation.mutate(session.id)}
                                         className="p-2"
                                     >
                                         <Trash2 size={18} color="#ef4444" strokeWidth={2} />
-                                    </TouchableOpacity>
+                                    </Pressable>
                                 )}
                             </View>
                         ))}
                         
                         {sessions?.length > 1 && (
-                            <TouchableOpacity 
-                                className="bg-red-50 dark:bg-red-900/10 p-5 rounded-[24px] mt-6 border border-red-100 dark:border-red-900/20 active:opacity-70 flex-row justify-center items-center"
+                            <Pressable 
+                                className="bg-red-50 dark:bg-red-900/10 p-5 rounded-[24px] mt-6 border border-red-100 dark:border-red-900/20  flex-row justify-center items-center"
                                 onPress={handleLogoutAll}
                             >
                                 <LogOut size={16} color="#ef4444" strokeWidth={2.5} className="mr-2" />
                                 <Text className="text-red-600 dark:text-red-400 font-black text-[10px] uppercase tracking-[2px]">Revoke All Other Sessions</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                     </SectionCard>
                 </View>

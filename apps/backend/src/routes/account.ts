@@ -14,6 +14,7 @@ import path from 'path'
 import fs from 'fs/promises'
 import { fileURLToPath } from 'url'
 import { AuditService } from '../services/audit-service'
+import { AuthService } from '../services/auth-service'
 import { buildPagination, parsePagination } from '../utils/pagination'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -482,4 +483,170 @@ accountRouter.get('/audit-logs', authenticate, async (c) => {
         throw error
     }
 })
+
+// GET /api/account/avatar/:filename - Public retrieval of avatar (no auth required)
+accountRouter.get('/avatar/:filename', async (c) => {
+    const filename = c.req.param('filename')
+    
+    // Security: prevent directory traversal by validating filename
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        throw new ValidationError('Invalid filename')
+    }
+    
+    const AVATARS_DIR = path.join(__dirname, '../../uploads/avatars')
+    const absolutePath = path.join(AVATARS_DIR, filename)
+    
+    try {
+        const fileBuffer = await fs.readFile(absolutePath)
+        const ext = path.extname(filename).toLowerCase()
+        let mimeType = 'image/png'
+        if (ext === '.jpg' || ext === '.jpeg') {
+            mimeType = 'image/jpeg'
+        }
+        
+        return c.body(fileBuffer, 200, {
+            'Content-Type': mimeType,
+            'Cache-Control': 'public, max-age=31536000', // Cache for a year
+        })
+    } catch (err) {
+        logger.error({ err, path: absolutePath }, 'Failed to read avatar file')
+        throw new NotFoundError('Avatar not found')
+    }
+})
+
+// POST /api/account/avatar - Upload/Update avatar image (auth required)
+accountRouter.post('/avatar', authenticate, async (c) => {
+    const user = c.get('user')
+    const body = await c.req.parseBody()
+    
+    const file = body['avatar'] as any
+    if (!file) {
+        throw new ValidationError('Avatar file is required')
+    }
+    
+    // Validate file object structure
+    if (!file.name || typeof file.size !== 'number' || typeof file.arrayBuffer !== 'function') {
+        throw new ValidationError('Invalid file uploaded')
+    }
+    
+    // Limit to 5MB
+    const maxAvatarSize = 5 * 1024 * 1024
+    if (file.size > maxAvatarSize) {
+        throw new ValidationError('Avatar file size exceeds the 5MB limit')
+    }
+    
+    const originalName = file.name
+    const mimeType = file.type
+    const extension = path.extname(originalName).toLowerCase()
+    
+    const allowedExtensions = ['.png', '.jpg', '.jpeg']
+    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg']
+    
+    if (!allowedExtensions.includes(extension) || !allowedMimeTypes.includes(mimeType)) {
+        throw new ValidationError('Invalid file type. Only PNG, JPG, and JPEG images are allowed.')
+    }
+    
+    const AVATARS_DIR = path.join(__dirname, '../../uploads/avatars')
+    
+    // Create avatars directory if it doesn't exist
+    try {
+        await fs.access(AVATARS_DIR)
+    } catch {
+        await fs.mkdir(AVATARS_DIR, { recursive: true })
+    }
+    
+    // Look up current user to delete old avatar if exists
+    const [dbUser] = await db.select().from(users).where(eq(users.id, user.userId))
+    if (dbUser && dbUser.avatar) {
+        const oldFilename = dbUser.avatar.split('/').pop()
+        if (oldFilename) {
+            const oldFilePath = path.join(AVATARS_DIR, oldFilename)
+            try {
+                await fs.unlink(oldFilePath)
+            } catch (err) {
+                // Ignore errors if file doesn't exist
+                logger.warn({ err, oldFilePath }, 'Could not delete old avatar file')
+            }
+        }
+    }
+    
+    const filename = `${user.userId}-${Date.now()}${extension}`
+    const filePath = path.join(AVATARS_DIR, filename)
+    
+    // Save file to disk
+    const arrayBuffer = await file.arrayBuffer()
+    await fs.writeFile(filePath, Buffer.from(arrayBuffer))
+    
+    // Update user avatar in database
+    const avatarUrl = `/api/account/avatar/${filename}`
+    
+    await db.update(users)
+        .set({ avatar: avatarUrl, updatedAt: new Date() })
+        .where(eq(users.id, user.userId))
+        
+    // Log audit action
+    await AuditService.logAction({
+        adminId: user.userId,
+        action: 'AVATAR_UPDATED',
+        targetType: 'USER',
+        targetId: user.userId,
+        previousState: dbUser ? { avatar: dbUser.avatar } : undefined,
+        newState: { avatar: avatarUrl },
+        ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || undefined,
+        userAgent: c.req.header('user-agent')
+    })
+    
+    return successResponse(c, { avatar: avatarUrl }, 'Avatar updated successfully')
+})
+
+// DELETE /api/account/avatar - Delete user avatar (auth required)
+accountRouter.delete('/avatar', authenticate, async (c) => {
+    const user = c.get('user')
+    const AVATARS_DIR = path.join(__dirname, '../../uploads/avatars')
+    
+    const [dbUser] = await db.select().from(users).where(eq(users.id, user.userId))
+    if (!dbUser) {
+        throw new NotFoundError('User not found')
+    }
+    
+    if (dbUser.avatar) {
+        const filename = dbUser.avatar.split('/').pop()
+        if (filename) {
+            const filePath = path.join(AVATARS_DIR, filename)
+            try {
+                await fs.unlink(filePath)
+            } catch (err) {
+                logger.warn({ err, filePath }, 'Could not delete avatar file on disk')
+            }
+        }
+        
+        await db.update(users)
+            .set({ avatar: null, updatedAt: new Date() })
+            .where(eq(users.id, user.userId))
+            
+        await AuditService.logAction({
+            adminId: user.userId,
+            action: 'AVATAR_DELETED',
+            targetType: 'USER',
+            targetId: user.userId,
+            previousState: { avatar: dbUser.avatar },
+            newState: { avatar: null },
+            ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || undefined,
+            userAgent: c.req.header('user-agent')
+        })
+    }
+    
+    return successResponse(c, null, 'Avatar removed successfully')
+})
+
+// DELETE /api/account - Delete authenticated user's own account
+accountRouter.delete('/', authenticate, async (c) => {
+    const user = c.get('user')
+    const requestId = c.get('requestId')
+    
+    await AuthService.deleteUserAccount(user.userId, requestId)
+    
+    return successResponse(c, null, 'Your account and all associated personal data have been permanently deleted')
+})
+
 

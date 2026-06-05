@@ -1,0 +1,44 @@
+appId: com.nickm101.merucountypsb
+
+---
+# Test: View vacancy details
+# Prerequisites: At least one vacancy should exist
+
+- runFlow: ../helpers/auth-helpers.yaml
+
+# Navigate to vacancies tab
+- tapOn: "Vacancies"
+- waitForAnimationToEnd
+
+# Wait for vacancies to load
+- assertVisible: "Job Vacancies"
+- waitForAnimationToEnd
+
+# Tap on first vacancy card (using regex to match any vacancy card)
+- tapOn:
+    id: "vacancy-card-.*"
+    index: 0
+
+# Wait for detail screen to load
+- waitForAnimationToEnd
+
+# Verify vacancy detail elements
+- assertVisible: "Vacancy Details"
+- assertVisible:
+    id: "vacancy-back"
+- assertVisible:
+    id: "vacancy-share"
+
+# Verify key sections are visible
+- assertVisible: ".*Job Summary.*"
+- assertVisible:
+    text: ".*Requirements.*"
+    optional: true
+
+# Navigate back
+- tapOn:
+    id: "vacancy-back"
+- waitForAnimationToEnd
+
+# Verify we're back on the list
+- assertVisible: "Job Vacancies"

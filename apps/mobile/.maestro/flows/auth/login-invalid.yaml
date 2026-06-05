@@ -1,0 +1,24 @@
+appId: com.nickm101.merucountypsb
+---
+# Test: Login with invalid credentials shows error
+- runFlow: ../helpers/launch-app.yaml
+
+# Enter invalid credentials using testIDs
+- tapOn:
+    id: "login-email-input"
+- inputText: "invalid@example.com"
+
+- tapOn:
+    id: "login-password-input"
+- inputText: "WrongPassword123!"
+
+# Hide keyboard to ensure submit button is visible
+- back
+
+# Submit login - tap the Sign In button
+- tapOn:
+    id: "login-submit"
+- waitForAnimationToEnd
+
+# Verify error message is shown
+- assertVisible: ".*[Ii]nvalid.*"

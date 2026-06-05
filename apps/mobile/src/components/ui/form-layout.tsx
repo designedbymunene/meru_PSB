@@ -8,7 +8,7 @@ import {
     View,
     ActivityIndicator,
     Text,
-    TouchableOpacity
+    Pressable
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from './header';
@@ -21,16 +21,18 @@ interface FormLayoutProps {
     isLoading?: boolean;
     submitLabel?: string;
     onSubmit?: () => void;
+    testID?: string;
 }
 
-export function FormLayout({ 
-    children, 
-    title, 
-    onBack, 
+export function FormLayout({
+    children,
+    title,
+    onBack,
     bottomAction,
     isLoading,
     submitLabel,
-    onSubmit
+    onSubmit,
+    testID
 }: FormLayoutProps) {
     const insets = useSafeAreaInsets();
     
@@ -65,20 +67,21 @@ export function FormLayout({
                         style={{ paddingBottom: Math.max(insets.bottom, 24) }}
                     >
                         {onSubmit ? (
-                            <TouchableOpacity
+                            <Pressable
                                 className={`h-14 rounded-2xl items-center justify-center shadow-lg shadow-blue-200 dark:shadow-none ${
                                     isLoading ? 'bg-[#004aad]/70' : 'bg-[#004aad] dark:bg-blue-600'
                                 }`}
                                 onPress={onSubmit}
                                 disabled={isLoading}
-                                activeOpacity={0.8}
+                                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                                testID={testID ? `${testID}-submit` : 'form-layout-submit'}
                             >
                                 {isLoading ? (
                                     <ActivityIndicator color="white" />
                                 ) : (
                                     <Text className="text-white text-lg font-bold">{submitLabel || 'Submit'}</Text>
                                 )}
-                            </TouchableOpacity>
+                            </Pressable>
                         ) : (
                             bottomAction
                         )}

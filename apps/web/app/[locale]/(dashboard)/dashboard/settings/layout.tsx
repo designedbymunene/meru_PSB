@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { RequireAuth } from '@/components/auth/require-auth'
 
 export const metadata: Metadata = {
     title: 'Settings | Meru County Recruitment Portal',
@@ -10,5 +11,9 @@ export default function SettingsLayout({
 }: {
     children: React.ReactNode
 }) {
-    return <>{children}</>
+    return (
+        <RequireAuth allowedRoles={['applicant']}>
+            {children}
+        </RequireAuth>
+    )
 }

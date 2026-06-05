@@ -15,7 +15,7 @@ import React from 'react';
 import {
     ScrollView,
     Text,
-    TouchableOpacity,
+    Pressable,
     View,
     Share,
     Dimensions,
@@ -75,12 +75,13 @@ export default function JobDetailsScreen() {
                 <Text className="text-gray-500 text-sm text-center mt-2 mb-6">
                     We couldn't retrieve the information for this vacancy.
                 </Text>
-                <TouchableOpacity 
+                <Pressable
                     className="bg-gray-900 dark:bg-white px-8 py-3 rounded-2xl"
                     onPress={() => refetch()}
+                    testID="vacancy-retry"
                 >
                     <Text className="text-white dark:text-gray-900 font-bold">Try Again</Text>
-                </TouchableOpacity>
+                </Pressable>
             </View>
         );
     }
@@ -103,25 +104,27 @@ export default function JobDetailsScreen() {
             <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
             
             {/* Minimal Header - Adjusted height */}
-            <View 
+            <View
                 style={{ paddingTop: insets.top + 8 }}
                 className="bg-white dark:bg-gray-950 px-6 pb-2 flex-row items-center justify-between border-b border-gray-50 dark:border-gray-900"
             >
-                <TouchableOpacity 
+                <Pressable
                     onPress={() => router.back()}
                     className="w-9 h-9 items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-full"
+                    testID="vacancy-back"
                 >
                     <ChevronLeft size={20} color={isDarkMode ? '#ffffff' : '#0f172a'} />
-                </TouchableOpacity>
-                
+                </Pressable>
+
                 <Text className="text-gray-900 dark:text-white font-bold text-sm">Vacancy Details</Text>
 
-                <TouchableOpacity 
+                <Pressable
                     onPress={handleShare}
                     className="w-9 h-9 items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-full"
+                    testID="vacancy-share"
                 >
                     <Share2 size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
-                </TouchableOpacity>
+                </Pressable>
             </View>
             
             <ScrollView 
@@ -238,10 +241,11 @@ export default function JobDetailsScreen() {
                         <View className="mb-6">
                             <Text className="text-lg font-bold text-gray-900 dark:text-white mb-4">Attachments</Text>
                             {job.documents.map((doc) => (
-                                <TouchableOpacity
+                                <Pressable
                                     key={doc.id}
                                     className="flex-row items-center p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl mb-3"
-                                    activeOpacity={0.7}
+                                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                                    testID={`vacancy-download-${doc.id}`}
                                 >
                                     <FileText size={20} color={isDarkMode ? '#94a3b8' : '#64748b'} />
                                     <View className="flex-1 ml-4">
@@ -251,7 +255,7 @@ export default function JobDetailsScreen() {
                                         </Text>
                                     </View>
                                     <Download size={18} color="#004aad" />
-                                </TouchableOpacity>
+                                </Pressable>
                             ))}
                         </View>
                     )}
@@ -269,17 +273,18 @@ export default function JobDetailsScreen() {
                         <Text className="text-emerald-700 dark:text-emerald-500 font-bold ml-2">Application Submitted</Text>
                     </View>
                 ) : (
-                    <TouchableOpacity
+                    <Pressable
                         className={`h-14 rounded-2xl items-center justify-center flex-row ${isExpired ? 'bg-gray-100 dark:bg-gray-900' : 'bg-gray-900 dark:bg-white'}`}
                         disabled={isExpired}
                         onPress={() => router.push(`/apply/${job.id}`)}
-                        activeOpacity={0.9}
+                        style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+                        testID="vacancy-apply"
                     >
                         <Text className={`font-bold tracking-widest text-sm ${isExpired ? 'text-gray-400' : 'text-white dark:text-gray-900'}`}>
                             {isExpired ? 'CLOSED' : 'APPLY FOR THIS ROLE'}
                         </Text>
                         {!isExpired && <ArrowRight size={18} color={isDarkMode ? '#0f172a' : '#ffffff'} className="ml-2" />}
-                    </TouchableOpacity>
+                    </Pressable>
                 )}
             </View>
         </View>

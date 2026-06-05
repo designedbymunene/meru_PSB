@@ -81,3 +81,9 @@ export async function getCurrentUser(): Promise<ApiResponse<User>> {
     const { data } = await apiClient.get<ApiResponse<User>>('/auth/me')
     return data
 }
+
+// Logout user
+export async function logout(): Promise<ApiResponse<{ message: string }>> {
+    const { data } = await apiClient.post<ApiResponse<{ message: string }>>('/auth/logout')
+    return data
+}

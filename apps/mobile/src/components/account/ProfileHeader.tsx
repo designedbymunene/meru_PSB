@@ -1,6 +1,6 @@
 import { Camera, ShieldCheck, Mail, User as UserIcon } from 'lucide-react-native';
 import React from 'react';
-import { Image, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Text, Pressable, View } from 'react-native';
 
 interface ProfileHeaderProps {
     name: string;
@@ -36,12 +36,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         </View>
                     </View>
                     {onEditAvatar && (
-                        <TouchableOpacity
-                            className="absolute bottom-0 right-0 bg-[#004aad] p-2 rounded-full border-2 border-white dark:border-gray-900 shadow-md active:opacity-80"
+                        <Pressable
+                            className="absolute bottom-0 right-0 bg-[#004aad] p-2 rounded-full border-2 border-white dark:border-gray-900 shadow-md "
                             onPress={onEditAvatar}
                         >
                             <Camera size={12} color="white" />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                 </View>
 
@@ -65,12 +65,14 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         <View className="bg-[#004aad]/10 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg">
                             <Text className="text-[#004aad] dark:text-blue-300 text-[9px] font-black uppercase tracking-widest">{role}</Text>
                         </View>
-                        <TouchableOpacity 
-                            onPress={() => {}}
-                            className="bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded-lg border border-gray-100 dark:border-gray-700 active:opacity-70"
-                        >
-                            <Text className="text-gray-600 dark:text-gray-300 font-bold text-[10px]">Edit Profile Image</Text>
-                        </TouchableOpacity>
+                        {onEditAvatar && (
+                            <Pressable 
+                                onPress={onEditAvatar}
+                                className="bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded-lg border border-gray-100 dark:border-gray-700 "
+                            >
+                                <Text className="text-gray-600 dark:text-gray-300 font-bold text-[10px]">Edit Profile Image</Text>
+                            </Pressable>
+                        )}
                     </View>
                 </View>
             </View>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Platform } from 'react-native';
-import { Settings2, Trash2, RotateCcw, Monitor, Database, Bell, Palette, Info } from 'lucide-react-native';
+import { Settings2, Trash2, RotateCcw, Monitor, Database, Bell, Palette, Info, RefreshCw } from 'lucide-react-native';
 import { AlertModal } from '@/components/ui/alert-modal';
 import { SectionCard, SettingRow } from '@/components/account';
 import { FormLayout } from '@/components/ui/form-layout';
@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { useColorScheme } from 'nativewind';
+import { useOtaUpdates } from '@/hooks/use-ota-updates';
 
 export default function GeneralSettingsScreen() {
     // const [language, setLanguage] = useState('en');
@@ -17,6 +18,7 @@ export default function GeneralSettingsScreen() {
     const [isThemeModalVisible, setIsThemeModalVisible] = useState(false);
     const [isClearModalVisible, setIsClearModalVisible] = useState(false);
     const [isResetModalVisible, setIsResetModalVisible] = useState(false);
+    const { isChecking, isDownloading, checkForUpdates } = useOtaUpdates();
 
     const deviceInfo = `${Device.modelName || 'Device'} (${Platform.OS} ${Device.osVersion})`;
     const appVersion = `${Constants.expoConfig?.version || '1.0.0'} (${Constants.expoConfig?.extra?.buildNumber || '1'})`;
@@ -131,6 +133,14 @@ export default function GeneralSettingsScreen() {
                             title="App Version"
                             subtitle={appVersion}
                             color="#64748b"
+                        />
+                        <SettingRow
+                            icon={RefreshCw}
+                            title={isChecking ? "Checking for Updates..." : "Check for Updates"}
+                            subtitle={isDownloading ? "Downloading updates..." : "Manually check for OTA updates"}
+                            color="#3b82f6"
+                            onPress={checkForUpdates}
+                            isLast={true}
                         />
                     </SectionCard>
                 </View>

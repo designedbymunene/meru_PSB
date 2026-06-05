@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { Edit2, Check, X } from 'lucide-react-native';
 
 interface EditableFieldProps {
@@ -65,16 +65,16 @@ export const EditableField: React.FC<EditableFieldProps> = ({
                 />
                 {error && <Text className="text-red-500 text-xs mt-2">{error}</Text>}
                 <View className="flex-row justify-end space-x-2 mt-3">
-                    <TouchableOpacity
+                    <Pressable
                         className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 flex-row items-center"
                         onPress={handleCancel}
                         disabled={isSaving}
                     >
                         <X size={16} color="#6b7280" />
                         <Text className="text-gray-600 dark:text-gray-400 font-medium ml-1">Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        className="px-4 py-2 rounded-lg bg-blue-600 dark:bg-blue-500 flex-row items-center active:bg-blue-700"
+                    </Pressable>
+                    <Pressable
+                        className="px-4 py-2 rounded-lg bg-blue-600 dark:bg-blue-500 flex-row items-center "
                         onPress={handleSave}
                         disabled={isSaving}
                     >
@@ -86,7 +86,7 @@ export const EditableField: React.FC<EditableFieldProps> = ({
                                 <Text className="text-white font-medium ml-1">Save</Text>
                             </>
                         )}
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
             </View>
         );
@@ -102,12 +102,12 @@ export const EditableField: React.FC<EditableFieldProps> = ({
                 <Text className="text-gray-900 dark:text-white font-semibold text-base">{value || 'Not set'}</Text>
             </View>
             {editable && (
-                <TouchableOpacity
-                    className="ml-3 p-2 active:bg-gray-200 dark:active:bg-gray-700 rounded-lg"
+                <Pressable
+                    className="ml-3 p-2  dark: rounded-lg"
                     onPress={() => setIsEditing(true)}
                 >
                     <Edit2 size={18} color="#2563eb" />
-                </TouchableOpacity>
+                </Pressable>
             )}
         </View>
     );

@@ -6,7 +6,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { 
     Text, 
     TextInput, 
-    TouchableOpacity, 
+    Pressable, 
     View 
 } from 'react-native';
 import * as z from 'zod';
@@ -100,6 +100,7 @@ export default function ForgotPasswordScreen() {
             isLoading={isLoading}
             submitLabel={step === 1 ? "Get Reset Code" : step === 2 ? "Update Password" : "Log In Now"}
             onSubmit={step === 1 ? form1.handleSubmit(onStep1Submit) : step === 2 ? form2.handleSubmit(onStep2Submit) : () => router.replace('/login')}
+            testID={step === 1 ? 'forgot-email' : step === 2 ? 'reset-password' : 'reset-success'}
         >
             <View className="py-4">
                 {step === 1 ? (
@@ -131,17 +132,19 @@ export default function ForgotPasswordScreen() {
                                     error={form1.formState.errors.email?.message}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
+                                    testID="forgot-email-input"
                                 />
                             )}
                         />
 
                         <View className="items-center mt-8">
-                            <TouchableOpacity
+                            <Pressable
                                 className="py-2"
                                 onPress={() => router.back()}
+                                testID="forgot-login"
                             >
                                 <Text className="text-slate-500 dark:text-gray-400 text-sm">Remember password? <Text className="text-[#004aad] dark:text-blue-400 font-bold">Sign In</Text></Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </>
                 ) : step === 2 ? (
@@ -172,13 +175,14 @@ export default function ForgotPasswordScreen() {
                                         <View>
                                             <View className="flex-row justify-between">
                                                 {[0, 1, 2, 3, 4, 5].map((index) => (
-                                                    <View 
-                                                        key={index} 
+                                                    <View
+                                                        key={index}
                                                         className={`w-[15%] aspect-square rounded-xl border-2 items-center justify-center bg-white dark:bg-gray-900 ${
-                                                            value && value[index] 
-                                                                ? 'border-[#004aad] dark:border-blue-500' 
+                                                            value && value[index]
+                                                                ? 'border-[#004aad] dark:border-blue-500'
                                                                 : 'border-slate-100 dark:border-gray-800'
                                                         }`}
+                                                        testID={`reset-otp-input-${index}`}
                                                     >
                                                         <Text className="text-xl font-bold text-slate-900 dark:text-white">
                                                             {value ? value[index] : ""}
@@ -217,13 +221,15 @@ export default function ForgotPasswordScreen() {
                                         value={value}
                                         error={form2.formState.errors.newPassword?.message}
                                         secureTextEntry={!showPassword}
+                                        testID="reset-password-input"
                                         rightElement={
-                                            <TouchableOpacity 
+                                            <Pressable
                                                 onPress={() => setShowPassword(!showPassword)}
                                                 className="w-10 h-10 items-center justify-center"
+                                                testID="reset-password-toggle"
                                             >
                                                 {showPassword ? <EyeOff size={20} color="#64748b" /> : <Eye size={20} color="#64748b" />}
-                                            </TouchableOpacity>
+                                            </Pressable>
                                         }
                                     />
                                 )}
@@ -240,13 +246,13 @@ export default function ForgotPasswordScreen() {
                         </View>
 
                         <View className="items-center mt-8">
-                            <TouchableOpacity
+                            <Pressable
                                 className="py-2 flex-row items-center"
                                 onPress={() => setStep(1)}
                             >
                                 <Text className="text-slate-500 dark:text-gray-400 text-sm">Wait, I want to </Text>
                                 <Text className="text-[#004aad] dark:text-blue-400 font-bold text-sm underline">change my email</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </>
                 ) : (

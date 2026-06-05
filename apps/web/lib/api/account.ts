@@ -94,3 +94,19 @@ export async function getAuditLogs(params?: AuditLogsParams): Promise<ApiRespons
     const { data } = await apiClient.get<ApiResponse<AuditLogsResponse>>(url)
     return data
 }
+
+export async function uploadAvatar(file: File): Promise<ApiResponse<{ avatar: string }>> {
+    const formData = new FormData()
+    formData.append('avatar', file)
+    const { data } = await apiClient.post<ApiResponse<{ avatar: string }>>('/account/avatar', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    })
+    return data
+}
+
+export async function deleteAvatar(): Promise<ApiResponse<null>> {
+    const { data } = await apiClient.delete<ApiResponse<null>>('/account/avatar')
+    return data
+}

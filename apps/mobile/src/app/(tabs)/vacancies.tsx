@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Briefcase, Calendar, ChevronRight, Filter, MapPin, Search, X } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import React, { useState, useMemo } from 'react';
-import { FlatList, RefreshControl, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, RefreshControl, Text, TextInput, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getApiErrorMessage, getNormalizedApiError } from '@/lib/api/client';
 import { VacanciesListLoadingState } from '@/components/ui/loading-skeletons';
@@ -93,11 +93,12 @@ export default function VacanciesScreen() {
                                     Find your next career opportunity in Meru County
                                 </Text>
                             </View>
-                            <TouchableOpacity 
+                            <Pressable
                                 onPress={() => setIsFilterSheetVisible(true)}
+                                testID="vacancies-filter"
                                 className={`w-10 h-10 rounded-full items-center justify-center border mt-1 ${
-                                    activeFilterCount > 0 
-                                        ? 'bg-[#004aad] border-[#004aad]' 
+                                    activeFilterCount > 0
+                                        ? 'bg-[#004aad] border-[#004aad]'
                                         : 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-800'
                                 }`}
                             >
@@ -107,7 +108,7 @@ export default function VacanciesScreen() {
                                         <Text className="text-white text-[8px] font-bold">{activeFilterCount}</Text>
                                     </View>
                                 )}
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
 
                         <View className="flex-row items-center bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-4 h-14 shadow-sm shadow-gray-100/50">
@@ -118,11 +119,12 @@ export default function VacanciesScreen() {
                                 placeholderTextColor={isDarkMode ? '#64748b' : '#94a3b8'}
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
+                                testID="vacancies-search"
                             />
                             {searchQuery.length > 0 && (
-                                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                <Pressable onPress={() => setSearchQuery('')} testID="vacancies-clear-search">
                                     <X size={18} color="#94a3b8" />
-                                </TouchableOpacity>
+                                </Pressable>
                             )}
                         </View>
                     </View>
@@ -130,10 +132,11 @@ export default function VacanciesScreen() {
                 renderItem={({ item }) => {
                     const status = getStatusInfo(item.status, item.closingDate);
                     return (
-                        <TouchableOpacity
+                        <Pressable
                             className="bg-white dark:bg-gray-900 p-5 rounded-[28px] mb-5 shadow-sm border border-gray-100 dark:border-gray-800"
-                            activeOpacity={0.7}
+                            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                             onPress={() => router.push(`/vacancies/${item.id}`)}
+                            testID={`vacancy-card-${item.id}`}
                         >
                             <View className="flex-row justify-between items-start mb-4">
                                 <View className="flex-1 mr-3">
@@ -174,7 +177,7 @@ export default function VacanciesScreen() {
                                     <ChevronRight size={16} color="white" />
                                 </View>
                             </View>
-                        </TouchableOpacity>
+                        </Pressable>
                     );
                 }}
                 ListEmptyComponent={
@@ -191,7 +194,7 @@ export default function VacanciesScreen() {
                                 : 'There are currently no job opportunities available matching your filters.'}
                         </Text>
                         {(isError || activeFilterCount > 0 || searchQuery) && (
-                            <TouchableOpacity
+                            <Pressable
                                 onPress={() => {
                                     if (isError) refetch();
                                     else {
@@ -200,11 +203,12 @@ export default function VacanciesScreen() {
                                     }
                                 }}
                                 className="mt-5 px-5 py-2.5 rounded-full bg-[#004aad] dark:bg-blue-600"
+                                testID={isError ? 'vacancies-retry' : 'vacancies-clear-filters'}
                             >
                                 <Text className="text-white font-semibold text-xs">
                                     {isError ? 'Try Again' : 'Clear Filters'}
                                 </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                     </View>
                 }

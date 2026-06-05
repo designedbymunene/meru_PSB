@@ -59,6 +59,7 @@ app.use('*', async (c, next) => {
 // Configure CORS origins
 const parsedUserOrigins = CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
 const devOrigins = [
+  // Web app ports (Next.js dev server varies)
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
@@ -71,6 +72,21 @@ const devOrigins = [
   'http://127.0.0.1:3003',
   'http://127.0.0.1:3004',
   'http://127.0.0.1:3005',
+  // Expo dev server ports (for mobile development)
+  'http://localhost:19000',
+  'http://localhost:19001',
+  'http://localhost:19002',
+  'http://localhost:19006',
+  'http://127.0.0.1:19000',
+  'http://127.0.0.1:19001',
+  'http://127.0.0.1:19002',
+  'http://127.0.0.1:19006',
+  // React Native Metro bundler
+  'http://localhost:8081',
+  'http://127.0.0.1:8081',
+  // Local network for physical devices
+  'http://192.168.100.88:4000',
+  'http://192.168.100.88:8081',
 ]
 const corsOrigins = NODE_ENV === 'production' ? parsedUserOrigins : [...parsedUserOrigins, ...devOrigins]
 

@@ -383,3 +383,26 @@ export const sendRegistrationSuccessEmail = async ({ to, fullName, profileUrl }:
         consoleFallbackLabel: 'registration-success'
     })
 }
+
+export const sendAccountDeletionOtpEmail = async ({ to, fullName, otp }: PasswordResetEmailInput) => {
+    const subject = 'Confirm Account Deletion - Meru County PSB'
+    const text = `Hello ${fullName},\n\nYou requested to delete your Meru County PSB account and associated data. Your verification code is ${otp}. It expires in 10 minutes.\n\nRegards,\nMeru County Public Service Board`
+    
+    const html = buildBaseEmailHtml(`
+        <h2 class="greeting">Hello ${fullName},</h2>
+        <p>We received a request to permanently delete your Meru County PSB account and all associated personal data.</p>
+        <p>To proceed, please enter the verification code below on the account deletion page:</p>
+        <div class="otp">${otp}</div>
+        <p>This code is valid for <strong>10 minutes</strong>. For your security, do not share this code with anyone.</p>
+        <p><strong>Warning:</strong> Account deletion is permanent and cannot be undone. Once deleted, you will lose access to all your applications and profiles.</p>
+        <p>If you did not request this account deletion, you can safely ignore this email and secure your account.</p>
+    `)
+
+    return sendEmail({
+        to,
+        subject,
+        text,
+        html,
+        consoleFallbackLabel: 'account-deletion-otp'
+    })
+}
