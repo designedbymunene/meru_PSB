@@ -56,6 +56,25 @@ export const notificationWorker = new Worker(
                 : `Application Update - ${statusLabel}`;
             const body = `Your application for ${vacancy.title} is now ${statusLabel}.`;
 
+            // 1. Create in-app notification in DB
+            let dbNotification = null;
+            try {
+                dbNotification = await NotificationService.createInAppNotification({
+                    userId: applicantId,
+                    type: 'application_status',
+                    title,
+                    message: body,
+                    data: {
+                        applicationId,
+                        vacancyId,
+                        status,
+                        statusLabel,
+                    }
+                });
+            } catch (err) {
+                logger.error({ err, jobId: job.id }, '[NotificationWorker] Failed to save notification in DB');
+            }
+
             const [emailResult, pushResult, webPushResult] = await Promise.all([
                 applicant.email
                     ? sendApplicationStatusEmail({
@@ -77,6 +96,7 @@ export const notificationWorker = new Worker(
                               vacancyId,
                               status,
                               statusLabel,
+                              notificationId: dbNotification?.id,
                           },
                           priority: 'high',
                           sound: 'default',
@@ -92,6 +112,7 @@ export const notificationWorker = new Worker(
                         vacancyId,
                         status,
                         statusLabel,
+                        notificationId: dbNotification?.id,
                     }
                 }),
             ]);
@@ -100,7 +121,8 @@ export const notificationWorker = new Worker(
                 jobId: job.id,
                 emailSuccess: emailResult?.success,
                 pushSuccess: pushResult?.success,
-                webPushSuccess: webPushResult?.success
+                webPushSuccess: webPushResult?.success,
+                dbSaved: !!dbNotification
             }, '[NotificationWorker] Job processed successfully');
         } else {
             logger.warn({ jobId: job.id, type }, '[NotificationWorker] Unknown job type');

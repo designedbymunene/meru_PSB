@@ -1,0 +1,52 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    container_name: meru-db-staging
+    environment:
+      POSTGRES_DB: meru_county_psb
+      POSTGRES_USER: meru_county
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data_staging:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: meru-redis-staging
+    volumes:
+      - redis_data_staging:/data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: meru-api-staging
+    environment:
+      NODE_ENV: staging
+      PORT: 3000
+      DATABASE_URL: postgres://meru_county:${POSTGRES_PASSWORD}@db:5432/meru_county_psb
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "5000:3000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://api-staging.merucountypublicserviceboard.or.ke
+    container_name: meru-web-staging
+    environment:
+      NODE_ENV: staging
+      PORT: 3001
+      INTERNAL_BACKEND_URL: http://api:3000
+    ports:
+      - "5001:3001"
+    restart: unless-stopped
+
+volumes:
+  postgres_data_staging:
+  redis_data_staging:

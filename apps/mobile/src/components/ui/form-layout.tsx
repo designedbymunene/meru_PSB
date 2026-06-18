@@ -35,6 +35,22 @@ export function FormLayout({
     testID
 }: FormLayoutProps) {
     const insets = useSafeAreaInsets();
+    const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+
+    React.useEffect(() => {
+        if (Platform.OS === 'android') {
+            const showSubscription = Keyboard.addListener('keyboardDidShow', (e) => {
+                setKeyboardHeight(e.endCoordinates.height);
+            });
+            const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+                setKeyboardHeight(0);
+            });
+            return () => {
+                showSubscription.remove();
+                hideSubscription.remove();
+            };
+        }
+    }, []);
     
     return (
         <View className="flex-1 bg-gray-50 dark:bg-gray-950">
@@ -87,6 +103,7 @@ export function FormLayout({
                         )}
                     </View>
                 )}
+                {Platform.OS === 'android' && <View style={{ height: keyboardHeight }} />}
             </KeyboardAvoidingView>
         </View>
     );

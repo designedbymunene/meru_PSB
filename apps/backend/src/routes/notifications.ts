@@ -70,116 +70,6 @@ notificationsRouter.get('/unread-count', authenticate, async (c) => {
     }
 })
 
-// GET /api/notifications/:id - Get a specific notification
-notificationsRouter.get('/:id', authenticate, async (c) => {
-    try {
-        const user = c.get('user')
-        const idParam = c.req.param('id')
-        const id = idParam ? parseInt(idParam) : 0
-
-        const [notification] = await db
-            .select()
-            .from(notifications)
-            .where(and(
-                eq(notifications.id, id),
-                eq(notifications.userId, user.userId)
-            ))
-
-        if (!notification) {
-            throw new NotFoundError('Notification not found')
-        }
-
-        return successResponse(c, notification)
-    } catch (error) {
-        throw error
-    }
-})
-
-// PATCH /api/notifications/:id - Mark notification as read
-notificationsRouter.patch('/:id', authenticate, async (c) => {
-    try {
-        const user = c.get('user')
-        const idParam = c.req.param('id')
-        const id = idParam ? parseInt(idParam) : 0
-
-        const [notification] = await db
-            .select()
-            .from(notifications)
-            .where(and(
-                eq(notifications.id, id),
-                eq(notifications.userId, user.userId)
-            ))
-
-        if (!notification) {
-            throw new NotFoundError('Notification not found')
-        }
-
-        const [updated] = await db
-            .update(notifications)
-            .set({
-                read: true,
-                readAt: new Date()
-            })
-            .where(eq(notifications.id, id))
-            .returning()
-
-        return successResponse(c, updated)
-    } catch (error) {
-        throw error
-    }
-})
-
-// PATCH /api/notifications/read-all - Mark all notifications as read
-notificationsRouter.patch('/read-all', authenticate, async (c) => {
-    try {
-        const user = c.get('user')
-
-        await db
-            .update(notifications)
-            .set({
-                read: true,
-                readAt: new Date()
-            })
-            .where(and(
-                eq(notifications.userId, user.userId),
-                eq(notifications.read, false)
-            ))
-
-        return successResponse(c, { message: 'All notifications marked as read' })
-    } catch (error) {
-        throw error
-    }
-})
-
-// DELETE /api/notifications/:id - Delete a notification
-notificationsRouter.delete('/:id', authenticate, async (c) => {
-    try {
-        const user = c.get('user')
-        const idParam = c.req.param('id')
-        const id = idParam ? parseInt(idParam) : 0
-
-        const [notification] = await db
-            .select()
-            .from(notifications)
-            .where(and(
-                eq(notifications.id, id),
-                eq(notifications.userId, user.userId)
-            ))
-
-        if (!notification) {
-            throw new NotFoundError('Notification not found')
-        }
-
-        await db
-            .delete(notifications)
-            .where(eq(notifications.id, id))
-
-        return successResponse(c, { message: 'Notification deleted' })
-    } catch (error) {
-        throw error
-    }
-})
-
 // GET /api/notifications/preferences - Get user notification preferences
 notificationsRouter.get('/preferences', authenticate, async (c) => {
     try {
@@ -243,6 +133,116 @@ notificationsRouter.put('/preferences', authenticate, validate(updateNotificatio
             .returning()
 
         return successResponse(c, updated)
+    } catch (error) {
+        throw error
+    }
+})
+
+// GET /api/notifications/:id - Get a specific notification
+notificationsRouter.get('/:id', authenticate, async (c) => {
+    try {
+        const user = c.get('user')
+        const idParam = c.req.param('id')
+        const id = idParam ? parseInt(idParam) : 0
+
+        const [notification] = await db
+            .select()
+            .from(notifications)
+            .where(and(
+                eq(notifications.id, id),
+                eq(notifications.userId, user.userId)
+            ))
+
+        if (!notification) {
+            throw new NotFoundError('Notification not found')
+        }
+
+        return successResponse(c, notification)
+    } catch (error) {
+        throw error
+    }
+})
+
+// PATCH /api/notifications/read-all - Mark all notifications as read
+notificationsRouter.patch('/read-all', authenticate, async (c) => {
+    try {
+        const user = c.get('user')
+
+        await db
+            .update(notifications)
+            .set({
+                read: true,
+                readAt: new Date()
+            })
+            .where(and(
+                eq(notifications.userId, user.userId),
+                eq(notifications.read, false)
+            ))
+
+        return successResponse(c, { message: 'All notifications marked as read' })
+    } catch (error) {
+        throw error
+    }
+})
+
+// PATCH /api/notifications/:id - Mark notification as read
+notificationsRouter.patch('/:id', authenticate, async (c) => {
+    try {
+        const user = c.get('user')
+        const idParam = c.req.param('id')
+        const id = idParam ? parseInt(idParam) : 0
+
+        const [notification] = await db
+            .select()
+            .from(notifications)
+            .where(and(
+                eq(notifications.id, id),
+                eq(notifications.userId, user.userId)
+            ))
+
+        if (!notification) {
+            throw new NotFoundError('Notification not found')
+        }
+
+        const [updated] = await db
+            .update(notifications)
+            .set({
+                read: true,
+                readAt: new Date()
+            })
+            .where(eq(notifications.id, id))
+            .returning()
+
+        return successResponse(c, updated)
+    } catch (error) {
+        throw error
+    }
+})
+
+// DELETE /api/notifications/:id - Delete a notification
+notificationsRouter.delete('/:id', authenticate, async (c) => {
+    try {
+        const user = c.get('user')
+        const idParam = c.req.param('id')
+        const id = idParam ? parseInt(idParam) : 0
+
+        const [notification] = await db
+            .select()
+            .from(notifications)
+            .where(and(
+                eq(notifications.id, id),
+                eq(notifications.userId, user.userId)
+            ))
+
+        if (!notification) {
+            throw new NotFoundError('Notification not found')
+        }
+
+        await db
+            .delete(notifications)
+            .where(eq(notifications.id, id))
+
+        return successResponse(c, { message: 'Notification deleted' })
     } catch (error) {
         throw error
     }

@@ -102,3 +102,21 @@ test('profile validation schema enforces home county, sub-county, and ward IDs',
     assert.equal(validResult.success, true)
 })
 
+test('profile validation schema fails when gender is null', () => {
+    const invalidProfile = {
+        fullName: 'John Doe',
+        idNumber: '12345678',
+        gender: null,
+        dateOfBirth: '1990-01-01',
+        phoneNumber: '0712345678',
+        email: 'john@example.com',
+        ethnicityId: 1,
+        homeCountyId: 13,
+        homeSubCountyId: 60,
+        wardId: 200,
+    }
+
+    const result = applicantProfileSchema.safeParse(invalidProfile)
+    assert.equal(result.success, false)
+})
+

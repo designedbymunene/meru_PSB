@@ -16,10 +16,12 @@ type DisplaySection = {
 const DISPLAY_SECTIONS: DisplaySection[] = [
     { id: 'personal', stepId: 'personal' },
     { id: 'contact', stepId: 'personal' },
-    { id: 'location', stepId: 'personal' },
+    { id: 'location', stepId: 'location' },
     { id: 'education', stepId: 'academic' },
     { id: 'experience', stepId: 'experience' },
+    { id: 'training', stepId: 'training' },
     { id: 'professional', stepId: 'professional' },
+    { id: 'memberships', stepId: 'professional' },
     { id: 'referees', stepId: 'referees' },
 ];
 
@@ -39,46 +41,31 @@ export function CompletionGuard({ completion, onJumpToStep }: CompletionGuardPro
     const isComplete = completion.canApply;
 
     return (
-        <View className="space-y-6">
-            <View className={`p-5 rounded-[32px] border ${isComplete ? 'bg-green-50 border-green-100 dark:bg-green-900/10 dark:border-green-800' : 'bg-amber-50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-800'}`}>
-                <View className="flex-row items-center justify-between mb-4">
-                    <View className="flex-row items-center">
-                        <View className={`w-10 h-10 rounded-full items-center justify-center ${isComplete ? 'bg-green-100 dark:bg-green-800' : 'bg-amber-100 dark:bg-amber-800'}`}>
-                            {isComplete ? <CheckCircle2 size={20} color="#10b981" /> : <AlertCircle size={20} color="#f59e0b" />}
+        <View className="space-y-8 pt-2">
+            <View className={`p-4 rounded-2xl border ${isComplete ? 'bg-green-50 border-green-100 dark:bg-green-900/10 dark:border-green-800' : 'bg-amber-50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-800'}`}>
+                <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center flex-1 mr-3">
+                        <View className={`w-8 h-8 rounded-full items-center justify-center ${isComplete ? 'bg-green-100 dark:bg-green-800' : 'bg-amber-100 dark:bg-amber-800'}`}>
+                            {isComplete ? <CheckCircle2 size={16} color="#10b981" /> : <AlertCircle size={16} color="#f59e0b" />}
                         </View>
-                        <View className="ml-3">
-                            <Text className={`font-black text-lg ${isComplete ? 'text-green-900 dark:text-green-300' : 'text-amber-900 dark:text-amber-300'}`}>
+                        <View className="ml-3 flex-1">
+                            <Text className={`font-bold text-sm ${isComplete ? 'text-green-900 dark:text-green-300' : 'text-amber-900 dark:text-amber-300'}`}>
                                 {isComplete ? 'Ready to Apply' : 'Complete Required Sections'}
                             </Text>
-                            <Text className={`text-xs ${isComplete ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
-                                Required Progress: {completion.requiredPercentage}%
-                            </Text>
+                            {!isComplete && completion.requiredMissing.length > 0 && (
+                                <Text className="text-amber-800 dark:text-amber-400 text-xs mt-0.5">
+                                    Missing: {completion.requiredMissing.join(', ')}
+                                </Text>
+                            )}
                         </View>
                     </View>
-                    {!isComplete && (
-                        <View className="bg-amber-200 dark:bg-amber-700 px-3 py-1 rounded-full">
-                            <Text className="text-amber-900 dark:text-amber-100 text-[10px] font-black uppercase">Action Required</Text>
-                        </View>
-                    )}
-                </View>
-
-                {!isComplete && (
-                    <Text className="text-amber-800 dark:text-amber-400 text-xs leading-5">
-                        Finish the required sections below before submitting the application. Optional sections can be completed later.
+                    <Text className={`text-xs font-black ${isComplete ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                        {completion.requiredPercentage}%
                     </Text>
-                )}
+                </View>
             </View>
 
-            {completion.requiredMissing.length > 0 && (
-                <View className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50">
-                    <Text className="text-amber-900 dark:text-amber-200 font-black text-sm mb-1">Missing Required Sections</Text>
-                    <Text className="text-amber-800 dark:text-amber-400 text-xs leading-5">
-                        {completion.requiredMissing.join(', ')}
-                    </Text>
-                </View>
-            )}
-
-            <View className="space-y-4">
+            <View className="space-y-6">
                 <SectionGroup
                     title="Required to Apply"
                     items={visibleSections.filter((section) => section.required)}
@@ -106,7 +93,7 @@ function SectionGroup({
     if (items.length === 0) return null;
 
     return (
-        <View className="space-y-3">
+        <View className="space-y-4">
             <Text className="text-gray-900 dark:text-white font-black text-lg ml-1">{title}</Text>
             {items.map((section) => (
                 <Pressable

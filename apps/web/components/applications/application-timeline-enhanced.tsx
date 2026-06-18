@@ -81,7 +81,7 @@ export function ApplicationTimelineEnhanced({
 
     return (
         <div className="space-y-10">
-            {/* Overall Progress Bar */}
+            {/* Overall Progress Bar
             <div className="space-y-3 p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 shadow-inner">
                 <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Overall Progress</span>
@@ -110,6 +110,7 @@ export function ApplicationTimelineEnhanced({
                     </div>
                 )}
             </div>
+            */}
 
             {/* Timeline Steps */}
             <div className="relative space-y-6">

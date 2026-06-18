@@ -19,7 +19,7 @@ export function useNotifications(page = 1, limit = 20) {
         queryKey: ['notifications', page, limit],
         queryFn: async () => {
             const response = await notificationsApi.getNotifications(page, limit)
-            return response.data.data
+            return (response.data as any).data?.data || []
         }
     })
 }
@@ -48,7 +48,7 @@ export function useUnreadNotificationCount() {
         queryKey: ['notifications', 'unread-count'],
         queryFn: async () => {
             const response = await notificationsApi.getUnreadCount()
-            return response.data.unreadCount
+            return (response.data as any).data?.unreadCount ?? 0
         },
         refetchInterval: 30000 // Poll every 30 seconds
     })

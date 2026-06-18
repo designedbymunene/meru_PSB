@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
+import {
     User, 
     GraduationCap, 
     Briefcase, 
@@ -15,18 +15,37 @@ import {
     Mail,
     Phone,
     Info,
-    Users
+    Users,
+    Building2,
+    Calendar as CalendarIcon,
+    Loader2
 } from 'lucide-react'
-import type { ApplicantProfileWithRelations } from '@/types'
+import { ClipboardList } from 'lucide-react'
+import type { ApplicantProfileWithRelations, ApplicationWithRelations } from '@/types'
 import { formatNumber, formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { formatKNQFLevel } from '@meru/shared'
+import { useAllApplications } from '@/hooks/use-applications'
+import Link from 'next/link'
+import { ApplicationStatusBadge } from './application-status-badge'
+import { format } from 'date-fns'
 
 // Profile Detail Component
 export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRelations }) {
+    const { data: appsResponse, isLoading: isLoadingApps } = useAllApplications({
+        applicantId: profile.applicantId?.toString(),
+        offset: '0',
+        order: 'desc',
+        sortBy: 'appliedAt',
+        limit: '50'
+    })
+    const applicantApplications = Array.isArray(appsResponse?.data) 
+        ? appsResponse.data 
+        : (appsResponse?.data as any)?.data || []
+
     return (
         <Tabs defaultValue="personal" className="w-full">
-            <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full h-auto p-1 bg-muted/50">
+            <TabsList className="grid grid-cols-4 md:grid-cols-7 w-full h-auto p-1 bg-muted/50">
                 <TabsTrigger value="personal" className="py-2 gap-2">
                     <User className="h-4 w-4" />
                     <span className="hidden md:inline">Personal</span>
@@ -43,7 +62,7 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 </TabsTrigger>
                 <TabsTrigger value="professional" className="py-2 gap-2">
                     <ShieldCheck className="h-4 w-4" />
-                    <span className="hidden md:inline">Professional</span>
+                    <span className="hidden md:inline">Prof.</span>
                     <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1">{profile.professionalDetails.length}</Badge>
                 </TabsTrigger>
                 <TabsTrigger value="training" className="py-2 gap-2">
@@ -51,19 +70,19 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                     <span className="hidden md:inline">Training</span>
                     <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1">{profile.trainingCourses.length}</Badge>
                 </TabsTrigger>
-                {/* <TabsTrigger value="documents" className="py-2 gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span className="hidden md:inline">Documents</span>
-                    <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1">{profile.documents?.length || 0}</Badge>
-                </TabsTrigger> */}
                 <TabsTrigger value="referees" className="py-2 gap-2">
                     <Users className="h-4 w-4" />
                     <span className="hidden md:inline">Referees</span>
                     <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1">{profile.referees?.length || 0}</Badge>
                 </TabsTrigger>
+                <TabsTrigger value="applications" className="py-2 gap-2">
+                    <ClipboardList className="h-4 w-4" />
+                    <span className="hidden md:inline">Apps</span>
+                    <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1">{applicantApplications.length}</Badge>
+                </TabsTrigger>
             </TabsList>
 
-            {/* Personal Info */}
+            {/* ... Personal Info ... */}
             <TabsContent value="personal" className="space-y-6 pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <InfoItem 
@@ -132,20 +151,20 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 </div>
             </TabsContent>
 
-            {/* Qualifications */}
+            {/* ... Qualifications ... */}
             <TabsContent value="qualifications" className="pt-6">
                 {profile.qualifications.length === 0 ? (
                     <EmptyDetailState message="No educational qualifications added" />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {profile.qualifications.map((qual) => (
-                            <Card key={qual.id} className="overflow-hidden">
+                            <Card key={qual.id} className="overflow-hidden border-slate-100 dark:border-slate-800">
                                 <CardHeader className="pb-2">
                                     <div className="flex items-start justify-between gap-2">
                                         <CardTitle className="text-sm font-bold line-clamp-2 leading-tight">
                                             {qual.course}
                                         </CardTitle>
-                                        <Badge variant="outline" className="shrink-0 text-[10px] h-5">
+                                        <Badge variant="outline" className="shrink-0 text-[10px] h-5 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800">
                                             {formatKNQFLevel(qual.level)}
                                         </Badge>
                                     </div>
@@ -169,14 +188,14 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 )}
             </TabsContent>
 
-            {/* Employment History */}
+            {/* ... Employment History ... */}
             <TabsContent value="employment" className="pt-6">
                 {profile.employmentHistory.length === 0 ? (
                     <EmptyDetailState message="No employment history added" />
                 ) : (
                     <div className="space-y-4">
                         {profile.employmentHistory.map((emp) => (
-                            <Card key={emp.id} className="overflow-hidden">
+                            <Card key={emp.id} className="overflow-hidden border-slate-100 dark:border-slate-800">
                                 <CardHeader className="pb-2">
                                     <div className="flex items-start justify-between gap-2">
                                         <div>
@@ -216,14 +235,14 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 )}
             </TabsContent>
 
-            {/* Professional Details */}
+            {/* ... Professional Details ... */}
             <TabsContent value="professional" className="pt-6">
                 {profile.professionalDetails.length === 0 ? (
                     <EmptyDetailState message="No professional details or certifications added" />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {profile.professionalDetails.map((detail) => (
-                            <Card key={detail.id} className="overflow-hidden">
+                            <Card key={detail.id} className="overflow-hidden border-slate-100 dark:border-slate-800">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-sm font-bold">{detail.licenseType}</CardTitle>
                                     <CardDescription className="text-xs">{detail.issuingBody}</CardDescription>
@@ -246,14 +265,14 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 )}
             </TabsContent>
 
-            {/* Training Courses */}
+            {/* ... Training Courses ... */}
             <TabsContent value="training" className="pt-6">
                 {profile.trainingCourses.length === 0 ? (
                     <EmptyDetailState message="No additional training courses added" />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {profile.trainingCourses.map((course) => (
-                            <Card key={course.id} className="overflow-hidden">
+                            <Card key={course.id} className="overflow-hidden border-slate-100 dark:border-slate-800">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-sm font-bold">{course.courseName}</CardTitle>
                                     <CardDescription className="text-xs">{course.institution || 'N/A'}</CardDescription>
@@ -268,14 +287,14 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 )}
             </TabsContent>
 
-            {/* Referees */}
+            {/* ... Referees ... */}
             <TabsContent value="referees" className="pt-6">
                 {!profile.referees || profile.referees.length === 0 ? (
                     <EmptyDetailState message="No referees added by this applicant" />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {profile.referees.map((ref) => (
-                            <Card key={ref.id} className="overflow-hidden">
+                            <Card key={ref.id} className="overflow-hidden border-slate-100 dark:border-slate-800">
                                 <CardHeader className="pb-2">
                                     <div className="flex items-start justify-between gap-2">
                                         <div>
@@ -300,38 +319,62 @@ export function ProfileDetailView({ profile }: { profile: ApplicantProfileWithRe
                 )}
             </TabsContent>
 
-            {/* Documents - Commented out for now */}
-            {/* <TabsContent value="documents" className="pt-6">
-                {!profile.documents || profile.documents.length === 0 ? (
-                    <EmptyDetailState message="No documents uploaded by this applicant" />
+            {/* Applications Tab */}
+            <TabsContent value="applications" className="pt-6">
+                {isLoadingApps ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm font-medium">Loading applications...</p>
+                    </div>
+                ) : applicantApplications.length === 0 ? (
+                    <EmptyDetailState message="No applications submitted by this applicant" />
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {profile.documents.map((doc) => (
-                            <Card key={doc.id} className="group hover:border-primary transition-colors">
-                                <CardContent className="p-4 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded bg-primary/5 flex items-center justify-center">
-                                            <FileText className="h-5 w-5 text-primary" />
+                    <div className="space-y-3">
+                        {applicantApplications.map((app: ApplicationWithRelations) => (
+                            <Link key={app.id} href={`/admin/applications/${app.id}`} className="block group">
+                                <Card className="overflow-hidden border-slate-100 dark:border-slate-800 group-hover:border-primary/30 transition-all shadow-sm group-hover:shadow-md">
+                                    <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div className="flex items-center gap-4 min-w-0">
+                                            <div className="h-10 w-10 rounded-xl bg-primary/5 flex items-center justify-center shrink-0">
+                                                <ClipboardList className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-primary transition-colors">
+                                                    {app.vacancy?.title}
+                                                </h3>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <Badge variant="outline" className="text-[10px] h-5 py-0 bg-slate-50 dark:bg-slate-900 font-mono">
+                                                        {app.vacancy?.advertisementNumber}
+                                                    </Badge>
+                                                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                                                        <Building2 className="h-3 w-3" />
+                                                        <span className="truncate max-w-[120px]">{app.vacancy?.department?.name}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-medium line-clamp-1">{doc.originalName}</p>
-                                            <p className="text-[10px] text-muted-foreground uppercase">{doc.documentType}</p>
+                                        <div className="flex items-center justify-between sm:justify-end gap-6 shrink-0">
+                                            <div className="text-right hidden sm:block">
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Applied Date</p>
+                                                <div className="flex items-center gap-1.5 text-xs font-semibold">
+                                                    <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
+                                                    {format(new Date(app.appliedAt), 'MMM d, yyyy')}
+                                                </div>
+                                            </div>
+                                            <ApplicationStatusBadge status={app.status} />
                                         </div>
-                                    </div>
-                                    <Button variant="ghost" size="icon" asChild>
-                                        <a href={`/api/documents/${doc.filename}`} target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink className="h-4 w-4" />
-                                        </a>
-                                    </Button>
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
+                            </Link>
                         ))}
                     </div>
                 )}
-            </TabsContent> */}
+            </TabsContent>
         </Tabs>
     )
 }
+
+
 
 function EmptyDetailState({ message }: { message: string }) {
     return (

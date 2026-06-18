@@ -47,7 +47,15 @@
       "expo-font",
       "expo-image",
       "expo-local-authentication",
-      "expo-document-picker"
+      "expo-document-picker",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/branding/merucountylogo.png",
+          "color": "#208AEF",
+          "sounds": ["./assets/notification.wav"]
+        }
+      ]
     ],
     "updates": {
       "url": "https://u.expo.dev/8961bc58-ba56-4608-909b-397000a9ca71",

@@ -85,8 +85,8 @@ const devOrigins = [
   'http://localhost:8081',
   'http://127.0.0.1:8081',
   // Local network for physical devices
-  'http://192.168.100.88:4000',
-  'http://192.168.100.88:8081',
+  'http://192.168.100.92:4000',
+  'http://192.168.100.92:8081',
 ]
 const corsOrigins = NODE_ENV === 'production' ? parsedUserOrigins : [...parsedUserOrigins, ...devOrigins]
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native'
 import { useUnreadNotificationCount, useMarkNotificationAsRead, useNotifications } from '@/hooks/use-notifications'
 import { format } from 'date-fns'
@@ -8,6 +8,11 @@ export function NotificationCenter() {
     const { data: notifications, isLoading } = useNotifications(page)
     const { data: unreadCount } = useUnreadNotificationCount()
     const { mutate: markAsRead } = useMarkNotificationAsRead()
+    
+    const notificationsList = useMemo(() => {
+        if (!notifications) return [];
+        return Array.isArray(notifications) ? notifications : ((notifications as any).data || []);
+    }, [notifications]);
 
     const handleMarkAsRead = (notificationId: number) => {
         markAsRead(notificationId)
@@ -59,7 +64,7 @@ export function NotificationCenter() {
                     </View>
                 )}
 
-                {!isLoading && notifications && notifications.length === 0 && (
+                {!isLoading && notificationsList.length === 0 && (
                     <View className="flex-1 items-center justify-center py-8">
                         <Text className="text-slate-500 dark:text-slate-400">
                             No notifications yet
@@ -67,7 +72,7 @@ export function NotificationCenter() {
                     </View>
                 )}
 
-                {notifications && notifications.map(notification => (
+                {notificationsList.map(notification => (
                     <Pressable
                         key={notification.id}
                         onPress={() => !notification.read && handleMarkAsRead(notification.id)}

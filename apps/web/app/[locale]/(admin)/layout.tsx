@@ -9,6 +9,7 @@ import { UserNav } from "@/components/layout/user-nav"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { AdminBreadcrumb } from "@/components/layout/admin-breadcrumb"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 // import { LanguageSwitcher } from "@/components/layout/language-switcher"
 
 export default function AdminLayout({
@@ -29,6 +30,7 @@ export default function AdminLayout({
                     <div className="flex items-center gap-4">
                         <ThemeToggle />
                         {/* <LanguageSwitcher /> */}
+                        <NotificationBell />
                         <UserNav />
                     </div>
                 </header>

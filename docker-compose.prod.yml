@@ -1,0 +1,48 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    container_name: meru-db-prod
+    environment:
+      POSTGRES_DB: meru_county_psb
+      POSTGRES_USER: meru_county
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: meru-redis-prod
+    volumes:
+      - redis_data_prod:/data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: meru-api-prod
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://meru_county:${POSTGRES_PASSWORD}@db:5432/meru_county_psb
+      REDIS_URL: redis://redis:6379
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://api.merucountypublicserviceboard.or.ke
+    container_name: meru-web-prod
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      INTERNAL_BACKEND_URL: http://api:3000
+    restart: unless-stopped
+
+volumes:
+  postgres_data_prod:
+  redis_data_prod:

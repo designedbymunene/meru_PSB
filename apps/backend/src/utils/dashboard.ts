@@ -1,5 +1,9 @@
 import type { Application, Vacancy } from '../db'
-import { getApplicationStatusLabel } from './application-status'
+import {
+    getApplicationStatusLabel,
+    getDashboardApplicationProgress,
+    getDashboardApplicationNextStep
+} from './application-status'
 
 export type DashboardApplication = Application & {
     vacancy: (Vacancy & {
@@ -15,55 +19,7 @@ export type DashboardVacancy = Vacancy & {
 
 export type DashboardStatus = 'Open' | 'Closed' | 'Expired'
 
-export const getDashboardApplicationProgress = (status: string) => {
-    const s = status.toLowerCase()
-    switch (s) {
-        case 'pending':
-            return 15
-        case 'under_review':
-            return 30
-        case 'reviewed':
-            return 45
-        case 'shortlisted':
-            return 65
-        case 'interviewing':
-            return 80
-        case 'interviewed':
-            return 90
-        case 'accepted':
-        case 'offered':
-            return 100
-        case 'rejected':
-            return 100
-        default:
-            return 10
-    }
-}
-
-export const getDashboardApplicationNextStep = (status: string) => {
-    const s = status.toLowerCase()
-    switch (s) {
-        case 'pending':
-            return 'Document Verification'
-        case 'under_review':
-            return 'HR Qualification Review'
-        case 'reviewed':
-            return 'Shortlist Consideration'
-        case 'shortlisted':
-            return 'Interview Scheduling'
-        case 'interviewing':
-            return 'Interview Assessment'
-        case 'interviewed':
-            return 'Final Committee Decision'
-        case 'accepted':
-        case 'offered':
-            return 'Contract Signing'
-        case 'rejected':
-            return 'Application Concluded'
-        default:
-            return 'Initial Processing'
-    }
-}
+export { getDashboardApplicationProgress, getDashboardApplicationNextStep }
 
 export const getDashboardVacancyBadge = (vacancy: DashboardVacancy): DashboardStatus => {
     if (vacancy.status === 'closed') {

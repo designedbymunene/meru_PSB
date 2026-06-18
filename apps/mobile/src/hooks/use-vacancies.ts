@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
+import { extractQueryPaginatedData } from '@meru/shared';
 
 export interface VacancyFilters {
     status?: 'open' | 'closed' | 'all';
@@ -28,19 +29,12 @@ export function useVacancies(filters?: VacancyFilters) {
 
             const queryString = params.toString();
             const url = `/vacancies${queryString ? `?${queryString}` : ''}`;
-            
+
             const response = await apiClient.get(url);
-            const resData = response.data.data;
-            if (resData && !Array.isArray(resData) && Array.isArray(resData.data)) {
-                return resData.data;
-            }
-            return resData;
+            return extractQueryPaginatedData(response);
         },
-        select: (data: any) => {
-            if (data && !Array.isArray(data) && Array.isArray(data.data)) {
-                return data.data;
-            }
-            return Array.isArray(data) ? data : [];
+        select: (data) => {
+            return data.data || [];
         },
     });
 }

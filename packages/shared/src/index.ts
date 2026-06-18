@@ -228,6 +228,9 @@ export interface Application {
     rating: number | null
     profileSnapshot: any | null
     applicantProfileSnapshot?: any | null
+    statusLabel?: string
+    progress?: number
+    nextStep?: string
     createdAt: string
     updatedAt: string
 }
@@ -423,6 +426,7 @@ export type VacancyFilters = {
 // --- API CLIENT ---
 export * from './api/client-factory'
 export * from './api/retry-policy'
+export * from './api/response-handler'
 
 // --- API RESPONSES ---
 export interface ApiResponse<T> {

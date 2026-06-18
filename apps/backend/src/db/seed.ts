@@ -1,9 +1,10 @@
 import { db } from './index'
-import { departments, jobGroups, users, vacancies, applications, applicantProfiles, ethnicities, counties, constituencies, wards } from './schema'
+import { departments, jobGroups, users, vacancies, applications, applicantProfiles, ethnicities, counties, constituencies, wards, qualifications } from './schema'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { seedLocations } from './seed-locations'
 import { seedReferenceData } from './seed-reference-data'
+import { institutions, courses } from './schema'
 
 const getClosingDate = (daysFromNow: number) => {
     const date = new Date()
@@ -33,6 +34,8 @@ export async function seed() {
         const allCounties = await db.select().from(counties)
         const allConstituencies = await db.select().from(constituencies)
         const allWards = await db.select().from(wards)
+        const allInstitutions = await db.select().from(institutions)
+        const allCourses = await db.select().from(courses)
         
         const meruCounty = allCounties.find(c => c.name.toLowerCase().includes('meru'))
         const ameruEthnicity = allEthnicities.find(e => e.name === 'Ameru')
@@ -191,6 +194,15 @@ export async function seed() {
                 impairment: Math.random() < 0.05
             }).returning()
 
+            // Seed sample qualifications
+            const inst = allInstitutions[i % allInstitutions.length]
+            const course = allCourses[i % allCourses.length]
+            const qualData = [
+                { applicantProfileId: profile.id, level: 'BACHELORS', course: course.name, courseId: course.id, grade: 'Pass', institution: inst.name, institutionId: inst.id, yearStart: 2015, yearEnd: 2019 },
+                { applicantProfileId: profile.id, level: 'KCSE', course: 'Secondary Education', grade: 'B', institution: 'Local High School', yearStart: 2011, yearEnd: 2014 }
+            ]
+            await db.insert(qualifications).values(qualData)
+
             const numApps = Math.floor(Math.random() * 2) + 1
             const shuffledVacancies = [...vacanciesData].sort(() => 0.5 - Math.random())
             const chosenVacancies = shuffledVacancies.slice(0, numApps)
@@ -211,7 +223,7 @@ export async function seed() {
                     impairment: profile.impairment,
                     impairmentDetails: null,
                     hasNoExperience: false,
-                    qualifications: [],
+                    qualifications: qualData,
                     employmentHistory: [],
                     professionalDetails: [],
                     professionalMemberships: [],

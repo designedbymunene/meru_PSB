@@ -1,12 +1,12 @@
 import React, { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
-import { View, Text, TextInput } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FormField } from '@/components/ui/form-field';
 import { FormPicker } from '@/components/ui/form-picker';
 import { useEducationLevels, useEducationGrades, useInstitutions, useCourses } from '@/lib/api/reference';
-import { GraduationCap, School, Award, Calendar, CheckCircle2 } from 'lucide-react-native';
+import { GraduationCap, School, Award, Calendar } from 'lucide-react-native';
 
 const qualificationSchema = z.object({
     level: z.string().min(1, 'Level is required'),
@@ -394,18 +394,16 @@ export const QualificationForm = forwardRef<FormHandle, QualificationFormProps>(
                 control={control}
                 name="stillStudying"
                 render={({ field: { onChange, value } }) => (
-                    <View className="flex-row items-center gap-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                        <CheckCircle2 size={20} color={value ? '#2563eb' : '#cbd5e1'} />
-                        <View className="flex-1">
-                            <View className="flex-row items-center">
-                                <Text className="text-gray-900 dark:text-white font-medium flex-1">Currently Studying</Text>
-                                <View className={`w-10 h-6 rounded-full ${value ? 'bg-blue-600' : 'bg-gray-300'} justify-center items-center`}>
-                                    <View className={`w-5 h-5 rounded-full bg-white transition-all ${value ? 'translate-x-2' : '-translate-x-2'}`} />
-                                </View>
-                             </View>
-                            <Text className="text-gray-600 dark:text-gray-400 text-xs mt-1">Toggle if you're still studying this qualification</Text>
+                    <TouchableOpacity
+                        onPress={() => onChange(!value)}
+                        activeOpacity={0.7}
+                        className="flex-row items-center justify-between py-2"
+                    >
+                        <Text className="text-gray-700 dark:text-gray-300 text-sm">Currently studying</Text>
+                        <View className={`w-11 h-6 rounded-full ${value ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'} justify-end px-0.5`}>
+                            <View className={`w-5 h-5 rounded-full bg-white shadow-sm ${value ? 'translate-x-0' : '-translate-x-5'}`} />
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 )}
             />
         </View>

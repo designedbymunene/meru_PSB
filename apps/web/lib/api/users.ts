@@ -13,3 +13,13 @@ export async function getUsers(): Promise<ApiResponse<User[]>> {
     
     return data as ApiResponse<User[]>
 }
+
+export async function deleteUser(userId: number): Promise<ApiResponse<void>> {
+    const { data } = await apiClient.delete<ApiResponse<void>>(`/users/${userId}`)
+    return data
+}
+
+export async function generateTempPassword(userId: number): Promise<ApiResponse<{ tempPassword: string }>> {
+    const { data } = await apiClient.post<ApiResponse<{ tempPassword: string }>>(`/users/${userId}/temp-password`)
+    return data
+}

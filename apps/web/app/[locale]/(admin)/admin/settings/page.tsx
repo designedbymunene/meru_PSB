@@ -9,7 +9,7 @@ import {
     useRevokeSession,
     useUpdatePassword
 } from '@/hooks/use-account'
-import { useUsers } from '@/hooks/use-users'
+import { useUsers, useDeleteUser, useGenerateTempPassword } from '@/hooks/use-users'
 import { TestNotifications } from '@/components/admin/test-notifications'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,6 +40,8 @@ import {
     History,
     Users as UsersIcon,
     Database,
+    MoreVertical,
+    Copy,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -66,6 +68,33 @@ import {
     TableRow 
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import { toast } from 'sonner'
 
 const passwordSchema = z.object({
     currentPassword: z.string().min(1, 'Current password is required'),
@@ -84,7 +113,34 @@ export default function AdminSettingsPage() {
     const toggle2fa = useToggle2FA()
     const revokeSession = useRevokeSession()
     const updatePassword = useUpdatePassword()
+    const deleteUser = useDeleteUser()
+    const generateTempPassword = useGenerateTempPassword()
     const { theme, setTheme } = useTheme()
+
+    const [userToDelete, setUserToDelete] = useState<{ id: number; fullName: string } | null>(null)
+    const [tempPasswordData, setTempPasswordData] = useState<{ fullName: string; tempPassword: string } | null>(null)
+
+    const handleDeleteUser = async () => {
+        if (!userToDelete) return
+        try {
+            await deleteUser.mutateAsync(userToDelete.id)
+            setUserToDelete(null)
+        } catch (error) {}
+    }
+
+    const handleGenerateTempPassword = async (userId: number, fullName: string) => {
+        try {
+            const result = await generateTempPassword.mutateAsync(userId)
+            if (result.success && result.data) {
+                setTempPasswordData({ fullName, tempPassword: result.data.tempPassword })
+            }
+        } catch (error) {}
+    }
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text)
+        toast.success('Copied to clipboard')
+    }
 
     const form = useForm<z.infer<typeof passwordSchema>>({
         resolver: zodResolver(passwordSchema),
@@ -295,7 +351,30 @@ export default function AdminSettingsPage() {
                                             </TableCell>
                                             <TableCell className="text-muted-foreground text-xs">{new Date(admin.createdAt).toLocaleDateString()}</TableCell>
                                             <TableCell className="text-right">
-                                                <Button variant="ghost" size="sm" className="rounded-lg h-8 px-3 font-bold text-xs">Edit</Button>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                                            <MoreVertical className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => handleGenerateTempPassword(admin.id, admin.fullName)} className="cursor-pointer rounded-lg">
+                                                            <Key className="mr-2 h-4 w-4" />
+                                                            Generate Temp Password
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem 
+                                                            onClick={() => setUserToDelete({ id: admin.id, fullName: admin.fullName })}
+                                                            className="cursor-pointer text-red-600 focus:text-red-600 rounded-lg"
+                                                            disabled={admin.id === user?.id}
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Delete User
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -395,6 +474,70 @@ export default function AdminSettingsPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+                <AlertDialogContent className="rounded-2xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete the account for <span className="font-bold text-foreground">{userToDelete?.fullName}</span>.
+                            This action cannot be undone and will remove all associated data.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleDeleteUser}
+                            className="bg-red-600 hover:bg-red-700 rounded-xl"
+                        >
+                            Delete Account
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <Dialog open={!!tempPasswordData} onOpenChange={(open) => !open && setTempPasswordData(null)}>
+                <DialogContent className="rounded-2xl sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Temporary Password Generated</DialogTitle>
+                        <DialogDescription>
+                            A temporary password has been generated for <span className="font-bold text-foreground">{tempPasswordData?.fullName}</span>.
+                            Please copy it and share it securely with the user.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex items-center space-x-2 mt-4">
+                        <div className="grid flex-1 gap-2">
+                            <Label htmlFor="temp-password" title="Temporary Password" className="sr-only">
+                                Password
+                            </Label>
+                            <Input
+                                id="temp-password"
+                                defaultValue={tempPasswordData?.tempPassword}
+                                readOnly
+                                className="rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-mono text-center text-lg tracking-wider"
+                            />
+                        </div>
+                        <Button 
+                            type="button" 
+                            size="icon" 
+                            onClick={() => copyToClipboard(tempPasswordData?.tempPassword || '')}
+                            className="rounded-xl h-12 w-12"
+                        >
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <DialogFooter className="sm:justify-start">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => setTempPasswordData(null)}
+                            className="rounded-xl w-full sm:w-auto"
+                        >
+                            Close
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

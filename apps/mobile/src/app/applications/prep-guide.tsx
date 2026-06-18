@@ -11,10 +11,23 @@ import {
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ApplicationDetailsLoadingState } from '@/components/ui/loading-skeletons';
+import { useColorScheme } from 'nativewind';
 
-const THEME = {
-    bg: '#0a0c10',
-    card: '#11141d',
+const LIGHT_THEME = {
+    bg: '#f9fafb',
+    card: '#ffffff',
+    border: 'rgba(229, 231, 235, 0.8)',
+    textPrimary: '#111827',
+    textSecondary: '#6b7280',
+    accentBlue: '#3b82f6',
+    accentGreen: '#10b981',
+    accentPurple: '#8b5cf6',
+    accentOrange: '#f59e0b',
+};
+
+const DARK_THEME = {
+    bg: '#0f172a',
+    card: '#1e293b',
     border: 'rgba(30, 41, 59, 0.6)',
     textPrimary: '#ffffff',
     textSecondary: '#94a3b8',
@@ -75,6 +88,10 @@ export default function MobileInterviewPrepGuideScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { colorScheme } = useColorScheme();
+    const isDarkMode = colorScheme === 'dark';
+    const THEME = isDarkMode ? DARK_THEME : LIGHT_THEME;
+
     const [activeTab, setActiveTab] = useState<'checklist' | 'values' | 'etiquette'>('checklist');
 
     const [isAlertVisible, setIsAlertVisible] = useState(false);
@@ -93,9 +110,9 @@ export default function MobileInterviewPrepGuideScreen() {
 
     if ((isError || !isValidId) && !application) {
         return (
-            <View className="flex-1 bg-[#0a0c10] items-center justify-center p-6">
+            <View style={{ backgroundColor: THEME.bg }} className="flex-1 items-center justify-center p-6">
                 <AlertCircle size={48} color={THEME.accentOrange} />
-                <Text className="text-white text-xl font-bold mt-4">
+                <Text style={{ color: THEME.textPrimary }} className="text-xl font-bold mt-4">
                     Unable to load preparation guide
                 </Text>
                 <Pressable 
@@ -118,7 +135,7 @@ export default function MobileInterviewPrepGuideScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: THEME.bg }}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
             <AlertModal
                 visible={isAlertVisible}
@@ -134,9 +151,13 @@ export default function MobileInterviewPrepGuideScreen() {
                     <Pressable 
                         onPress={() => router.back()}
                         className="w-10 h-10 rounded-full items-center justify-center"
-                        style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: THEME.border }}
+                        style={{ 
+                            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', 
+                            borderWidth: 1, 
+                            borderColor: THEME.border 
+                        }}
                     >
-                        <ChevronLeft size={20} color="#fff" />
+                        <ChevronLeft size={20} color={THEME.textPrimary} />
                     </Pressable>
                     <View className="flex-row items-center bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-full">
                         <Sparkles size={14} color={THEME.accentBlue} />
@@ -147,11 +168,11 @@ export default function MobileInterviewPrepGuideScreen() {
                 <Text className="text-blue-500 text-[10px] font-black uppercase tracking-[2px] mb-1">
                     {departmentName}
                 </Text>
-                <Text className="text-white text-2xl font-bold leading-tight mb-2">
+                <Text style={{ color: THEME.textPrimary }} className="text-2xl font-bold leading-tight mb-2">
                     Interview Prep Guide
                 </Text>
-                <Text className="text-slate-400 text-xs leading-relaxed">
-                    Resources, mandatory checklists, and panel tips for your <Text className="text-white font-semibold">{vacancyTitle}</Text> interview.
+                <Text style={{ color: THEME.textSecondary }} className="text-xs leading-relaxed">
+                    Resources, mandatory checklists, and panel tips for your <Text style={{ color: THEME.textPrimary }} className="font-semibold">{vacancyTitle}</Text> interview.
                 </Text>
             </View>
 
@@ -203,15 +224,18 @@ export default function MobileInterviewPrepGuideScreen() {
                     <View className="space-y-6">
                         <View className="flex-row items-center mb-2">
                             <ShieldCheck size={18} color={THEME.accentGreen} />
-                            <Text className="text-white font-bold text-base ml-2">Mandatory Document Checklist</Text>
+                            <Text style={{ color: THEME.textPrimary }} className="font-bold text-base ml-2">Mandatory Document Checklist</Text>
                         </View>
-                        <Text className="text-slate-400 text-xs leading-relaxed mb-4">
+                        <Text style={{ color: THEME.textSecondary }} className="text-xs leading-relaxed mb-4">
                             Please bring original copies and one set of photocopies for all documents listed below.
                         </Text>
 
                         {/* Identification & Academic */}
                         <View style={{ backgroundColor: THEME.card, borderColor: THEME.border }} className="rounded-3xl p-5 border mb-4">
-                            <View className="flex-row items-center mb-4 pb-3 border-b border-slate-800">
+                            <View 
+                                style={{ borderBottomColor: THEME.border }} 
+                                className="flex-row items-center mb-4 pb-3 border-b"
+                            >
                                 <Briefcase size={16} color={THEME.accentBlue} />
                                 <Text className="text-blue-400 font-bold text-xs uppercase tracking-wider ml-2">Identification & Academic</Text>
                             </View>
@@ -226,7 +250,7 @@ export default function MobileInterviewPrepGuideScreen() {
                                         <View className="mt-0.5 w-5 h-5 rounded-lg bg-blue-500/10 border border-blue-500/20 items-center justify-center mr-3">
                                             <Check size={12} color={THEME.accentBlue} />
                                         </View>
-                                        <Text className="text-slate-300 text-xs leading-relaxed flex-1">{item}</Text>
+                                        <Text style={{ color: isDarkMode ? '#cbd5e1' : '#374151' }} className="text-xs leading-relaxed flex-1">{item}</Text>
                                     </View>
                                 ))}
                             </View>
@@ -234,7 +258,10 @@ export default function MobileInterviewPrepGuideScreen() {
 
                         {/* Chapter 6 Compliance */}
                         <View style={{ backgroundColor: THEME.card, borderColor: THEME.border }} className="rounded-3xl p-5 border mb-4">
-                            <View className="flex-row items-center mb-4 pb-3 border-b border-slate-800">
+                            <View 
+                                style={{ borderBottomColor: THEME.border }} 
+                                className="flex-row items-center mb-4 pb-3 border-b"
+                            >
                                 <ShieldCheck size={16} color={THEME.accentGreen} />
                                 <Text className="text-green-400 font-bold text-xs uppercase tracking-wider ml-2">Chapter 6 Compliance</Text>
                             </View>
@@ -250,16 +277,22 @@ export default function MobileInterviewPrepGuideScreen() {
                                         <View className="mt-0.5 w-5 h-5 rounded-lg bg-green-500/10 border border-green-500/20 items-center justify-center mr-3">
                                             <Check size={12} color={THEME.accentGreen} />
                                         </View>
-                                        <Text className="text-slate-300 text-xs leading-relaxed flex-1">{item}</Text>
+                                        <Text style={{ color: isDarkMode ? '#cbd5e1' : '#374151' }} className="text-xs leading-relaxed flex-1">{item}</Text>
                                     </View>
                                 ))}
                             </View>
                         </View>
 
-                        <View className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex-row items-start">
+                        <View 
+                            style={{ 
+                                backgroundColor: isDarkMode ? 'rgba(249, 115, 22, 0.1)' : 'rgba(249, 115, 22, 0.05)', 
+                                borderColor: isDarkMode ? 'rgba(249, 115, 22, 0.2)' : 'rgba(249, 115, 22, 0.3)' 
+                            }} 
+                            className="p-4 border rounded-2xl flex-row items-start"
+                        >
                             <AlertCircle size={16} color={THEME.accentOrange} className="mt-0.5 mr-3" />
-                            <Text className="text-orange-200 text-xs leading-relaxed flex-1">
-                                <Text className="font-bold text-orange-400 uppercase tracking-wide">Important Notice: </Text>
+                            <Text style={{ color: isDarkMode ? '#ffedd5' : '#7c2d12' }} className="text-xs leading-relaxed flex-1">
+                                <Text style={{ color: isDarkMode ? '#fb923c' : '#ea580c' }} className="font-bold uppercase tracking-wide">Important Notice: </Text>
                                 Presenting forged documents is a criminal offense under the laws of Kenya.
                             </Text>
                         </View>
@@ -271,9 +304,9 @@ export default function MobileInterviewPrepGuideScreen() {
                     <View className="space-y-4">
                         <View className="flex-row items-center mb-2">
                             <Award size={18} color={THEME.accentPurple} />
-                            <Text className="text-white font-bold text-base ml-2">Public Service Core Values</Text>
+                            <Text style={{ color: THEME.textPrimary }} className="font-bold text-base ml-2">Public Service Core Values</Text>
                         </View>
-                        <Text className="text-slate-400 text-xs leading-relaxed mb-4">
+                        <Text style={{ color: THEME.textSecondary }} className="text-xs leading-relaxed mb-4">
                             As outlined in Article 232 of the Constitution, you will be evaluated on your alignment with these principles.
                         </Text>
 
@@ -316,7 +349,7 @@ export default function MobileInterviewPrepGuideScreen() {
                                         {val.title}
                                     </Text>
                                 </View>
-                                <Text className="text-slate-300 text-xs leading-relaxed">{val.desc}</Text>
+                                <Text style={{ color: isDarkMode ? '#cbd5e1' : '#374151' }} className="text-xs leading-relaxed">{val.desc}</Text>
                             </View>
                         ))}
                     </View>
@@ -327,9 +360,9 @@ export default function MobileInterviewPrepGuideScreen() {
                     <View className="space-y-4">
                         <View className="flex-row items-center mb-2">
                             <Users size={18} color={THEME.accentBlue} />
-                            <Text className="text-white font-bold text-base ml-2">Interview Etiquette & Panel Guidance</Text>
+                            <Text style={{ color: THEME.textPrimary }} className="font-bold text-base ml-2">Interview Etiquette & Panel Guidance</Text>
                         </View>
-                        <Text className="text-slate-400 text-xs leading-relaxed mb-4">
+                        <Text style={{ color: THEME.textSecondary }} className="text-xs leading-relaxed mb-4">
                             Mastering the nuances of a panel interview is key to leaving a memorable impression.
                         </Text>
 
@@ -367,30 +400,33 @@ export default function MobileInterviewPrepGuideScreen() {
                                     >
                                         <Text className="font-bold text-sm" style={{ color: item.color }}>{item.num}</Text>
                                     </View>
-                                    <Text className="text-white font-bold text-sm">{item.title}</Text>
+                                    <Text style={{ color: THEME.textPrimary }} className="font-bold text-sm">{item.title}</Text>
                                 </View>
-                                <Text className="text-slate-400 text-xs leading-relaxed pl-11">{item.desc}</Text>
+                                <Text style={{ color: THEME.textSecondary }} className="text-xs leading-relaxed pl-11">{item.desc}</Text>
                             </View>
                         ))}
 
                         {/* FAQ Section */}
                         <View style={{ backgroundColor: THEME.card, borderColor: THEME.border }} className="rounded-3xl p-5 border mt-2">
-                            <View className="flex-row items-center mb-4 pb-3 border-b border-slate-800">
+                            <View 
+                                style={{ borderBottomColor: THEME.border }} 
+                                className="flex-row items-center mb-4 pb-3 border-b"
+                            >
                                 <HelpCircle size={16} color={THEME.accentBlue} />
-                                <Text className="text-slate-200 font-bold text-xs uppercase tracking-wider ml-2">Frequently Asked Questions</Text>
+                                <Text style={{ color: THEME.textSecondary }} className="font-bold text-xs uppercase tracking-wider ml-2">Frequently Asked Questions</Text>
                             </View>
                             <View className="space-y-4">
-                                <View className="mb-3 pb-3 border-b border-slate-800/60">
-                                    <Text className="text-white font-bold text-xs mb-1">How long does the interview take?</Text>
-                                    <Text className="text-slate-400 text-xs leading-relaxed">Interviews generally last between 20 to 45 minutes depending on the seniority of the position.</Text>
+                                <View style={{ borderBottomColor: THEME.border }} className="mb-3 pb-3 border-b">
+                                    <Text style={{ color: THEME.textPrimary }} className="font-bold text-xs mb-1">How long does the interview take?</Text>
+                                    <Text style={{ color: THEME.textSecondary }} className="text-xs leading-relaxed">Interviews generally last between 20 to 45 minutes depending on the seniority of the position.</Text>
                                 </View>
-                                <View className="mb-3 pb-3 border-b border-slate-800/60">
-                                    <Text className="text-white font-bold text-xs mb-1">Can I present digital copies of certificates?</Text>
-                                    <Text className="text-slate-400 text-xs leading-relaxed">No. The Board requires physical inspection of all original certificates alongside photocopies.</Text>
+                                <View style={{ borderBottomColor: THEME.border }} className="mb-3 pb-3 border-b">
+                                    <Text style={{ color: THEME.textPrimary }} className="font-bold text-xs mb-1">Can I present digital copies of certificates?</Text>
+                                    <Text style={{ color: THEME.textSecondary }} className="text-xs leading-relaxed">No. The Board requires physical inspection of all original certificates alongside photocopies.</Text>
                                 </View>
                                 <View>
-                                    <Text className="text-white font-bold text-xs mb-1">When will I know the outcome?</Text>
-                                    <Text className="text-slate-400 text-xs leading-relaxed">Official communication is typically made within 14 to 30 days after the conclusion of all interviews.</Text>
+                                    <Text style={{ color: THEME.textPrimary }} className="font-bold text-xs mb-1">When will I know the outcome?</Text>
+                                    <Text style={{ color: THEME.textSecondary }} className="text-xs leading-relaxed">Official communication is typically made within 14 to 30 days after the conclusion of all interviews.</Text>
                                 </View>
                             </View>
                         </View>

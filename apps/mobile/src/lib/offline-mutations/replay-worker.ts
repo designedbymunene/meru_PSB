@@ -3,6 +3,7 @@ import { apiClient, getNormalizedApiError } from "@/lib/api/client";
 import { queryClient } from "@/lib/query/client";
 import {
   annotateOfflineMutationError,
+  clearSucceededOfflineMutations,
   listOfflineMutations,
   markOfflineMutationAsFailed,
   markOfflineMutationAsProcessing,
@@ -110,6 +111,9 @@ async function runReplayQueue() {
       break;
     }
   }
+
+  // Auto-cleanup succeeded mutations after successful replay
+  await clearSucceededOfflineMutations();
 }
 
 export function replayOfflineMutationOutbox(): Promise<void> {

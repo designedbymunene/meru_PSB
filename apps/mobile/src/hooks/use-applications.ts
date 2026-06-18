@@ -1,22 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
+import { extractQueryPaginatedData, normalizeArraySelect } from '@meru/shared';
 
 export function useApplications() {
     return useQuery({
         queryKey: ['applications', 'me'],
         queryFn: async () => {
             const response = await apiClient.get('/applications/me');
-            const resData = response.data.data;
-            if (resData && !Array.isArray(resData) && Array.isArray(resData.data)) {
-                return resData.data;
-            }
-            return resData;
+            return extractQueryPaginatedData(response);
         },
-        select: (data: any) => {
-            if (data && !Array.isArray(data) && Array.isArray(data.data)) {
-                return data.data;
-            }
-            return Array.isArray(data) ? data : [];
+        select: (data) => {
+            return data.data || [];
         },
     });
 }

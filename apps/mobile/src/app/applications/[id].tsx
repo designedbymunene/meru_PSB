@@ -57,7 +57,8 @@ const PulseCircle = ({ color }: { color: string }) => {
             -1,
             true
         );
-    }, [pulse]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: pulse.value }],
@@ -93,33 +94,43 @@ const ScreenState = ({
     primaryAction: () => void;
     secondaryLabel?: string;
     secondaryAction?: () => void;
-}) => (
-    <View className="flex-1 bg-[#0a0c10] items-center justify-center px-6">
-        <View className="w-full max-w-md rounded-[32px] border border-slate-800 bg-[#11141d] p-6">
-            <View className="w-16 h-16 rounded-2xl items-center justify-center bg-blue-500/10 border border-blue-500/20 mb-5">
-                <Icon size={28} color={THEME.accentBlue} />
-            </View>
-            <Text className="text-white text-2xl font-black">{title}</Text>
-            <Text className="text-slate-400 text-sm mt-3 leading-6">{description}</Text>
-            <View className="mt-6 flex-row gap-3">
-                <Pressable
-                    onPress={primaryAction}
-                    className="flex-1 rounded-2xl bg-blue-600 px-4 py-4 items-center justify-center"
-                >
-                    <Text className="text-white font-black text-xs uppercase tracking-wider">{primaryLabel}</Text>
-                </Pressable>
-                {secondaryLabel && secondaryAction && (
+}) => {
+    const { colorScheme } = useColorScheme();
+    const isDarkMode = colorScheme === 'dark';
+    const THEME = isDarkMode ? DARK_THEME : LIGHT_THEME;
+
+    return (
+        <View style={{ flex: 1, backgroundColor: THEME.bg }} className="items-center justify-center px-6">
+            <View style={{ backgroundColor: THEME.card, borderColor: THEME.border }} className="w-full max-w-md rounded-[32px] border p-6">
+                <View className="w-16 h-16 rounded-2xl items-center justify-center bg-blue-500/10 border border-blue-500/20 mb-5">
+                    <Icon size={28} color={THEME.accentBlue} />
+                </View>
+                <Text style={{ color: THEME.textPrimary }} className="text-2xl font-black">{title}</Text>
+                <Text style={{ color: THEME.textSecondary }} className="text-sm mt-3 leading-6">{description}</Text>
+                <View className="mt-6 flex-row gap-3">
                     <Pressable
-                        onPress={secondaryAction}
-                        className="flex-1 rounded-2xl bg-white/5 px-4 py-4 items-center justify-center border border-white/10"
+                        onPress={primaryAction}
+                        className="flex-1 rounded-2xl bg-blue-600 px-4 py-4 items-center justify-center"
                     >
-                        <Text className="text-white font-black text-xs uppercase tracking-wider">{secondaryLabel}</Text>
+                        <Text className="text-white font-black text-xs uppercase tracking-wider">{primaryLabel}</Text>
                     </Pressable>
-                )}
+                    {secondaryLabel && secondaryAction && (
+                        <Pressable
+                            onPress={secondaryAction}
+                            style={{ 
+                                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', 
+                                borderColor: THEME.border 
+                            }}
+                            className="flex-1 rounded-2xl px-4 py-4 items-center justify-center border"
+                        >
+                            <Text style={{ color: THEME.textPrimary }} className="font-black text-xs uppercase tracking-wider">{secondaryLabel}</Text>
+                        </Pressable>
+                    )}
+                </View>
             </View>
         </View>
-    </View>
-);
+    );
+};
 
 export default function TrackApplicationScreen() {
     const { id } = useLocalSearchParams();
@@ -141,6 +152,9 @@ export default function TrackApplicationScreen() {
     const isOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
     const displayData = application;
 
+    // Use backend-provided progress value, fallback to 0 if not available
+    const applicationProgress = displayData?.progress ?? 0;
+
     const safeParseDate = (dateStr: string | undefined) => {
         if (!dateStr) return null;
         try {
@@ -159,8 +173,9 @@ export default function TrackApplicationScreen() {
 
     const stages = useMemo(() => {
         if (!displayData) return [];
+
         const status = (displayData.status || 'pending').toLowerCase();
-        
+
         const steps = [
             { title: 'Submitted', est: 'Day 0', rank: 0 },
             { title: 'Under Review', est: '2-5 days', rank: 1 },
@@ -169,22 +184,25 @@ export default function TrackApplicationScreen() {
             { title: 'Final Decision', est: '30 days', rank: 4 }
         ];
 
-        const statusRankMap: Record<string, number> = {
-            pending: 1,
-            under_review: 1,
-            reviewed: 1,
-            shortlisted: 2,
-            interviewed: 3,
-            offered: 4,
-            accepted: 4,
-            rejected: 4
-        };
+        // Use backend-provided nextStep to determine current stage
+        const nextStepLower = (displayData.nextStep || '').toLowerCase();
+        let currentRank = 1; // Default to "Under Review"
 
-        const currentRank = statusRankMap[status] ?? 1;
+        if (nextStepLower.includes('submitted') || nextStepLower.includes('received')) {
+            currentRank = 0;
+        } else if (nextStepLower.includes('review') || nextStepLower.includes('preliminary')) {
+            currentRank = 1;
+        } else if (nextStepLower.includes('shortlist') || nextStepLower.includes('shortlisted')) {
+            currentRank = 2;
+        } else if (nextStepLower.includes('interview')) {
+            currentRank = 3;
+        } else if (nextStepLower.includes('decision') || nextStepLower.includes('accepted') || nextStepLower.includes('rejected')) {
+            currentRank = 4;
+        }
 
         return steps.map((step) => {
             let state: 'completed' | 'current' | 'upcoming' = 'upcoming';
-            
+
             if (currentRank > step.rank) {
                 state = 'completed';
             } else if (currentRank === step.rank) {
@@ -198,12 +216,18 @@ export default function TrackApplicationScreen() {
     }, [displayData]);
 
     const progressValue = useMemo(() => {
+        // Use backend-provided progress value, fallback to calculated value from stages
+        if (applicationProgress > 0) {
+            return Math.min(100, Math.max(0, applicationProgress));
+        }
+
+        // Fallback to stage-based calculation if backend doesn't provide progress
         if (!stages || stages.length === 0) return 0;
         const completedCount = stages.filter(s => s.state === 'completed').length;
         const currentIdx = stages.findIndex(s => s.state === 'current');
         const value = ((completedCount + (currentIdx !== -1 ? 0.5 : 0)) / stages.length) * 100;
         return isNaN(value) ? 0 : Math.min(100, Math.max(0, value));
-    }, [stages]);
+    }, [stages, applicationProgress]);
 
     if (isLoading && !displayData) {
         return <ApplicationDetailsLoadingState />;
@@ -260,18 +284,22 @@ export default function TrackApplicationScreen() {
                 <Pressable
                     onPress={() => router.back()}
                     className="w-10 h-10 rounded-full items-center justify-center mb-4"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: THEME.border }}
+                    style={{ 
+                        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', 
+                        borderWidth: 1, 
+                        borderColor: THEME.border 
+                    }}
                     testID="application-back"
                 >
-                    <ChevronLeft size={20} color="#fff" />
+                    <ChevronLeft size={20} color={THEME.textPrimary} />
                 </Pressable>
 
                 {/* Music Player Style Header */}
                 <View style={{ backgroundColor: THEME.card, borderColor: THEME.border }} className="rounded-3xl p-4 border overflow-hidden">
-                    <Text className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-2">
+                    <Text style={{ color: THEME.textSecondary }} className="text-[10px] font-black uppercase tracking-[2px] mb-2">
                         {displayData?.vacancy?.department?.name || 'PUBLIC SERVICE BOARD'}
                     </Text>
-                    <Text className="text-white text-xl font-bold leading-tight">
+                    <Text style={{ color: THEME.textPrimary }} className="text-xl font-bold leading-tight">
                         {displayData?.vacancy?.title || 'Job Application'}
                     </Text>
                 </View>
@@ -293,7 +321,7 @@ export default function TrackApplicationScreen() {
                                 <Building2 size={14} color={THEME.accentBlue} />
                                 <Text className="text-slate-500 text-[10px] font-bold uppercase ml-2 tracking-wider">Reference</Text>
                             </View>
-                            <Text className="text-white text-xs font-bold ml-5">{displayData?.vacancy?.advertisementNumber || 'MCPSB/2024/001'}</Text>
+                            <Text style={{ color: THEME.textPrimary }} className="text-xs font-bold ml-5">{displayData?.vacancy?.advertisementNumber || 'MCPSB/2024/001'}</Text>
                         </View>
                         
                         <View className="w-1/2 mb-5 pl-2">
@@ -301,7 +329,7 @@ export default function TrackApplicationScreen() {
                                 <Navigation size={14} color={THEME.accentPurple} />
                                 <Text className="text-slate-500 text-[10px] font-bold uppercase ml-2 tracking-wider">Location</Text>
                             </View>
-                            <Text className="text-white text-xs font-bold ml-5">{displayData?.vacancy?.location || 'Meru County'}</Text>
+                            <Text style={{ color: THEME.textPrimary }} className="text-xs font-bold ml-5">{displayData?.vacancy?.location || 'Meru County'}</Text>
                         </View>
 
                         <View className="w-1/2 pr-2">
@@ -309,7 +337,7 @@ export default function TrackApplicationScreen() {
                                 <Clock size={14} color={THEME.accentOrange} />
                                 <Text className="text-slate-500 text-[10px] font-bold uppercase ml-2 tracking-wider">Type</Text>
                             </View>
-                            <Text className="text-white text-xs font-bold ml-5">Full Time</Text>
+                            <Text style={{ color: THEME.textPrimary }} className="text-xs font-bold ml-5">Full Time</Text>
                         </View>
 
                         <View className="w-1/2 pl-2">
@@ -317,7 +345,7 @@ export default function TrackApplicationScreen() {
                                 <Calendar size={14} color={THEME.accentGreen} />
                                 <Text className="text-slate-500 text-[10px] font-bold uppercase ml-2 tracking-wider">Applied</Text>
                             </View>
-                            <Text className="text-white text-xs font-bold ml-5">
+                            <Text style={{ color: THEME.textPrimary }} className="text-xs font-bold ml-5">
                                 {displayData?.appliedAt ? format(parseISO(displayData.appliedAt), 'MMM dd, yyyy') : 'N/A'}
                             </Text>
                         </View>
@@ -329,8 +357,11 @@ export default function TrackApplicationScreen() {
                     style={{ backgroundColor: THEME.card, borderColor: THEME.border }}
                     className="rounded-3xl p-5 border mb-6"
                 >
-                    <View className="flex-row items-center justify-between mb-4 pb-4 border-b border-slate-800/50">
-                        <Text className="text-slate-400 text-sm font-medium">Current Status</Text>
+                    <View 
+                        style={{ borderBottomColor: THEME.border }} 
+                        className="flex-row items-center justify-between mb-4 pb-4 border-b"
+                    >
+                        <Text style={{ color: THEME.textSecondary }} className="text-sm font-medium">Current Status</Text>
                         <View 
                             className="px-3 py-1 rounded-full"
                             style={{ backgroundColor: getStatusColor(currentStatus) + '20' }}
@@ -345,15 +376,15 @@ export default function TrackApplicationScreen() {
                     </View>
 
                     <View className="flex-row items-center justify-between mb-4">
-                        <Text className="text-slate-400 text-sm font-medium">Applied Date</Text>
-                        <Text className="text-white text-sm font-bold">
+                        <Text style={{ color: THEME.textSecondary }} className="text-sm font-medium">Applied Date</Text>
+                        <Text style={{ color: THEME.textPrimary }} className="text-sm font-bold">
                             {displayData?.appliedAt ? format(parseISO(displayData.appliedAt), 'MMM dd, yyyy') : 'N/A'}
                         </Text>
                     </View>
 
                     <View className="flex-row items-center justify-between">
-                        <Text className="text-slate-400 text-sm font-medium">Days Since</Text>
-                        <Text className="text-white text-sm font-bold">{daysSinceApplied} Days</Text>
+                        <Text style={{ color: THEME.textSecondary }} className="text-sm font-medium">Days Since</Text>
+                        <Text style={{ color: THEME.textPrimary }} className="text-sm font-bold">{daysSinceApplied} Days</Text>
                     </View>
                 </View>
 
@@ -397,10 +428,13 @@ export default function TrackApplicationScreen() {
 
                 {/* Application Progress Timeline */}
                 <View className="mt-4">
-                    <Text className="text-white text-xl font-bold mb-6">Application Journey</Text>
+                    <Text style={{ color: THEME.textPrimary }} className="text-xl font-bold mb-6">Application Journey</Text>
                     
                     {/* Overall Progress Bar */}
-                    <View className="h-1.5 w-full bg-slate-800 rounded-full mb-8 overflow-hidden">
+                    <View 
+                        style={{ backgroundColor: isDarkMode ? '#1e293b' : '#e2e8f0' }} 
+                        className="h-1.5 w-full rounded-full mb-8 overflow-hidden"
+                    >
                         <View 
                             className="h-full bg-blue-500 rounded-full"
                             style={{ width: `${progressValue}%` }}
@@ -410,12 +444,13 @@ export default function TrackApplicationScreen() {
                     <View className="relative">
                         {/* Timeline Line */}
                         <View 
-                            className="absolute left-[11px] top-4 bottom-4 w-[2px] bg-slate-800"
+                            style={{ backgroundColor: isDarkMode ? '#1e293b' : '#cbd5e1' }}
+                            className="absolute left-[11px] top-4 bottom-4 w-[2px]"
                         />
 
                         {stages.map((stage, idx) => (
                             <View key={idx} className="flex-row mb-8 items-start">
-                                <View className="z-10 bg-[#0a0c10] py-1">
+                                <View style={{ backgroundColor: THEME.bg }} className="z-10 py-1">
                                     {stage.state === 'completed' ? (
                                         <View className="w-6 h-6 rounded-full bg-green-500 items-center justify-center">
                                             <CheckCircle2 size={14} color="#fff" />
@@ -423,20 +458,29 @@ export default function TrackApplicationScreen() {
                                     ) : stage.state === 'current' ? (
                                         <PulseCircle color={THEME.accentBlue} />
                                     ) : (
-                                        <View className="w-6 h-6 rounded-full border-2 border-slate-700 bg-slate-900" />
+                                        <View 
+                                            style={{ 
+                                                borderColor: isDarkMode ? '#334155' : '#cbd5e1', 
+                                                backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9' 
+                                            }} 
+                                            className="w-6 h-6 rounded-full border-2" 
+                                        />
                                     )}
                                 </View>
                                 
                                 <View className="ml-4 flex-1">
                                     <View className="flex-row items-center justify-between">
-                                        <Text className={`font-bold ${stage.state === 'upcoming' ? 'text-slate-500' : 'text-white'}`}>
+                                        <Text 
+                                            style={{ color: stage.state === 'upcoming' ? THEME.textSecondary : THEME.textPrimary }}
+                                            className="font-bold"
+                                        >
                                             {stage.title}
                                         </Text>
-                                        <Text className="text-slate-500 text-[10px] font-medium">{stage.est}</Text>
+                                        <Text style={{ color: THEME.textSecondary }} className="text-[10px] font-medium">{stage.est}</Text>
                                     </View>
                                     
                                     {stage.state === 'current' && (
-                                        <Text className="text-blue-400 text-xs mt-1">
+                                        <Text style={{ color: THEME.accentBlue }} className="text-xs mt-1">
                                             Active Stage • Undergoing Review
                                         </Text>
                                     )}

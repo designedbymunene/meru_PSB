@@ -41,7 +41,7 @@ export const safeAsyncStorage = {
   removeItem: async (key: string): Promise<void> => {
     try {
       if (mmkv) {
-        mmkv.delete(key);
+        mmkv.remove(key);
       } else {
         memoryStorage.delete(key);
       }

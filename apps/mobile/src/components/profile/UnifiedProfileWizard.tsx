@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, ActivityIndicator, SafeAreaView, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, SafeAreaView, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AlertModal } from '@/components/ui/alert-modal';
 import {
@@ -56,6 +56,22 @@ interface UnifiedProfileWizardProps {
 export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedProfileWizardProps) {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+    React.useEffect(() => {
+        if (Platform.OS === 'android') {
+            const showSubscription = Keyboard.addListener('keyboardDidShow', (e) => {
+                setKeyboardHeight(e.endCoordinates.height);
+            });
+            const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+                setKeyboardHeight(0);
+            });
+            return () => {
+                showSubscription.remove();
+                hideSubscription.remove();
+            };
+        }
+    }, []);
     const queryClient = useQueryClient();
     const [currentStepIndex, setCurrentStepIndex] = useState(() => {
         if (initialStep) {
@@ -165,6 +181,26 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
         }
     });
 
+    const toggleNAMutation = useMutation({
+        mutationFn: async ({ field, value }: { field: string; value: boolean }) => {
+            return runOfflineCapableMutation({
+                request: () => apiClient.put('/applicant-profiles/me', { [field]: value }),
+                method: 'put',
+                path: '/applicant-profiles/me',
+                data: { [field]: value },
+            });
+        },
+        onSuccess: (result) => {
+            queryClient.invalidateQueries({ queryKey: ['profile'] });
+            if (result.queued) {
+                toast.info('Offline', { description: 'Changes saved locally and will sync later.' });
+            }
+        },
+        onError: (error) => {
+            toast.error('Error', { description: getApiErrorMessage(error, 'Failed to update toggle') });
+        }
+    });
+
     const submitApplicationMutation = useMutation({
         mutationFn: async () => {
             return apiClient.post('/applications', { vacancyId });
@@ -223,6 +259,8 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                         onDelete={deleteQualification}
                         emptyMessage="No qualifications added yet."
                         emptyIcon={<GraduationCap size={48} color="#cbd5e1" />}
+                        isNA={profile?.hasNoCertificates}
+                        onToggleNA={(val) => toggleNAMutation.mutate({ field: 'hasNoCertificates', value: val })}
                         renderItem={(item, onEdit, onDelete) => (
                             <QualificationCard 
                                 key={item.id}
@@ -247,6 +285,8 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                         onDelete={deleteEmployment}
                         emptyMessage="No work experience added yet."
                         emptyIcon={<Briefcase size={48} color="#cbd5e1" />}
+                        isNA={profile?.hasNoExperience}
+                        onToggleNA={(val) => toggleNAMutation.mutate({ field: 'hasNoExperience', value: val })}
                         renderItem={(item, onEdit, onDelete) => (
                             <EmploymentCard 
                                 key={item.id}
@@ -271,6 +311,8 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                         onDelete={deleteTrainingCourse}
                         emptyMessage="No training courses added yet."
                         emptyIcon={<BookOpen size={48} color="#cbd5e1" />}
+                        isNA={profile?.hasNoTrainings}
+                        onToggleNA={(val) => toggleNAMutation.mutate({ field: 'hasNoTrainings', value: val })}
                         renderItem={(item, onEdit, onDelete) => (
                             <TrainingCard 
                                 key={item.id}
@@ -320,6 +362,8 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                         onDelete={deleteReferee}
                         emptyMessage="No referees added yet."
                         emptyIcon={<Users size={48} color="#cbd5e1" />}
+                        isNA={profile?.hasNoReferees}
+                        onToggleNA={(val) => toggleNAMutation.mutate({ field: 'hasNoReferees', value: val })}
                         renderItem={(item, onEdit, onDelete) => (
                             <RefereeCard 
                                 key={item.id}
@@ -366,12 +410,6 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                 icon: ClipboardCheck, 
                 render: () => (
                     <View className="space-y-6">
-                        <View className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-800">
-                            <Text className="text-blue-900 dark:text-blue-200 font-bold mb-1">Applying For:</Text>
-                            <Text className="text-blue-700 dark:text-blue-300 text-lg font-black">{vacancy?.title}</Text>
-                            <Text className="text-blue-600 dark:text-blue-400 text-xs mt-1">{vacancy?.advertisementNumber}</Text>
-                        </View>
-
                         {profileCompletion && (
                             <CompletionGuard 
                                 completion={profileCompletion} 
@@ -434,6 +472,43 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
         } else if (currentStep.id === 'location') {
             locationFormRef.current?.submit();
         } else if (currentStep.id === 'review') {
+            if (mode === 'apply' && !profileCompletion?.canApply) {
+                // Find the first required section that is incomplete and jump to it
+                const firstIncomplete = profileCompletion?.groups?.required?.find((s: any) => !s.completed);
+                if (firstIncomplete) {
+                    const sectionToStepId = (sectionId: string): string => {
+                        switch (sectionId) {
+                            case 'personal':
+                            case 'contact':
+                                return 'personal';
+                            case 'location':
+                                return 'location';
+                            case 'education':
+                                return 'academic';
+                            case 'experience':
+                                return 'experience';
+                            case 'training':
+                                return 'training';
+                            case 'professional':
+                            case 'memberships':
+                                return 'professional';
+                            case 'referees':
+                                return 'referees';
+                            default:
+                                return sectionId;
+                        }
+                    };
+                    const targetStepId = sectionToStepId(firstIncomplete.id);
+                    const index = steps.findIndex(s => s.id === targetStepId);
+                    if (index >= 0) {
+                        setCurrentStepIndex(index);
+                        return;
+                    }
+                }
+                // Fallback: jump to first step if not found
+                setCurrentStepIndex(0);
+                return;
+            }
             isSubmittingRef.current = true;
             submitApplicationMutation.mutate();
         } else {
@@ -535,10 +610,12 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                     <View className={isFirstStep ? 'flex-1' : 'flex-1 ml-4'}>
                         <Pressable 
                             onPress={handleNext}
-                            disabled={isSaving || submitApplicationMutation.isSuccess || (isLastStep && mode === 'apply' && !profileCompletion?.canApply)}
+                            disabled={isSaving || submitApplicationMutation.isSuccess}
                             className={`h-14 rounded-2xl items-center justify-center flex-row shadow-xl ${
-                                (isSaving || submitApplicationMutation.isSuccess || (isLastStep && mode === 'apply' && !profileCompletion?.canApply)) 
+                                (isSaving || submitApplicationMutation.isSuccess) 
                                 ? 'bg-gray-300 dark:bg-gray-800' 
+                                : (isLastStep && mode === 'apply' && !profileCompletion?.canApply)
+                                ? 'bg-amber-600 dark:bg-amber-700 shadow-amber-100/50 dark:shadow-none'
                                 : 'bg-[#004aad] dark:bg-blue-600 shadow-blue-100/50 dark:shadow-none'
                             }`}
                         >
@@ -555,13 +632,14 @@ export function UnifiedProfileWizard({ mode, vacancyId, initialStep }: UnifiedPr
                                     </Text>
                                     {!isLastStep && <ChevronRight size={20} color="white" strokeWidth={3} />}
                                     {isLastStep && mode === 'apply' && profileCompletion?.canApply && <CheckCircle2 size={20} color="white" />}
-                                    {isLastStep && mode === 'apply' && !profileCompletion?.canApply && <AlertCircle size={20} color="#94a3b8" />}
+                                    {isLastStep && mode === 'apply' && !profileCompletion?.canApply && <AlertCircle size={20} color="white" />}
                                 </>
                             )}
                         </Pressable>
                     </View>
                 </View>
             </View>
+            {Platform.OS === 'android' && <View style={{ height: keyboardHeight }} />}
             </KeyboardAvoidingView>
         </SafeAreaView>
     );

@@ -4,7 +4,7 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import React, { useRef, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Text, TextInput, View, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text, TextInput, View, Pressable, ScrollView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { toast } from 'sonner-native';
 import * as z from 'zod';
 import { FormPicker } from '@/components/ui/form-picker';
@@ -32,6 +32,22 @@ export default function LocationEthnicityScreen() {
     const insets = useSafeAreaInsets();
 
     const [hasInitialReset, setHasInitialReset] = React.useState(false);
+    const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+
+    React.useEffect(() => {
+        if (Platform.OS === 'android') {
+            const showSubscription = Keyboard.addListener('keyboardDidShow', (e) => {
+                setKeyboardHeight(e.endCoordinates.height);
+            });
+            const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+                setKeyboardHeight(0);
+            });
+            return () => {
+                showSubscription.remove();
+                hideSubscription.remove();
+            };
+        }
+    }, []);
 
     const { data: profile, isLoading, error, isError, refetch } = useQuery({
         queryKey: ['profile'],
@@ -295,6 +311,7 @@ export default function LocationEthnicityScreen() {
                         )}
                     </Pressable>
                 </View>
+                {Platform.OS === 'android' && <View style={{ height: keyboardHeight }} />}
             </KeyboardAvoidingView>
         </View>
     );

@@ -24,6 +24,7 @@ import { BulkActionsBar } from "@/components/admin/bulk-actions-bar"
 import { AdminApplicationFilters } from "@/components/admin/admin-application-filters"
 import { Badge } from "@/components/ui/badge"
 import { ScheduleInterviewDialog } from "@/components/admin/schedule-interview-dialog"
+import { ExportApplicationsDialog } from "@/components/admin/export-applications-dialog"
 
 
 const ApplicationActions = ({ application }: { application: ApplicationWithRelations }) => {
@@ -172,6 +173,17 @@ function ApplicationsPageContent() {
                 </div>
             )
         },
+        {
+            id: "department",
+            header: "Department",
+            cell: ({ row }) => (
+                <div className="max-w-[150px] truncate">
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                        {row.original.vacancy?.department?.name || 'N/A'}
+                    </span>
+                </div>
+            )
+        },
 
         {
             accessorKey: "appliedAt",
@@ -199,12 +211,7 @@ function ApplicationsPageContent() {
         },
     ]
 
-    const { mutate: exportApps, isPending: isExporting } = useExportApplications()
     const { mutate: bulkUpdate, isPending: isBulkUpdating } = useBulkUpdateStatus()
-
-    const handleExport = () => {
-        exportApps(filters)
-    }
 
     const handleBulkStatusUpdate = (newStatus: string) => {
         if (newStatus === 'clear') {
@@ -233,16 +240,7 @@ function ApplicationsPageContent() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Button
-                            onClick={handleExport}
-                            disabled={isExporting}
-                            variant="outline"
-                            size="sm"
-                            className="h-10"
-                        >
-                            <Download className="mr-2 h-4 w-4" />
-                            {isExporting ? 'Exporting...' : 'Export CSV'}
-                        </Button>
+                        <ExportApplicationsDialog />
                     </div>
                 </div>
 

@@ -1,8 +1,16 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { ScrollView, Text, Pressable, View, LayoutAnimation, Platform, RefreshControl } from 'react-native';
+import { ScrollView, Text, Pressable, View, LayoutAnimation, Platform, RefreshControl, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bell, Briefcase, CheckCircle2, Info, ShieldAlert, X } from 'lucide-react-native';
 import { Header, HeaderAction } from '../components/ui/header';
+import { formatDistanceToNow } from 'date-fns';
+import {
+    useNotifications,
+    useUnreadNotificationCount,
+    useMarkNotificationAsRead,
+    useMarkAllNotificationsAsRead,
+    useDeleteNotification
+} from '../hooks/use-notifications';
 
 // Helper to safely trigger layout animations - only on native platforms
 const safeLayoutAnimation = () => {
@@ -17,49 +25,29 @@ const safeLayoutAnimation = () => {
 
 type NotificationType = 'application' | 'vacancy' | 'system';
 
-type NotificationItem = {
-    id: string;
-    title: string;
-    message: string;
-    time: string;
-    read: boolean;
-    type: NotificationType;
+const formatTimeAgo = (dateStr: string) => {
+    try {
+        if (!dateStr) return 'some time ago';
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return 'some time ago';
+        return formatDistanceToNow(date, { addSuffix: true });
+    } catch (e) {
+        return 'some time ago';
+    }
 };
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-    {
-        id: 'n-1',
-        title: 'Application update',
-        message: 'Your application for Assistant County Commissioner moved to document review.',
-        time: '2h ago',
-        read: false,
-        type: 'application',
-    },
-    {
-        id: 'n-2',
-        title: 'New vacancy posted',
-        message: 'A new opening matching your profile is now available in Public Administration.',
-        time: '5h ago',
-        read: false,
-        type: 'vacancy',
-    },
-    {
-        id: 'n-3',
-        title: 'Account security',
-        message: 'A successful login was detected on your account.',
-        time: 'Yesterday',
-        read: true,
-        type: 'system',
-    },
-    {
-        id: 'n-4',
-        title: 'Interview Invitation',
-        message: 'You have been invited for an interview for the position of Senior Accountant.',
-        time: '2 days ago',
-        read: true,
-        type: 'application',
-    },
-];
+const mapBackendType = (type: string): NotificationType => {
+    switch (type) {
+        case 'application_status':
+        case 'application_update':
+        case 'document_request':
+            return 'application';
+        case 'vacancy':
+            return 'vacancy';
+        default:
+            return 'system';
+    }
+};
 
 const FILTERS: { label: string; value: NotificationType | 'all' }[] = [
     { label: 'All', value: 'all' },
@@ -69,49 +57,61 @@ const FILTERS: { label: string; value: NotificationType | 'all' }[] = [
 ];
 
 export default function NotificationsScreen() {
-    const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+    const { data: notificationsData = [], isLoading, refetch } = useNotifications(1, 100);
+    const { data: unreadCount = 0 } = useUnreadNotificationCount();
+    const markAsReadMutation = useMarkNotificationAsRead();
+    const markAllAsReadMutation = useMarkAllNotificationsAsRead();
+    const deleteNotificationMutation = useDeleteNotification();
+
     const [activeFilter, setActiveFilter] = useState<NotificationType | 'all'>('all');
     const [refreshing, setRefreshing] = useState(false);
     const insets = useSafeAreaInsets();
 
+    const mappedNotifications = useMemo(() => {
+        if (!notificationsData) return [];
+        const list = Array.isArray(notificationsData)
+            ? notificationsData
+            : ((notificationsData as any).data || []);
+        return list.map((n: any) => ({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            time: formatTimeAgo(n.createdAt),
+            read: n.read,
+            type: mapBackendType(n.type)
+        }));
+    }, [notificationsData]);
+
     const filteredNotifications = useMemo(() => 
-        notifications.filter((n) => activeFilter === 'all' || n.type === activeFilter),
-        [notifications, activeFilter]
+        mappedNotifications.filter((n) => activeFilter === 'all' || n.type === activeFilter),
+        [mappedNotifications, activeFilter]
     );
 
-    const unreadCount = useMemo(() => 
-        notifications.filter((item) => !item.read).length,
-        [notifications]
-    );
-
-    const onRefresh = useCallback(() => {
+    const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        setTimeout(() => {
+        try {
+            await refetch();
+        } catch (e) {
+            console.warn('Failed to refetch notifications:', e);
+        } finally {
             setRefreshing(false);
-        }, 1500);
-    }, []);
+        }
+    }, [refetch]);
 
     const markAllAsRead = useCallback(() => {
         safeLayoutAnimation();
-        setNotifications((current) => current.map((item) => ({ ...item, read: true })));
-    }, []);
+        markAllAsReadMutation.mutate();
+    }, [markAllAsReadMutation]);
 
-    const markAsRead = useCallback((id: string) => {
+    const markAsRead = useCallback((id: number) => {
         safeLayoutAnimation();
-        setNotifications((current) =>
-            current.map((item) => (item.id === id ? { ...item, read: true } : item))
-        );
-    }, []);
+        markAsReadMutation.mutate(id);
+    }, [markAsReadMutation]);
 
-    const deleteNotification = useCallback((id: string) => {
+    const deleteNotification = useCallback((id: number) => {
         safeLayoutAnimation();
-        setNotifications((current) => current.filter((item) => item.id !== id));
-    }, []);
-
-    const clearAll = useCallback(() => {
-        safeLayoutAnimation();
-        setNotifications([]);
-    }, []);
+        deleteNotificationMutation.mutate(id);
+    }, [deleteNotificationMutation]);
 
     const iconForType = useCallback((type: NotificationType) => {
         switch (type) {
@@ -131,10 +131,10 @@ export default function NotificationsScreen() {
             <Header
                 title="Notifications"
                 rightAction={
-                    notifications.length > 0 ? (
+                    unreadCount > 0 ? (
                         <HeaderAction 
-                            label="Clear"
-                            onPress={clearAll}
+                            label="Mark Read"
+                            onPress={markAllAsRead}
                         />
                     ) : undefined
                 }
@@ -161,7 +161,7 @@ export default function NotificationsScreen() {
                                 onPress={() => setActiveFilter(filter.value)}
                                 className={`mr-2 px-5 py-2.5 rounded-full border ${
                                     activeFilter === filter.value
-                                        ? 'bg-blue-600 border-blue-600 shadow-sm shadow-blue-200'
+                                        ? 'bg-blue-600 border-blue-600'
                                         : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800'
                                 }`}
                             >
@@ -184,7 +184,11 @@ export default function NotificationsScreen() {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                     contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }}
                 >
-                    {filteredNotifications.length === 0 ? (
+                    {isLoading ? (
+                        <View className="items-center justify-center py-20">
+                            <ActivityIndicator size="large" color="#2563eb" />
+                        </View>
+                    ) : filteredNotifications.length === 0 ? (
                         <View className="items-center justify-center py-20">
                             <View className="w-24 h-24 rounded-full bg-white dark:bg-gray-900 items-center justify-center mb-6 shadow-sm border border-gray-50 dark:border-gray-800">
                                 <Bell size={40} color="#cbd5e1" />
@@ -198,7 +202,7 @@ export default function NotificationsScreen() {
                             {activeFilter !== 'all' && (
                                 <Pressable
                                     onPress={() => setActiveFilter('all')}
-                                    className="mt-6 bg-blue-50 dark:bg-blue-900/20 px-6 py-2.5 rounded-xl"
+                                    className="mt-6 bg-blue-50 dark:bg-slate-900 px-6 py-2.5 rounded-xl"
                                 >
                                     <Text className="text-blue-600 dark:text-blue-400 font-bold text-xs">View all</Text>
                                 </Pressable>
@@ -218,12 +222,27 @@ export default function NotificationsScreen() {
                             {filteredNotifications.map((item) => (
                                 <Pressable
                                     key={item.id}
-                                    style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+                                    style={({ pressed }) => [
+                                        { opacity: pressed ? 0.9 : 1 },
+                                        !item.read ? {
+                                            shadowColor: '#2563eb',
+                                            shadowOffset: { width: 0, height: 2 },
+                                            shadowOpacity: 0.08,
+                                            shadowRadius: 4,
+                                            elevation: 2
+                                        } : {
+                                            shadowColor: '#000',
+                                            shadowOffset: { width: 0, height: 1 },
+                                            shadowOpacity: 0.05,
+                                            shadowRadius: 2,
+                                            elevation: 1
+                                        }
+                                    ]}
                                     onPress={() => !item.read && markAsRead(item.id)}
                                     className={`relative overflow-hidden rounded-2xl border ${
                                         item.read 
-                                            ? 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 shadow-sm' 
-                                            : 'bg-white dark:bg-gray-900 border-blue-100 dark:border-blue-900/30 shadow-md shadow-blue-50'
+                                            ? 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800' 
+                                            : 'bg-white dark:bg-gray-900 border-blue-200 dark:border-blue-900'
                                     }`}
                                 >
                                     {!item.read && (
@@ -232,7 +251,7 @@ export default function NotificationsScreen() {
                                     <View className="p-4">
                                         <View className="flex-row items-start">
                                             <View className={`w-10 h-10 rounded-xl items-center justify-center mr-3 ${
-                                                item.read ? 'bg-gray-50 dark:bg-gray-800' : 'bg-blue-50 dark:bg-blue-900/30'
+                                                item.read ? 'bg-gray-50 dark:bg-gray-800' : 'bg-blue-50 dark:bg-blue-950'
                                             }`}>
                                                 {iconForType(item.type)}
                                             </View>
@@ -253,13 +272,13 @@ export default function NotificationsScreen() {
                                                 <Text className="text-gray-500 dark:text-gray-400 text-xs mt-1.5 leading-5 font-medium">
                                                     {item.message}
                                                 </Text>
-                                                <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-gray-50 dark:border-gray-800/50">
+                                                <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-gray-50 dark:border-gray-800">
                                                     <View className="flex-row items-center">
                                                         <View className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700 mr-2" />
                                                         <Text className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-wider">{item.time}</Text>
                                                     </View>
                                                     {!item.read && (
-                                                        <View className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 rounded-md">
+                                                        <View className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 rounded-md">
                                                             <Text className="text-blue-700 dark:text-blue-300 text-[9px] font-black uppercase">New</Text>
                                                         </View>
                                                     )}

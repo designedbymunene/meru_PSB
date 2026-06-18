@@ -1,22 +1,4 @@
 version: '3.8'
-
-# IMPORTANT: Safe Rebuild Commands
-# ================================
-# To rebuild ONLY the frontend (safe - won't affect database):
-#   docker compose up -d --build web
-#
-# To rebuild ONLY the backend API (safe - won't affect database):
-#   docker compose up -d --build api
-#
-# To rebuild everything (CAUTION - may run migrations):
-#   docker compose --profile migrate up -d --build
-#
-# To run migrations manually (when needed):
-#   docker compose --profile migrate up migrate
-#
-# NEVER run: docker compose down && docker compose up -d --build
-# This will rebuild everything and potentially destroy your database!
-
 services:
   db:
     image: postgres:15
@@ -63,7 +45,15 @@ services:
       sh -c "npx drizzle-kit migrate --config drizzle.config.ts"
     restart: "no"
     profiles:
-      - manual  # Only run when explicitly enabled: docker compose --profile migrate up migrate
+      - manual
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: meru-mailpit
+    ports:
+      - "8026:8025"
+      - "1026:1025"
+    restart: unless-stopped
 
   api:
     build:
@@ -75,19 +65,24 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     env_file:
       - apps/backend/.env
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3000
       DATABASE_URL: postgres://meru_county:${POSTGRES_PASSWORD}@db:5432/meru_county_psb
       REDIS_URL: redis://redis:6379
       UPLOAD_DIR: /app/apps/backend/uploads
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
     volumes:
       - uploads:/app/apps/backend/uploads
       - ./apps/backend/sql:/app/apps/backend/sql
     ports:
-      - "3000:3000"
+      - "4000:3000"
     restart: unless-stopped
 
   web:
@@ -95,21 +90,20 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://api.merucountypublicserviceboard.or.ke
+        NEXT_PUBLIC_API_URL: http://localhost:4001
       cache_from:
         - web:latest
     container_name: meru-web
     depends_on:
       - api
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3001
       INTERNAL_BACKEND_URL: http://api:3000
     ports:
-      - "3001:3001"
+      - "4001:3001"
     restart: unless-stopped
 
-  # Database backup service (manual only)
   backup:
     image: postgres:15
     container_name: meru-backup
@@ -125,7 +119,7 @@ services:
       db:
         condition: service_healthy
     profiles:
-      - backup  # Run: docker compose --profile backup up backup
+      - backup
 
 volumes:
   postgres_data:

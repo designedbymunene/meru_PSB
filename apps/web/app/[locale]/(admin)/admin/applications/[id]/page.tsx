@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { ApplicationStatusBadge } from "@/components/admin/application-status-badge"
 import { format } from "date-fns"
 import { Separator } from "@/components/ui/separator"
-import { Mail, Phone, Calendar, User, CheckCircle, Loader2, Layout, X, FileText, Clock, Tag as TagIcon, Briefcase, Video, MapPin, Users } from "lucide-react"
+import { Mail, Phone, Calendar, User, CheckCircle, Loader2, Layout, X, FileText, Clock, Tag as TagIcon, Briefcase, Video, MapPin, Users, ClipboardList, Building2, ShieldCheck } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
 import { ProfileDetailView } from "@/components/admin/profile-detail-view"
@@ -330,213 +330,257 @@ function StandardView({
     onStatusClick: (status: string) => void
 }) {
     return (
-        <div className="grid gap-6 lg:grid-cols-12">
-            {/* Sidebar */}
-            <aside className="lg:col-span-4 space-y-4">
-                <div className="sticky top-4 space-y-4">
-                    {/* Interview Schedule Card */}
-                    {application.interviews?.[0] && (
-                        <Card className="border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/10 shadow-sm overflow-hidden">
-                            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-3 text-white flex items-center justify-between">
-                                <div className="flex items-center gap-2 font-semibold text-sm">
-                                    <Clock className="h-4 w-4" />
-                                    <span>Scheduled Interview</span>
+        <div className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-12">
+                {/* Sidebar */}
+                <aside className="lg:col-span-3 space-y-4">
+                    {/* Application Highlights Card */}
+                    <Card className="border-primary/20 bg-primary/5 overflow-hidden">
+                        <CardHeader className="pb-3 border-b border-primary/10 bg-white/50 dark:bg-slate-900/50">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <ClipboardList className="h-5 w-5 text-primary" />
+                                    <CardTitle className="text-lg">Application Highlights</CardTitle>
                                 </div>
-                                <Badge variant="secondary" className="bg-white/20 text-white border-none text-[10px] uppercase tracking-wider font-bold">
-                                    {application.interviews[0].virtualLink ? "Virtual / Online" : "Physical Venue"}
-                                </Badge>
                             </div>
-                            <CardContent className="p-4 space-y-3">
-                                <div className="flex items-start gap-2.5 text-xs">
-                                    <Calendar className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-                                    <div>
-                                        <p className="font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Date & Time</p>
-                                        <p className="font-semibold text-foreground mt-0.5">
-                                            {format(new Date(application.interviews[0].scheduledAt), "PPP p")}
-                                        </p>
-                                    </div>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                            <div className="grid grid-cols-1 gap-4">
+                                <HighlightItem 
+                                    label="Vacancy" 
+                                    value={vacancy?.title} 
+                                    subValue={vacancy?.advertisementNumber}
+                                    icon={<Briefcase className="h-4 w-4 text-primary/60" />}
+                                />
+                                <HighlightItem 
+                                    label="Department" 
+                                    value={vacancy?.department?.name || 'N/A'} 
+                                    icon={<Building2 className="h-4 w-4 text-primary/60" />}
+                                />
+                                <HighlightItem 
+                                    label="Job Group" 
+                                    value={vacancy?.jobGroup?.name || 'N/A'} 
+                                    icon={<TagIcon className="h-4 w-4 text-primary/60" />}
+                                />
+                                <HighlightItem 
+                                    label="Applied On" 
+                                    value={format(new Date(application.appliedAt), "MMM d, yyyy")} 
+                                    subValue={format(new Date(application.appliedAt), "p")}
+                                    icon={<Calendar className="h-4 w-4 text-primary/60" />}
+                                />
+                                 <HighlightItem 
+                                    label="Last Updated" 
+                                    value={format(new Date(application.updatedAt), "MMM d, yyyy")} 
+                                    icon={<Clock className="h-4 w-4 text-primary/60" />}
+                                />
+                            </div>
+                            
+                            {tags.length > 0 && (
+                                <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-primary/10">
+                                    <span className="text-[10px] font-black uppercase text-primary/40 tracking-widest mr-2">Tags:</span>
+                                    {tags.map((tag: string) => (
+                                        <Badge key={tag} variant="secondary" className="bg-primary/10 text-primary border-none text-[10px] h-5">
+                                            {tag}
+                                        </Badge>
+                                    ))}
                                 </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
-                                <Separator className="bg-emerald-500/10" />
-
-                                {application.interviews[0].virtualLink ? (
-                                    <div className="space-y-2.5">
-                                        <div className="flex items-start gap-2.5 text-xs">
-                                            <Video className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Virtual Meeting</p>
-                                                <p className="font-medium text-foreground mt-0.5 truncate">
-                                                    {application.interviews[0].venue || "Online Video Call"}
-                                                </p>
-                                            </div>
+                    <div className="sticky top-4 space-y-4">
+                        {/* Interview Schedule Card */}
+                        {application.interviews?.[0] && (
+                            <Card className="border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/10 shadow-sm overflow-hidden rounded-2xl">
+                                <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white flex items-center justify-between">
+                                    <div className="flex items-center gap-2 font-bold text-sm">
+                                        <Calendar className="h-4 w-4" />
+                                        <span>Interview Scheduled</span>
+                                    </div>
+                                    <Badge variant="secondary" className="bg-white/20 text-white border-none text-[10px] uppercase tracking-wider font-bold">
+                                        {application.interviews[0].virtualLink ? "Virtual" : "Physical"}
+                                    </Badge>
+                                </div>
+                                <CardContent className="p-5 space-y-4">
+                                    <div className="flex items-start gap-3">
+                                        <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                            <Clock className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                                         </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Date & Time</p>
+                                            <p className="font-bold text-slate-900 dark:text-slate-100 mt-0.5">
+                                                {format(new Date(application.interviews[0].scheduledAt), "PPP p")}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start gap-3">
+                                        <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                            {application.interviews[0].virtualLink ? <Video className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> : <MapPin className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Location / Venue</p>
+                                            <p className="font-bold text-slate-900 dark:text-slate-100 mt-0.5 truncate">
+                                                {application.interviews[0].venue || (application.interviews[0].virtualLink ? "Virtual Meeting" : "N/A")}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {application.interviews[0].virtualLink && (
                                         <Button 
-                                            size="sm" 
-                                            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm gap-2"
+                                            className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 mt-2 h-11"
                                             asChild
                                         >
                                             <a href={application.interviews[0].virtualLink} target="_blank" rel="noopener noreferrer">
-                                                <Video className="h-3.5 w-3.5" /> Join Virtual Interview
+                                                <Video className="h-4 w-4" /> Join Interview
                                             </a>
                                         </Button>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-start gap-2.5 text-xs">
-                                        <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
-                                        <div>
-                                            <p className="font-medium text-muted-foreground text-[10px] uppercase tracking-wider">Physical Venue</p>
-                                            <p className="font-semibold text-foreground mt-0.5">
-                                                {application.interviews[0].venue || "Boardroom / Main Office"}
-                                              </p>
-                                        </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                <Separator className="bg-emerald-500/10" />
-
-                                <ScheduleInterviewDialog
-                                    applicationId={application.id}
-                                    vacancyId={application.vacancyId}
-                                    existingInterview={application.interviews[0]}
-                                    trigger={
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="w-full text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 gap-1.5 h-8 font-semibold"
-                                        >
-                                            <Calendar className="h-3.5 w-3.5" /> Reschedule Interview
-                                        </Button>
-                                    }
-                                />
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Internal Notes, Tags & Status Pipeline */}
-                    <Card className="border-primary/20 bg-primary/5">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-base flex items-center gap-2">
-                                <FileText className="h-4 w-4" />
-                                Board Review
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Status Pipeline integrated here */}
-                            <div className="pb-1 overflow-x-auto no-scrollbar">
-                                <ApplicationStatusPipeline
-                                    currentStatus={application.status}
-                                    onStatusClick={onStatusClick}
-                                />
-                            </div>
-
-                            <Separator className="bg-primary/10" />
-
-                            <div className="grid grid-cols-2 gap-4">
-                                {tags.length > 0 && (
-                                    <div className="space-y-1.5">
-                                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Tags</p>
-                                        <div className="flex flex-wrap gap-1">
-                                            {tags.map((tag) => (
-                                                <Badge
-                                                    key={tag}
-                                                    variant="secondary"
-                                                    className="text-[9px] px-1.5 py-0 bg-background/50"
+                                    <div className="pt-2 border-t border-emerald-100 dark:border-emerald-900/30">
+                                        <ScheduleInterviewDialog
+                                            applicationId={application.id}
+                                            vacancyId={application.vacancyId}
+                                            existingInterview={application.interviews[0]}
+                                            trigger={
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="w-full text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950 font-bold h-9"
                                                 >
-                                                    {tag}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Contact</p>
-                                    <div className="space-y-1">
-                                        <ContactItem icon={Mail} value={application.applicant?.email} />
-                                        <ContactItem
-                                            icon={Phone}
-                                            value={isProfileLoading ? undefined : (profile?.phone || profile?.phoneNumber)}
-                                            fallback="No phone"
+                                                    Reschedule Interview
+                                                </Button>
+                                            }
                                         />
                                     </div>
-                                </div>
-                            </div>
-
-                            <Separator className="bg-primary/10" />
-
-                            <div>
-                                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Reviewer Comments</p>
-                                {application.notes ? (
-                                    <p className="text-xs leading-relaxed whitespace-pre-wrap line-clamp-4 hover:line-clamp-none transition-all">{application.notes}</p>
-                                ) : (
-                                    <p className="text-xs text-muted-foreground italic">No internal notes yet.</p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Application Details */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-sm font-semibold">Application Details</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <div>
-                                <h3 className="font-semibold text-xs">{vacancy?.title}</h3>
-                                <p className="text-[10px] text-muted-foreground">
-                                    Ref: {vacancy?.referenceNumber || "N/A"}
-                                </p>
-                            </div>
-                            <Separator />
-                            <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                    <p className="text-[9px] font-medium text-muted-foreground uppercase">Department</p>
-                                    <p className="text-xs truncate">{vacancy?.department?.name || "N/A"}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[9px] font-medium text-muted-foreground uppercase">Type</p>
-                                    <p className="text-xs truncate">{vacancy?.employmentType || "N/A"}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </aside>
-
-            {/* Main Content */}
-            <main className="lg:col-span-8 space-y-4">
-                {/* Profile */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Applicant Profile</CardTitle>
-                        <CardDescription>Complete professional profile for {application.applicant?.fullName}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {isProfileLoading ? (
-                            <div className="flex justify-center py-12">
-                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                            </div>
-                        ) : profile ? (
-                            <ProfileDetailView profile={profile} />
-                        ) : (
-                            <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg">
-                                <p>Profile not found</p>
-                            </div>
+                                </CardContent>
+                            </Card>
                         )}
-                    </CardContent>
-                </Card>
 
-                {/* Audit Trail */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Decision History</CardTitle>
-                        <CardDescription>Application audit trail and logs</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ApplicationAuditLogs logs={(application as any).auditLogs || []} />
-                    </CardContent>
-                </Card>
-            </main>
+                        {/* Internal Controls Card */}
+                        <Card className="rounded-2xl shadow-sm border-slate-200 dark:border-slate-800">
+                            <CardHeader className="pb-4">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    <ShieldCheck className="h-4 w-4 text-primary" />
+                                    Review Pipeline
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="pb-2 overflow-x-auto no-scrollbar">
+                                    <ApplicationStatusPipeline
+                                        currentStatus={application.status}
+                                        onStatusClick={onStatusClick}
+                                    />
+                                </div>
+
+                                <Separator className="bg-slate-100 dark:bg-slate-800" />
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Reviewer Notes</p>
+                                        {application.notes ? (
+                                            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">{application.notes}</p>
+                                        ) : (
+                                            <p className="text-sm text-slate-400 italic">No notes provided for this review stage.</p>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Email</p>
+                                            <ContactItem icon={Mail} value={application.applicant?.email} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Phone</p>
+                                            <ContactItem
+                                                icon={Phone}
+                                                value={isProfileLoading ? undefined : (profile?.phone || profile?.phoneNumber)}
+                                                fallback="Not set"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </aside>
+
+                {/* Main Content */}
+                <main className="lg:col-span-9 space-y-6">
+                    {/* Profile */}
+                    <Card className="rounded-2xl border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle className="text-xl">Candidate Portfolio</CardTitle>
+                                    <CardDescription className="font-medium">Complete professional documentation for {application.applicant?.fullName}</CardDescription>
+                                </div>
+                                <Button variant="outline" size="sm" asChild className="rounded-xl font-bold">
+                                    <Link href={`/admin/profiles/${application.applicantId}`}>
+                                        View Full Profile
+                                    </Link>
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {isProfileLoading ? (
+                                <div className="flex justify-center py-20">
+                                    <Loader2 className="h-10 w-10 animate-spin text-primary/40" />
+                                </div>
+                            ) : profile ? (
+                                <div className="p-6 pt-2">
+                                    <ProfileDetailView profile={profile} />
+                                </div>
+                            ) : (
+                                <div className="text-center py-20 text-slate-400">
+                                    <User className="h-12 w-12 mx-auto opacity-20 mb-4" />
+                                    <p className="font-medium">Profile data unavailable</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Audit Trail */}
+                    <Card className="rounded-2xl border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                            <CardTitle className="text-lg">Audit Trail</CardTitle>
+                            <CardDescription className="font-medium text-slate-500">History of all administrative actions on this application</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <ApplicationAuditLogs logs={(application as any).auditLogs || []} />
+                        </CardContent>
+                    </Card>
+                </main>
+            </div>
+        </div>
+    )
+}
+
+function HighlightItem({ 
+    label, 
+    value, 
+    subValue, 
+    icon 
+}: { 
+    label: string; 
+    value?: string | null; 
+    subValue?: string | null;
+    icon: React.ReactNode 
+}) {
+    return (
+        <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+                {icon}
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{label}</span>
+            </div>
+            <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate" title={value || ''}>
+                    {value || 'N/A'}
+                </p>
+                {subValue && (
+                    <p className="text-[10px] font-bold text-primary uppercase mt-0.5">{subValue}</p>
+                )}
+            </div>
         </div>
     )
 }
@@ -551,8 +595,8 @@ function ContactItem({
     fallback?: string
 }) {
     return (
-        <div className="flex items-center gap-2 text-sm">
-            <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <div className="flex items-center gap-2 text-[13px] font-bold text-slate-700 dark:text-slate-300">
+            <Icon className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
             <span className="truncate">{value || fallback || "N/A"}</span>
         </div>
     )

@@ -1,5 +1,6 @@
 import { useApplications } from '@/hooks/use-applications';
 import { useVacancies } from '@/hooks/use-vacancies';
+import { useUnreadNotificationCount } from '@/hooks/use-notifications';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import { Bell, Briefcase, Calendar, CheckCircle, ChevronRight, Clock, FileText, MapPin, Search } from 'lucide-react-native';
@@ -7,6 +8,7 @@ import { useColorScheme } from 'nativewind';
 import React, { useMemo } from 'react';
 import { Image, RefreshControl, ScrollView, Text, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated from 'react-native-reanimated';
 import { Header, HeaderAction } from '@/components/ui/header';
 import { useAuth } from '@/context/auth-context';
 import { getApiErrorMessage, getNormalizedApiError, getAvatarUrl } from '@/lib/api/client';
@@ -37,42 +39,28 @@ export default function DashboardScreen() {
         isLoading: isVacanciesLoading,
     } = useVacancies();
 
+    const { data: unreadCount, refetch: refetchUnreadCount } = useUnreadNotificationCount();
+
     const onRefresh = React.useCallback(async () => {
         setRefreshing(true);
         try {
-            await Promise.all([refetchApplications(), refetchVacancies()]);
+            await Promise.all([refetchApplications(), refetchVacancies(), refetchUnreadCount()]);
         } finally {
             setRefreshing(false);
         }
-    }, [refetchApplications, refetchVacancies]);
+    }, [refetchApplications, refetchVacancies, refetchUnreadCount]);
 
     const activeApp = useMemo(() => {
         const app = applications?.[0];
         if (!app) return null;
 
-        // If API already provides these, use them
-        if (app.progress !== undefined && app.nextStep) return app;
-
-        // Otherwise calculate them (mirrors TrackApplicationScreen logic)
-        const status = (app.status || 'pending').toLowerCase();
-        let progress = 0;
-        let nextStep = 'Application in review';
-
-        if (status === 'pending') {
-            progress = 30;
-            nextStep = 'Undergoing preliminary review';
-        } else if (status === 'reviewed') {
-            progress = 50;
-            nextStep = 'Shortlisting in progress';
-        } else if (status === 'accepted') {
-            progress = 100;
-            nextStep = 'Application successful';
-        } else if (status === 'rejected') {
-            progress = 100;
-            nextStep = 'Final decision reached';
-        }
-
-        return { ...app, progress, nextStep };
+        // Use backend-provided progress and nextStep values
+        // If not provided, set sensible defaults
+        return {
+            ...app,
+            progress: app.progress ?? 0,
+            nextStep: app.nextStep ?? 'Application in review',
+        };
     }, [applications]);
 
     if ((isApplicationsLoading || isVacanciesLoading) && !applications && !vacancies) {
@@ -103,19 +91,31 @@ export default function DashboardScreen() {
                 title="Meru County PSB"
                 subtitle="Public Service Board"
                 showBackButton={false}
-                leftAction={
-                    <View className="w-10 h-10 bg-slate-50 dark:bg-gray-900 rounded-xl items-center justify-center border border-gray-100 dark:border-gray-800">
-                        <Image 
-                            source={require('../../../assets/branding/merucountylogo.png')} 
-                            style={{ width: 24, height: 24 }}
-                            contentFit="contain"
-                        />
-                    </View>
-                }
+            leftAction={
+                <View className="w-10 h-10 bg-slate-50 dark:bg-gray-900 rounded-xl items-center justify-center border border-gray-100 dark:border-gray-800">
+                    <Animated.Image 
+                        sharedTransitionTag="appLogo"
+                        source={require('../../../assets/branding/merucountylogo.png')} 
+                        style={{ width: 24, height: 24 }}
+                        resizeMode="contain"
+                    />
+                </View>
+            }
                 rightAction={
                     <View className="flex-row items-center gap-2">
                         <HeaderAction
-                            icon={<Bell size={20} color={isDarkMode ? '#ffffff' : '#0f172a'} />}
+                            icon={
+                                <View className="relative p-1">
+                                    <Bell size={20} color={isDarkMode ? '#ffffff' : '#0f172a'} />
+                                    {unreadCount !== undefined && unreadCount > 0 ? (
+                                        <View className="absolute top-0 right-0 bg-red-600 rounded-full min-w-[14px] h-[14px] items-center justify-center px-0.5">
+                                            <Text className="text-[8px] text-white font-bold leading-none">
+                                                {unreadCount > 99 ? '99+' : unreadCount}
+                                            </Text>
+                                        </View>
+                                    ) : null}
+                                </View>
+                            }
                             onPress={() => router.push('/notifications')}
                         />
                         <Pressable

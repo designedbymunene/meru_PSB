@@ -83,7 +83,7 @@ export function PersonalInfoManager() {
             form.reset({
                 fullName: profile.fullName || '',
                 idNumber: profile.idNumber,
-                gender: profile.gender as 'Male' | 'Female' | 'Other',
+                gender: (profile.gender as 'Male' | 'Female' | 'Other') || 'Male',
                 dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.split(/[T ]/)[0] : new Date().toISOString().split('T')[0],
                 ethnicityId: profile.ethnicityId || undefined,
                 phoneNumber: profile.phoneNumber || '',

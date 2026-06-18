@@ -6,13 +6,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/client'
 
 // Set notification handler
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-    }),
-})
+try {
+    Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+            shouldShowBanner: true,
+            shouldShowList: true,
+        }),
+    })
+} catch (error) {
+    console.warn('[Notifications] Failed to set notification handler:', error)
+}
 
 export type NotificationType = 'application_status' | 'interview_reminder' | 'document_request' | 'application_update' | 'general'
 
@@ -44,8 +50,8 @@ export interface NotificationPreference {
 export function usePushNotifications() {
     const [expoPushToken, setExpoPushToken] = useState<string | undefined>()
     const [notification, setNotification] = useState<Notifications.Notification | undefined>()
-    const notificationListener = useRef<Notifications.EventSubscription>()
-    const responseListener = useRef<Notifications.EventSubscription>()
+    const notificationListener = useRef<Notifications.EventSubscription | null>(null)
+    const responseListener = useRef<Notifications.EventSubscription | null>(null)
 
     useEffect(() => {
         registerForPushNotificationsAsync().then(token => {
@@ -62,15 +68,15 @@ export function usePushNotifications() {
         responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             const { notification } = response
             const data = notification.request.content.data
-            handleNotificationResponse(data)
+            handleNotificationResponse(data || {})
         })
 
         return () => {
             if (notificationListener.current) {
-                Notifications.removeNotificationSubscription(notificationListener.current)
+                notificationListener.current.remove()
             }
             if (responseListener.current) {
-                Notifications.removeNotificationSubscription(responseListener.current)
+                responseListener.current.remove()
             }
         }
     }, [])
@@ -154,7 +160,9 @@ export function useNotifications(page = 1, limit = 10) {
             const response = await apiClient.get<any>('/notifications', {
                 params: { page, limit }
             })
-            return response.data.data
+            const data = response.data.data;
+            // Handle both direct array and nested data formats
+            return Array.isArray(data) ? data : (data?.data || []);
         }
     })
 }
@@ -163,8 +171,8 @@ export function useUnreadNotificationCount() {
     return useQuery({
         queryKey: ['notifications', 'unread-count'],
         queryFn: async () => {
-            const response = await apiClient.get<{ unreadCount: number }>('/notifications/unread-count')
-            return response.data.unreadCount
+            const response = await apiClient.get<any>('/notifications/unread-count')
+            return response.data.data?.unreadCount ?? 0
         },
         refetchInterval: 30000
     })
@@ -177,6 +185,35 @@ export function useMarkNotificationAsRead() {
         mutationFn: async (notificationId: number) => {
             const response = await apiClient.patch<Notification>(`/notifications/${notificationId}`)
             return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['notifications'] })
+            queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] })
+        }
+    })
+}
+
+export function useMarkAllNotificationsAsRead() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async () => {
+            const response = await apiClient.patch('/notifications/read-all')
+            return response.data
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['notifications'] })
+            queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] })
+        }
+    })
+}
+
+export function useDeleteNotification() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (notificationId: number) => {
+            await apiClient.delete(`/notifications/${notificationId}`)
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['notifications'] })

@@ -1,5 +1,6 @@
 import { db } from './index'
 import { ethnicities, educationLevels, educationGrades, institutions, courses, professionalBodies } from './schema'
+import { sql } from 'drizzle-orm'
 
 export async function seedReferenceData() {
     try {
@@ -16,31 +17,42 @@ export async function seedReferenceData() {
 
         // 2. Education Levels
         const levels = [
-            { name: 'Level 10 (Doctorate / PhD)', code: 'KNQF_LEVEL_10' },
-            { name: 'Level 9 (Master\'s Degree)', code: 'KNQF_LEVEL_9' },
-            { name: 'Level 8 (Postgrad Diploma / Professional Bachelor\'s)', code: 'KNQF_LEVEL_8' },
-            { name: 'Level 7 (Bachelor\'s Degree / Professional Diploma)', code: 'KNQF_LEVEL_7' },
-            { name: 'Level 6 (National Diploma / NSC V / HND)', code: 'KNQF_LEVEL_6' },
-            { name: 'Level 5 (Craft Certificate / NSC IV)', code: 'KNQF_LEVEL_5' },
-            { name: 'Level 4 (Artisan Certificate / NSC III / GTT I)', code: 'KNQF_LEVEL_4' },
-            { name: 'Level 3 (Senior Secondary / KCSE / NSC II / GTT II)', code: 'KNQF_LEVEL_3' },
-            { name: 'Level 2 (Junior Secondary / NSC I / GTT III)', code: 'KNQF_LEVEL_2' },
-            { name: 'Level 1 (Primary Certificate / Basic Skills)', code: 'KNQF_LEVEL_1' },
-            // Legacy levels for backward compatibility
-            { name: 'Kenya Certificate of Primary Education', code: 'KCPE' },
-            { name: 'Kenya Certificate of Secondary Education', code: 'KCSE' },
-            { name: 'Certificate', code: 'CERTIFICATE' },
-            { name: 'Diploma', code: 'DIPLOMA' },
+            { name: 'Doctorate / PhD', code: 'DOCTORATE' },
+            { name: 'Master\'s Degree', code: 'MASTERS' },
+            { name: 'Postgrad Diploma', code: 'POSTGRAD_DIPLOMA' },
+            { name: 'Bachelor\'s Degree', code: 'BACHELORS' },
             { name: 'Higher Diploma', code: 'HIGHER_DIPLOMA' },
-            { name: 'Bachelors Degree', code: 'BACHELORS' },
-            { name: 'Postgraduate Diploma', code: 'POSTGRAD_DIPLOMA' },
-            { name: 'Masters Degree', code: 'MASTERS' },
-            { name: 'Doctorate (PhD)', code: 'DOCTORATE' }
+            { name: 'Diploma', code: 'DIPLOMA' },
+            { name: 'Certificate', code: 'CERTIFICATE' },
+            { name: 'Secondary Education (KCSE)', code: 'KCSE' },
+            { name: 'Primary Education (KCPE)', code: 'KCPE' }
         ]
-        const seededLevelsResult = await db.insert(educationLevels).values(levels).onConflictDoNothing().returning()
+
+        // Map older KNQF codes to these new ones if they exist
+        const knqfToSimplified: Record<string, string> = {
+            'KNQF_LEVEL_10': 'DOCTORATE',
+            'KNQF_LEVEL_9': 'MASTERS',
+            'KNQF_LEVEL_8': 'POSTGRAD_DIPLOMA',
+            'KNQF_LEVEL_7': 'BACHELORS',
+            'KNQF_LEVEL_6': 'DIPLOMA',
+            'KNQF_LEVEL_5': 'CERTIFICATE',
+            'KNQF_LEVEL_4': 'CERTIFICATE',
+            'KNQF_LEVEL_3': 'KCSE',
+            'KNQF_LEVEL_2': 'KCSE',
+            'KNQF_LEVEL_1': 'KCPE',
+        }
+
+        const seededLevelsResult = await db.insert(educationLevels)
+            .values(levels)
+            .onConflictDoUpdate({
+                target: educationLevels.code,
+                set: { name: sql`EXCLUDED.name` }
+            })
+            .returning()
+        
         // If nothing was returned (already seeded), fetch them
         const seededLevels = seededLevelsResult.length > 0 ? seededLevelsResult : await db.select().from(educationLevels)
-        console.log('✅ Seeded education levels')
+        console.log('✅ Seeded/Updated education levels')
 
         // 3. Education Grades
         if (seededLevels.length > 0) {

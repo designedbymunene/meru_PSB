@@ -1,4 +1,5 @@
 import { createApiClient } from '@meru/shared';
+import Constants from 'expo-constants';
 import { authStorage } from '../auth/storage';
 import { authEvents } from '../auth/events';
 import { queryClient } from '../query/client';
@@ -12,11 +13,16 @@ export {
     type ApiErrorCategory
 } from '@meru/shared';
 
+// Get the machine's IP address dynamically from Expo's host URI
+// This works when using Expo Go or development builds
+const debuggerHost = Constants.expoConfig?.hostUri;
+const dynamicIP = debuggerHost?.split(':').shift();
+
 // Local development configuration
 // Set USE_LOCAL_IP to true when testing on a physical device
 // Set USE_LOCAL_IP to false when testing on iOS Simulator / Android Emulator
 const USE_LOCAL_IP = true;  // Change to false for simulator
-const LOCAL_IP = '192.168.100.88';  // Your machine's local network IP
+const LOCAL_IP = dynamicIP || '192.168.100.94';  // Your machine's local network IP (fallback)
 
 const baseURL = __DEV__
   ? USE_LOCAL_IP

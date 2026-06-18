@@ -30,7 +30,7 @@ function SkeletonBlock({ className = '' }: SkeletonProps) {
         return {
             opacity: opacity.value,
         };
-    }, [opacity]);
+    });
 
     return <Animated.View className={`bg-gray-200 dark:bg-gray-800 rounded-xl ${className}`} style={animatedStyle} />;
 }

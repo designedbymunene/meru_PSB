@@ -5,6 +5,7 @@ import { usePathname } from "@/i18n/routing"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { UserNav } from "@/components/layout/user-nav"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 // import { LanguageSwitcher } from "@/components/layout/language-switcher"
 import { Logo } from "@/components/shared/logo"
 import { Menu, LayoutDashboard, Briefcase, FileText } from "lucide-react"
@@ -63,6 +64,7 @@ export function Header() {
 
                 <div className="flex items-center gap-4">
                     {/* <LanguageSwitcher /> */}
+                    {isAuthenticated && <NotificationBell />}
                     <div className="hidden md:block">
                         <UserNav />
                     </div>

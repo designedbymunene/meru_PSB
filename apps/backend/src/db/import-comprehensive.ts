@@ -253,7 +253,7 @@ async function main() {
         const counts: Record<string, number> = {}
         const wantedTables = [
             'job_groups', 'departments', 'users', 'applicant_profiles', 'qualifications', 'employment_history',
-            'professional_memberships', 'professional_details', 'training_courses'
+            'professional_memberships', 'professional_details', 'training_courses', 'referees', 'applications'
         ]
         
         console.log('🧹 Truncating tables...')
@@ -445,17 +445,35 @@ async function processAndInsertBatch(client: any, block: CopyBlock, rows: any[],
             data.has_no_referees = r.has_no_referees || false
             return targetColumns.map((col: string) => data[col] ?? null)
         })
-    } else if (tableName === 'professional_details') {
+    } else {
+        // Generic mapping for simple tables with common legacy field handling
         transformedRows = rows.map(r => {
             const data: any = { ...r }
-            data.issuing_body = r.registration_body
-            data.license_type = 'Professional Registration'
-            data.issue_date = r.created_at ? r.created_at.split(' ')[0] : '2000-01-01'
+            
+            // Map applicant_id to applicant_profile_id if needed for child tables
+            if (!data.applicant_profile_id && (r.applicant_id || r.profile_id)) {
+                data.applicant_profile_id = r.applicant_id || r.profile_id
+            }
+
+            if (tableName === 'qualifications') {
+                data.level = r.level || r.education_level || 'UNKNOWN'
+                data.course = r.course || r.specialization || r.course_name || 'General'
+                data.institution = r.institution || r.institution_name || r.university || 'Unknown Institution'
+            }
+
+            if (tableName === 'professional_details') {
+                data.issuing_body = r.issuing_body || r.registration_body
+                data.license_type = r.license_type || 'Professional Registration'
+                data.issue_date = r.issue_date || (r.created_at ? r.created_at.split(' ')[0] : '2000-01-01')
+            }
+
+            if (tableName === 'employment_history') {
+                data.start_date = r.start_date || (r.from_date ? r.from_date.split(' ')[0] : '2000-01-01')
+                data.job_title = r.job_title || r.designation || 'Staff'
+            }
+
             return targetColumns.map((col: string) => data[col] ?? null)
         })
-    } else {
-        // Generic mapping for simple tables
-        transformedRows = rows.map(r => targetColumns.map((col: string) => r[col] ?? null))
     }
 
     await insertBatch(client, tableName, targetColumns, transformedRows, 'id')

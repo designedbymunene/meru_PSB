@@ -9,6 +9,7 @@ import {
     applicationFiltersSchema,
     bulkApplicationStatusSchema,
     applicationReviewSchema,
+    formatKNQFLevel,
     type BulkApplicationStatusInput,
     type ApplicationReviewInput
 } from '@meru/shared'
@@ -737,10 +738,27 @@ applicationsRouter.post(
 applicationsRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EXPORT_DATA', 'APPLICATION'), async (c) => {
     const status = c.req.query('status')
     const vacancyId = c.req.query('vacancyId')
+    const departmentId = c.req.query('departmentId')
 
     const whereConditions: (SQL | undefined)[] = []
     if (status) whereConditions.push(eq(applications.status, status))
     if (vacancyId) whereConditions.push(eq(applications.vacancyId, parseInt(vacancyId)))
+
+    // Filter by department through vacancy
+    if (departmentId) {
+        whereConditions.push(
+            exists(
+                db.select()
+                    .from(vacancies)
+                    .where(
+                        and(
+                            eq(vacancies.id, applications.vacancyId),
+                            eq(vacancies.departmentId, parseInt(departmentId))
+                        )
+                    )
+            )
+        )
+    }
 
     const filteredConditions = whereConditions.filter((c): c is SQL => !!c)
 
@@ -798,7 +816,6 @@ applicationsRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EX
         'Applicant Name', 'ID-Number', 'Gender', 'Date of Birth', 
         'Ethnicity', 'Tel. Contact', 'Email', 
         'Home County', 'Home Sub County', 'Ward', 
-        'Residence County', 'Residence Sub County', 'Residence Ward',
         'Impairment', 'Information on Public Service', 'Personal/Employment Number.', 
         'Qualification', 'Professional/Technical Details', 'Relevant Courses and Training Details', 
         'Membership', 'Employment history'
@@ -813,7 +830,7 @@ applicationsRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EX
         if (!profile) continue
 
         const qualifications = (profile.qualifications || []).map((q: any) =>
-            `${q.level} :: ${q.course} :: ${q.grade || 'N/A'} :: ${q.institution} :: ${q.yearStart} - ${q.yearEnd || 'Present'}`
+            `${q.course} (${formatKNQFLevel(q.level)}) :: ${q.grade || 'N/A'} :: ${q.institution} :: ${q.yearStart} - ${q.yearEnd || 'Present'}`
         ).join('\n')
 
         const profDetails = (profile.professionalDetails || []).map((p: any) =>
@@ -849,9 +866,6 @@ applicationsRouter.get('/admin/export', authenticate, requireAdmin, auditLog('EX
             profile.homeCounty?.name || profile.homeCounty || '',
             profile.homeSubCounty?.name || profile.homeSubCounty || '',
             profile.ward?.name || profile.ward || '',
-            profile.residenceCounty?.name || profile.residenceCounty || '',
-            profile.residenceSubCounty?.name || profile.residenceSubCounty || '',
-            profile.residenceWard?.name || profile.residenceWard || '',
             profile.impairment ? `YES: ${profile.impairmentDetails || ''}` : 'NO',
             profile.publicServiceInfo,
             profile.personalNumber,

@@ -12,6 +12,7 @@ import { subscribeToForegroundNotifications } from "@/lib/notifications/push";
 import { LogBox } from "react-native";
 import { Stack } from "expo-router";
 import { useOtaUpdates } from "@/hooks/use-ota-updates";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 LogBox.ignoreAllLogs();
 
@@ -36,15 +37,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={bgStyle}>
       <SafeAreaProvider>
-        <ThemeProvider isDark={isDark}>
-          <AppQueryProvider>
-            <AuthProvider>
-              <StatusBar style={isDark ? "light" : "dark"} />
-              <Toaster />
-              <Stack screenOptions={{ headerShown: false }} />
-            </AuthProvider>
-          </AppQueryProvider>
-        </ThemeProvider>
+        <ErrorBoundary onError={(error) => console.error('Root error boundary caught:', error)}>
+          <ThemeProvider isDark={isDark}>
+            <AppQueryProvider>
+              <AuthProvider>
+                <StatusBar style={isDark ? "light" : "dark"} />
+                <Toaster />
+                <Stack screenOptions={{ headerShown: false }} />
+              </AuthProvider>
+            </AppQueryProvider>
+          </ThemeProvider>
+        </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

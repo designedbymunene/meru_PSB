@@ -2,10 +2,11 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { User, LoginInput, RegisterInput, AuthResponse } from '@meru/shared';
 import { authStorage } from '../lib/auth/storage';
 import { apiClient } from '../lib/api/client';
-import { router, useRootNavigationState } from 'expo-router';
+import { router } from 'expo-router';
 import { toast } from 'sonner-native';
 import { authEvents } from '../lib/auth/events';
 import { registerDevicePushToken } from '../lib/notifications/push';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 interface AuthContextType {
     user: User | null;
@@ -18,6 +19,11 @@ interface AuthContextType {
     logout: () => Promise<void>;
     loginWithRefreshToken: (refreshToken: string) => Promise<void>;
     updateUser: (user: User) => Promise<void>;
+    isBiometricAvailable: boolean;
+    isBiometricEnabled: boolean;
+    setupBiometric: () => Promise<void>;
+    loginWithBiometric: () => Promise<void>;
+    disableBiometric: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,18 +31,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const rootNavigationState = useRootNavigationState();
-    const isNavigationReady = !!rootNavigationState?.key;
+    const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+    const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
 
     const loadUser = useCallback(async () => {
         try {
-            const [storedUser, token] = await Promise.all([
+            const [storedUser, token, biometricToken] = await Promise.all([
                 authStorage.getUser(),
-                authStorage.getAccessToken()
+                authStorage.getAccessToken(),
+                authStorage.getBiometricRefreshToken()
             ]);
-            
+
             if (storedUser && token) {
                 setUser(storedUser);
+                // Check if biometric is available and enabled
+                const compatible = await LocalAuthentication.hasHardwareAsync();
+                const enrolled = await LocalAuthentication.isEnrolledAsync();
+                setIsBiometricAvailable(compatible && enrolled);
+                setIsBiometricEnabled(!!biometricToken);
             } else if (storedUser || token) {
                 if (__DEV__) console.warn('[Auth] Inconsistent auth state detected, clearing session');
                 await authStorage.clearAll();
@@ -54,25 +66,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [loadUser]);
 
     useEffect(() => {
-        if (!user) return;
-
-        void registerDevicePushToken().catch((error) => {
-            if (__DEV__) {
-                console.warn('[Notifications] Push token registration failed', error);
-            }
-        });
+        // Register push token whenever user is available (on startup or login)
+        if (user) {
+            void registerDevicePushToken().catch((error) => {
+                if (__DEV__) {
+                    console.warn('[Notifications] Push token registration failed', error);
+                }
+            });
+        }
     }, [user]);
 
     useEffect(() => {
         const unsubscribe = authEvents.subscribe(() => {
             if (__DEV__) console.log('[Auth] Logout event received');
             setUser(null);
-            if (isNavigationReady) {
-                router.replace('/login');
-            }
+            router.replace('/login');
         });
         return unsubscribe;
-    }, [isNavigationReady]);
+    }, []);
 
     const login = async (credentials: LoginInput) => {
         try {
@@ -239,18 +250,109 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const setupBiometric = async () => {
+        try {
+            const compatible = await LocalAuthentication.hasHardwareAsync();
+            const enrolled = await LocalAuthentication.isEnrolledAsync();
+
+            if (!compatible || !enrolled) {
+                toast.error('Biometric Not Available', {
+                    description: 'Your device does not support biometric authentication or no biometric is enrolled.',
+                });
+                return;
+            }
+
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Authenticate to enable biometric login',
+                fallbackLabel: 'Use password',
+                cancelLabel: 'Cancel',
+            });
+
+            if (result.success) {
+                const refreshToken = await authStorage.getRefreshToken();
+                if (refreshToken) {
+                    await authStorage.setBiometricRefreshToken(refreshToken);
+                    setIsBiometricEnabled(true);
+                    toast.success('Biometric Enabled', {
+                        description: 'You can now use biometric login.',
+                    });
+                } else {
+                    toast.error('Session Required', {
+                        description: 'Please log in first before enabling biometric.',
+                    });
+                }
+            }
+        } catch (error: any) {
+            if (__DEV__) console.error('[Auth] Biometric setup failed', error);
+            // User cancelled or error - don't show error for cancellation
+            if (error?.code !== 'ERR_CANCELED') {
+                toast.error('Setup Failed', {
+                    description: 'Failed to enable biometric authentication.',
+                });
+            }
+        }
+    };
+
+    const loginWithBiometric = async () => {
+        try {
+            const refreshToken = await authStorage.getBiometricRefreshToken();
+
+            if (!refreshToken) {
+                toast.error('Biometric Not Setup', {
+                    description: 'Please enable biometric login first.',
+                });
+                return;
+            }
+
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Authenticate to login',
+                fallbackLabel: 'Use password',
+                cancelLabel: 'Cancel',
+            });
+
+            if (result.success) {
+                await loginWithRefreshToken(refreshToken);
+            }
+        } catch (error: any) {
+            if (__DEV__) console.error('[Auth] Biometric login failed', error);
+            // User cancelled or error
+            if (error?.code !== 'ERR_CANCELED') {
+                toast.error('Authentication Failed', {
+                    description: 'Biometric authentication failed.',
+                });
+            }
+        }
+    };
+
+    const disableBiometric = async () => {
+        try {
+            await authStorage.deleteBiometricRefreshToken();
+            setIsBiometricEnabled(false);
+            toast.info('Biometric Disabled', {
+                description: 'Biometric login has been disabled.',
+            });
+        } catch (error) {
+            console.error('Failed to disable biometric', error);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ 
-            user, 
-            isLoading: isLoading || !isNavigationReady, 
-            login, 
-            verify2fa, 
-            register, 
+        <AuthContext.Provider value={{
+            user,
+            isLoading,
+            login,
+            verify2fa,
+            register,
             requestLoginOtp,
             loginWithOtp,
             loginWithRefreshToken,
             logout,
-            updateUser
+            updateUser,
+            isBiometricAvailable,
+            isBiometricEnabled,
+            setupBiometric,
+            loginWithBiometric,
+            disableBiometric,
         }}>
             {children}
         </AuthContext.Provider>

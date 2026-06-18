@@ -103,7 +103,7 @@ export function QualificationsManager() {
 
     const { data: levelsResponse } = useEducationLevels()
     const levels = (levelsResponse?.data as any[]) || []
-    const filteredLevels = levels.filter(l => l.name.toLowerCase().includes('level'))
+    const filteredLevels = levels
 
     const { data: institutionsResponse } = useInstitutions()
     const institutions = (institutionsResponse?.data as any[]) || []
@@ -296,18 +296,15 @@ export function QualificationsManager() {
                                                                     setShowOtherLevelInput(false)
                                                                     field.onChange(val)
                                                                     
-                                                                    // Dynamic course value setting for levels 1-4 and legacy levels
-                                                                    if (val === 'KNQF_LEVEL_1' || val === 'KCPE') {
+                                                                    // Dynamic course value setting for school levels
+                                                                    if (val === 'KCPE' || val === 'KNQF_LEVEL_1') {
                                                                         form.setValue('course', 'Primary Education')
                                                                         form.setValue('courseId', undefined)
-                                                                    } else if (val === 'KNQF_LEVEL_2') {
-                                                                        form.setValue('course', 'Junior Secondary Education')
-                                                                        form.setValue('courseId', undefined)
-                                                                    } else if (val === 'KNQF_LEVEL_3' || val === 'KCSE') {
+                                                                    } else if (val === 'KCSE' || val === 'KNQF_LEVEL_3' || val === 'KNQF_LEVEL_2') {
                                                                         form.setValue('course', 'Secondary Education')
                                                                         form.setValue('courseId', undefined)
                                                                     } else if (val === 'KNQF_LEVEL_4') {
-                                                                        form.setValue('course', 'Artisan Certificate')
+                                                                        form.setValue('course', 'Certificate')
                                                                         form.setValue('courseId', undefined)
                                                                     } else {
                                                                         form.setValue('course', '')
@@ -341,6 +338,7 @@ export function QualificationsManager() {
 
                                             {!isLevel1To4(selectedLevelCode) && (
                                                 <div className="space-y-3">
+                                                    {!(form.watch('level') === 'KCPE' || form.watch('level') === 'KCSE') && (
                                                     <FormField
                                                         control={form.control}
                                                         name="courseId"
@@ -418,8 +416,9 @@ export function QualificationsManager() {
                                                             </FormItem>
                                                         )}
                                                     />
+                                                    )}
 
-                                                    {!form.watch('courseId') && (
+                                                    {!(form.watch('level') === 'KCPE' || form.watch('level') === 'KCSE') && !form.watch('courseId') && (
                                                         <FormField
                                                             control={form.control}
                                                             name="course"

@@ -13,56 +13,81 @@ const coerceNullableId = z.preprocess(
 // --- Qualification Levels and Grading Constants ---
 
 export const KNQF_LEVELS = [
-    'Level 10 (Doctorate / PhD)',
-    'Level 9 (Master\'s Degree)',
-    'Level 8 (Postgrad Diploma / Professional Bachelor\'s)',
-    'Level 7 (Bachelor\'s Degree / Professional Diploma)',
-    'Level 6 (National Diploma / NSC V / HND)',
-    'Level 5 (Craft Certificate / NSC IV)',
-    'Level 4 (Artisan Certificate / NSC III / GTT I)',
-    'Level 3 (Senior Secondary / KCSE / NSC II / GTT II)',
-    'Level 2 (Junior Secondary / NSC I / GTT III)',
-    'Level 1 (Primary Certificate / Basic Skills)',
+    'Doctorate / PhD',
+    'Master\'s Degree',
+    'Postgrad Diploma',
+    'Bachelor\'s Degree',
+    'Higher Diploma',
+    'Diploma',
+    'Certificate',
+    'Secondary Education (KCSE)',
+    'Primary Education (KCPE)',
 ] as const
 
 export type KNQFLevel = typeof KNQF_LEVELS[number]
 
 /**
- * Maps legacy qualification levels to their KNQF equivalents.
+ * Maps legacy qualification levels to their simplified equivalents.
  * Ensures backward compatibility with existing data.
  */
 export const LEGACY_LEVEL_MAP: Record<string, KNQFLevel> = {
-    'DOCTORATE': 'Level 10 (Doctorate / PhD)',
-    'MASTERS': 'Level 9 (Master\'s Degree)',
-    'BACHELORS': 'Level 7 (Bachelor\'s Degree / Professional Diploma)',
-    'DIPLOMA': 'Level 6 (National Diploma / NSC V / HND)',
-    'CERTIFICATE': 'Level 5 (Craft Certificate / NSC IV)',
-    'KCSE': 'Level 3 (Senior Secondary / KCSE / NSC II / GTT II)',
-    'KCPE': 'Level 1 (Primary Certificate / Basic Skills)',
+    'DOCTORATE': 'Doctorate / PhD',
+    'MASTERS': 'Master\'s Degree',
+    'POSTGRAD_DIPLOMA': 'Postgrad Diploma',
+    'BACHELORS': 'Bachelor\'s Degree',
+    'HIGHER_DIPLOMA': 'Higher Diploma',
+    'DIPLOMA': 'Diploma',
+    'CERTIFICATE': 'Certificate',
+    'KCSE': 'Secondary Education (KCSE)',
+    'KCPE': 'Primary Education (KCPE)',
 }
 
 export const KNQF_LEVEL_NAME_MAP: Record<string, string> = {
-    // KNQF Levels
-    'KNQF_LEVEL_10': 'Level 10 (Doctorate / PhD)',
-    'KNQF_LEVEL_9': 'Level 9 (Master\'s Degree)',
-    'KNQF_LEVEL_8': 'Level 8 (Postgrad Diploma / Professional Bachelor\'s)',
-    'KNQF_LEVEL_7': 'Level 7 (Bachelor\'s Degree / Professional Diploma)',
-    'KNQF_LEVEL_6': 'Level 6 (National Diploma / NSC V / HND)',
-    'KNQF_LEVEL_5': 'Level 5 (Craft Certificate / NSC IV)',
-    'KNQF_LEVEL_4': 'Level 4 (Artisan Certificate / NSC III / GTT I)',
-    'KNQF_LEVEL_3': 'Level 3 (Senior Secondary / KCSE / NSC II / GTT II)',
-    'KNQF_LEVEL_2': 'Level 2 (Junior Secondary / NSC I / GTT III)',
-    'KNQF_LEVEL_1': 'Level 1 (Primary Certificate / Basic Skills)',
+    // Simplified Levels
+    'Doctorate / PhD': 'Doctorate / PhD',
+    'Master\'s Degree': 'Master\'s Degree',
+    'Postgrad Diploma': 'Postgrad Diploma',
+    'Bachelor\'s Degree': 'Bachelor\'s Degree',
+    'Higher Diploma': 'Higher Diploma',
+    'Diploma': 'Diploma',
+    'Certificate': 'Certificate',
+    'Secondary Education (KCSE)': 'Secondary Education (KCSE)',
+    'Primary Education (KCPE)': 'Primary Education (KCPE)',
+    
+    // KNQF Codes (map directly to simplified names)
+    'KNQF_LEVEL_10': 'Doctorate / PhD',
+    'KNQF_LEVEL_9': 'Master\'s Degree',
+    'KNQF_LEVEL_8': 'Postgrad Diploma',
+    'KNQF_LEVEL_7': 'Bachelor\'s Degree',
+    'KNQF_LEVEL_6': 'Diploma',
+    'KNQF_LEVEL_5': 'Certificate',
+    'KNQF_LEVEL_4': 'Certificate',
+    'KNQF_LEVEL_3': 'Secondary Education (KCSE)',
+    'KNQF_LEVEL_2': 'Secondary Education (KCSE)',
+    'KNQF_LEVEL_1': 'Primary Education (KCPE)',
+
+    // Full KNQF Names (for backward compatibility)
+    'Level 10 (Doctorate / PhD)': 'Doctorate / PhD',
+    'Level 9 (Master\'s Degree)': 'Master\'s Degree',
+    'Level 8 (Postgrad Diploma / Professional Bachelor\'s)': 'Postgrad Diploma',
+    'Level 7 (Bachelor\'s Degree / Professional Diploma)': 'Bachelor\'s Degree',
+    'Level 6 (National Diploma / NSC V / HND)': 'Diploma',
+    'Level 5 (Craft Certificate / NSC IV)': 'Certificate',
+    'Level 4 (Artisan Certificate / NSC III / GTT I)': 'Certificate',
+    'Level 3 (Senior Secondary / KCSE / NSC II / GTT II)': 'Secondary Education (KCSE)',
+    'Level 2 (Junior Secondary / NSC I / GTT III)': 'Secondary Education (KCSE)',
+    'Level 1 (Primary Certificate / Basic Skills)': 'Primary Education (KCPE)',
+
     // Legacy levels
-    'DOCTORATE': 'Level 10 (Doctorate / PhD)',
-    'MASTERS': 'Level 9 (Master\'s Degree)',
-    'POSTGRAD_DIPLOMA': 'Level 8 (Postgrad Diploma / Professional Bachelor\'s)',
-    'BACHELORS': 'Level 7 (Bachelor\'s Degree / Professional Diploma)',
-    'HIGHER_DIPLOMA': 'Level 6 (National Diploma / NSC V / HND)',
-    'DIPLOMA': 'Level 6 (National Diploma / NSC V / HND)',
-    'CERTIFICATE': 'Level 5 (Craft Certificate / NSC IV)',
-    'KCSE': 'Level 3 (Senior Secondary / KCSE / NSC II / GTT II)',
-    'KCPE': 'Level 1 (Primary Certificate / Basic Skills)',
+    'DOCTORATE': 'Doctorate / PhD',
+    'MASTERS': 'Master\'s Degree',
+    'POSTGRAD_DIPLOMA': 'Postgrad Diploma',
+    'BACHELORS': 'Bachelor\'s Degree',
+    'HIGHER_DIPLOMA': 'Higher Diploma',
+    'DIPLOMA': 'Diploma',
+    'CERTIFICATE': 'Certificate',
+    'KCSE': 'Secondary Education (KCSE)',
+    'KCPE': 'Primary Education (KCPE)',
 }
 
 export function formatKNQFLevel(level: string): string {
