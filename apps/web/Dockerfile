@@ -16,7 +16,7 @@ COPY packages/shared/package.json ./packages/shared/
 COPY apps/web/package.json ./apps/web/
 
 # Install all dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --shamefully-hoist
 
 # Copy codebase
 COPY packages/shared ./packages/shared
@@ -27,7 +27,7 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Build web
-RUN pnpm --filter @meru/web build
+RUN cd apps/web && pnpm build
 
 # =========================
 # 2) RUNTIME
