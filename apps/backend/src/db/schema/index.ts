@@ -27,15 +27,16 @@ export * from './applicant-documents'
 export * from './shortlisting'
 export * from './interviews'
 export * from './board'
+export * from './archive'
 export * from './notifications'
 export * from './web-push-subscriptions'
-
 
 // Import tables and relations for schema object
 import { users, revokedTokens } from './users'
 import { activeSessions } from './active-sessions'
 import { vacancies } from './vacancies'
 import { applications } from './applications'
+import { applicationsArchive, vacanciesArchive } from './archive'
 import { departments } from './departments'
 import { jobGroups } from './job-groups'
 import { venues } from './venues'
@@ -143,6 +144,8 @@ export const schema = {
     notifications,
     notificationPreferences,
     webPushSubscriptions,
+    applicationsArchive,
+    vacanciesArchive,
     // Relations
     usersRelations,
     vacanciesRelations,

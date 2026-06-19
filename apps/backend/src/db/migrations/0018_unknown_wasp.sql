@@ -1,0 +1,40 @@
+CREATE TABLE "applications_archive" (
+	"id" integer PRIMARY KEY NOT NULL,
+	"original_id" integer NOT NULL,
+	"applicant_id" integer NOT NULL,
+	"vacancy_id" integer NOT NULL,
+	"status" varchar(20) NOT NULL,
+	"notes" text,
+	"tags" jsonb DEFAULT '[]'::jsonb,
+	"rating" integer,
+	"reviewed_at" timestamp with time zone,
+	"reviewed_by" integer,
+	"rejection_reason" text,
+	"feedback_to_applicant" text,
+	"profile_snapshot" jsonb,
+	"last_step" integer,
+	"partial_data" jsonb,
+	"applied_at" timestamp with time zone NOT NULL,
+	"archived_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "vacancies_archive" (
+	"id" integer PRIMARY KEY NOT NULL,
+	"original_id" integer NOT NULL,
+	"advertisement_number" varchar(100) NOT NULL,
+	"title" text NOT NULL,
+	"description" text NOT NULL,
+	"department_id" integer,
+	"job_group_id" integer NOT NULL,
+	"closing_date" date NOT NULL,
+	"open_positions" integer DEFAULT 1 NOT NULL,
+	"job_requirements" json NOT NULL,
+	"job_responsibilities" json NOT NULL,
+	"status" varchar(20) NOT NULL,
+	"created_by" integer NOT NULL,
+	"archived_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);

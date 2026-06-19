@@ -7,6 +7,7 @@ import { getHealthReport } from './utils/health'
 import { timeout } from 'hono/timeout'
 import { pool } from './db'
 import { notificationWorker } from './workers/notification-worker'
+import { recruitmentCycleWorker } from './workers/recruitment-cycle-worker'
 import { redisConnection } from './utils/queue'
 
 // Import routes
@@ -201,9 +202,10 @@ const gracefulShutdown = async (signal: string) => {
   logger.info('Closing background workers...')
   try {
     await notificationWorker.close()
-    logger.info('Background worker closed')
+    await recruitmentCycleWorker.close()
+    logger.info('Background workers closed')
   } catch (err) {
-    logger.error({ err }, 'Error closing background worker')
+    logger.error({ err }, 'Error closing background workers')
   }
 
   logger.info('Closing Redis connection...')

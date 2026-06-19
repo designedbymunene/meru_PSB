@@ -127,6 +127,20 @@
       "when": 1780583691273,
       "tag": "0017_overrated_mandarin",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1781796479276,
+      "tag": "0018_unknown_wasp",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1781796549387,
+      "tag": "0019_groovy_spot",
+      "breakpoints": true
     }
   ]
 }

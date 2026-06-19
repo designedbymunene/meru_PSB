@@ -65,6 +65,13 @@ export function QuickActions() {
             href: "/admin/settings",
             icon: Settings,
             color: "text-slate-600 bg-slate-50 dark:bg-slate-900/20",
+        },
+        {
+            title: "Trigger Cycle Transition",
+            description: "Manually archive past vacancies",
+            href: "#",
+            icon: Scale,
+            color: "text-red-600 bg-red-50 dark:bg-red-900/20",
         }
     ]
 
@@ -81,17 +88,49 @@ export function QuickActions() {
                             key={action.title}
                             variant="outline"
                             className="h-auto p-4 flex flex-col items-start gap-2 text-left hover:bg-slate-50 dark:hover:bg-slate-900 transition-all border-slate-200 dark:border-slate-800 rounded-2xl"
-                            asChild
+                            asChild={action.href !== "#"}
+                            onClick={action.href === "#" ? async () => {
+                                if (confirm("Are you sure you want to trigger the recruitment cycle transition? This will archive all expired vacancies.")) {
+                                    try {
+                                        const response = await fetch('/api/vacancies/admin/trigger-cycle-transition', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${localStorage.getItem('token')}` // Adjust based on your auth implementation
+                                            }
+                                        });
+                                        if (response.ok) {
+                                            alert("Recruitment cycle transition triggered successfully.");
+                                        } else {
+                                            alert("Failed to trigger recruitment cycle transition.");
+                                        }
+                                    } catch (error) {
+                                        alert("An error occurred.");
+                                    }
+                                }
+                            } : undefined}
                         >
-                            <Link href={action.href}>
-                                <div className={`p-2 rounded-xl ${action.color}`}>
-                                    <action.icon className="h-5 w-5" />
-                                </div>
-                                <div>
-                                    <p className="font-bold text-sm">{action.title}</p>
-                                    <p className="text-xs text-muted-foreground font-medium">{action.description}</p>
-                                </div>
-                            </Link>
+                            {action.href !== "#" ? (
+                                <Link href={action.href}>
+                                    <div className={`p-2 rounded-xl ${action.color}`}>
+                                        <action.icon className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm">{action.title}</p>
+                                        <p className="text-xs text-muted-foreground font-medium">{action.description}</p>
+                                    </div>
+                                </Link>
+                            ) : (
+                                <>
+                                    <div className={`p-2 rounded-xl ${action.color}`}>
+                                        <action.icon className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm">{action.title}</p>
+                                        <p className="text-xs text-muted-foreground font-medium">{action.description}</p>
+                                    </div>
+                                </>
+                            )}
                         </Button>
                     ))}
                 </div>

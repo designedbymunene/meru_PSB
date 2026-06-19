@@ -7,8 +7,15 @@ import { successResponse, NotFoundError } from '../utils/errors'
 import { VacancyService } from '../services/vacancy-service'
 import { publicRateLimiter } from '../middleware/rateLimiter'
 import { AuditService } from '../services/audit-service'
+import { recruitmentCycleQueue } from '../utils/queue'
 
 export const vacanciesRouter = new Hono()
+
+// POST /api/vacancies/admin/trigger-cycle-transition - Trigger recruitment cycle transition (admin only)
+vacanciesRouter.post('/admin/trigger-cycle-transition', authenticate, requireAdmin, async (c) => {
+    await recruitmentCycleQueue.add('trigger-cycle-transition', {});
+    return successResponse(c, null, 'Recruitment cycle transition job triggered successfully');
+})
 
 // ============ STATS ENDPOINT ============
 

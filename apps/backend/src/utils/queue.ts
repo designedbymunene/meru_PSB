@@ -24,7 +24,8 @@ redisConnection.on('error', (error) => {
 
 // Configure Queue name constants
 export const QUEUE_NAMES = {
-    NOTIFICATIONS: 'notifications'
+    NOTIFICATIONS: 'notifications',
+    RECRUITMENT_CYCLE: 'recruitment-cycle'
 } as const;
 
 // Create BullMQ queue instance
@@ -41,4 +42,13 @@ export const notificationQueue = new Queue(QUEUE_NAMES.NOTIFICATIONS, {
     }
 });
 
-logger.info('[Queue] Notification Queue initialized');
+export const recruitmentCycleQueue = new Queue(QUEUE_NAMES.RECRUITMENT_CYCLE, {
+    connection: redisConnection,
+    defaultJobOptions: {
+        attempts: 1, // Don't retry automatically for critical DB tasks
+        removeOnComplete: true,
+        removeOnFail: false
+    }
+});
+
+logger.info('[Queue] Notification and Recruitment Cycle Queues initialized');

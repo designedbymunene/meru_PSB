@@ -1,0 +1,2 @@
+ALTER TABLE "applications_archive" ALTER COLUMN "id" ADD GENERATED ALWAYS AS IDENTITY (sequence name "applications_archive_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1);--> statement-breakpoint
+ALTER TABLE "vacancies_archive" ALTER COLUMN "id" ADD GENERATED ALWAYS AS IDENTITY (sequence name "vacancies_archive_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1);
