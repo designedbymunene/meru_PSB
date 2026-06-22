@@ -6,18 +6,19 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 RUN apk add --no-cache libc6-compat
-RUN npm install -g pnpm
 
 # Copy workspace configuration and lockfile
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 
-# Copy package files for dependency caching
+# Copy package files
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/web/package.json ./apps/web/
-COPY apps/web/.npmrc ./apps/web/
 
-# Install all dependencies with Next.js kept local (updated .npmrc v2)
-RUN pnpm install --frozen-lockfile && echo "Build cache invalidated"
+# Install pnpm for workspace setup
+RUN npm install -g pnpm
+
+# Install dependencies with pnpm to maintain workspace consistency
+RUN pnpm install --frozen-lockfile
 
 # Copy codebase
 COPY packages/shared ./packages/shared
@@ -28,8 +29,8 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NODE_ENV=production
 
-# Build Next.js app - use npm run from apps/web to avoid pnpm symlink issues
-RUN cd apps/web && npm run build
+# Build Next.js using npm with node path to help find modules
+RUN cd apps/web && NODE_PATH=/app/node_modules:/app/apps/web/node_modules npm run build
 
 # =========================
 # 2) RUNTIME
