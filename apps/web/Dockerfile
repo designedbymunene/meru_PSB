@@ -28,8 +28,9 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NODE_ENV=production
 
-# Build Next.js app - use pnpm filter with exec for proper module resolution
-RUN pnpm --filter @meru/web exec next build
+# Build Next.js app - use Node directly with absolute path to Next.js binary
+# The --cwd flag tells Next.js where the project is located
+RUN node node_modules/next/dist/bin/next build --cwd apps/web
 
 # =========================
 # 2) RUNTIME
