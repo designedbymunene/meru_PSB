@@ -5,7 +5,7 @@ services:
     container_name: meru-db-prod
     environment:
       POSTGRES_DB: meru_county_psb
-      POSTGRES_USER: meru_county
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
@@ -25,9 +25,33 @@ services:
     container_name: meru-api-prod
     environment:
       NODE_ENV: production
-      PORT: 3000
-      DATABASE_URL: postgres://meru_county:${POSTGRES_PASSWORD}@db:5432/meru_county_psb
+      PORT: 4000
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/meru_county_psb
       REDIS_URL: redis://redis:6379
+      # JWT Configuration
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-7d}
+      # Web Push Notification (VAPID)
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@merupsb.go.ke}
+      # SMTP Configuration
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM:-"Meru County PSB <noreply@merupsb.go.ke>"}
+      # Password Reset Webhook
+      PASSWORD_RESET_EMAIL_WEBHOOK_URL: ${PASSWORD_RESET_EMAIL_WEBHOOK_URL}
+      PASSWORD_RESET_EMAIL_WEBHOOK_TOKEN: ${PASSWORD_RESET_EMAIL_WEBHOOK_TOKEN}
+      # App Configuration
+      FRONTEND_URL: ${FRONTEND_URL:-https://recruitment.merucountypublicserviceboard.or.ke}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://recruitment.merucountypublicserviceboard.or.ke}
+      UPLOAD_DIR: ${UPLOAD_DIR:-./uploads}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5242880}
     restart: unless-stopped
 
   web:
