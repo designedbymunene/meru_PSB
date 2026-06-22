@@ -16,8 +16,8 @@ COPY packages/shared/package.json ./packages/shared/
 COPY apps/web/package.json ./apps/web/
 COPY apps/web/.npmrc ./apps/web/
 
-# Install all dependencies with .npmrc hoisting configuration
-RUN pnpm install --frozen-lockfile && pnpm store prune
+# Install all dependencies with fixed hoisting (Next.js kept local)
+RUN pnpm install --frozen-lockfile
 
 # Copy codebase
 COPY packages/shared ./packages/shared
@@ -28,8 +28,8 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NODE_ENV=production
 
-# Build Next.js app - run from root to access hoisted Next.js binary
-RUN pnpm --filter @meru/web build
+# Build Next.js app - Next.js is now local to apps/web
+RUN cd apps/web && pnpm build
 
 # =========================
 # 2) RUNTIME
