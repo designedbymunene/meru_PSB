@@ -28,8 +28,8 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NODE_ENV=production
 
-# Build Next.js app - use pnpm exec from apps/web to find Next.js
-RUN cd apps/web && pnpm exec next build
+# Build Next.js app - use npm run from apps/web to avoid pnpm symlink issues
+RUN cd apps/web && npm run build
 
 # =========================
 # 2) RUNTIME
