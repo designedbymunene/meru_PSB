@@ -9,7 +9,7 @@ RUN apk add --no-cache libc6-compat
 RUN npm install -g pnpm
 
 # Copy workspace configuration and lockfile
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 
 # Copy package files for dependency caching
 COPY packages/shared/package.json ./packages/shared/
@@ -28,7 +28,7 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Ensure Next.js is available and build web
-RUN pnpm --filter @meru/web exec next build
+RUN pnpm run --filter @meru/web build
 
 # =========================
 # 2) RUNTIME
