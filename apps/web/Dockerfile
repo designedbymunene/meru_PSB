@@ -16,8 +16,8 @@ COPY packages/shared/package.json ./packages/shared/
 COPY apps/web/package.json ./apps/web/
 COPY apps/web/.npmrc ./apps/web/
 
-# Install all dependencies with fixed hoisting (Next.js kept local)
-RUN pnpm install --frozen-lockfile
+# Install all dependencies with Next.js kept local (updated .npmrc v2)
+RUN pnpm install --frozen-lockfile && echo "Build cache invalidated"
 
 # Copy codebase
 COPY packages/shared ./packages/shared
