@@ -26,9 +26,10 @@ COPY apps/web ./apps/web
 # Set environment variables for build
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NODE_ENV=production
 
 # Ensure Next.js is available and build web
-RUN pnpm run --filter @meru/web build
+RUN cd apps/web && npx next build
 
 # =========================
 # 2) RUNTIME
