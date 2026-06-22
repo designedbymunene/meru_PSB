@@ -42,7 +42,7 @@ COPY --from=builder /app/apps/backend/node_modules ./apps/backend/node_modules
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
 COPY --from=builder /app/apps/backend/package.json ./apps/backend/package.json
 COPY --from=builder /app/apps/backend/drizzle.config.ts ./apps/backend/drizzle.config.ts
-COPY --from=builder /app/apps/backend/src/db ./apps/backend/src/db
+COPY --from=builder /app/apps/backend/src ./apps/backend/src
 COPY --from=builder /app/packages/shared ./packages/shared
 
 # Create uploads directories and set ownership to app user
