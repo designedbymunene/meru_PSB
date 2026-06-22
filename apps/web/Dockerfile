@@ -8,8 +8,8 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat
 RUN npm install -g pnpm
 
-# Copy workspace configuration
-COPY pnpm-workspace.yaml package.json ./
+# Copy workspace configuration and lockfile
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/web/package.json ./apps/web/
 
