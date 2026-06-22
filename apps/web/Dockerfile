@@ -28,8 +28,8 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NODE_ENV=production
 
-# Build Next.js app using pnpm exec from root (handles module resolution)
-RUN pnpm exec --filter @meru/web next build
+# Build Next.js app - use pnpm filter with exec for proper module resolution
+RUN pnpm --filter @meru/web exec next build
 
 # =========================
 # 2) RUNTIME
