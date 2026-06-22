@@ -26,8 +26,10 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NODE_ENV=production
 
-# Build Next.js app - next binary is at root due to shamefully-hoist
-RUN node node_modules/next/dist/bin/next build apps/web
+# Build Next.js app from the web directory to resolve config paths correctly
+# Next.js is hoisted to root, so we access it via ../../node_modules
+WORKDIR /app/apps/web
+RUN node ../../node_modules/next/dist/bin/next build
 
 # =========================
 # 2) RUNTIME
